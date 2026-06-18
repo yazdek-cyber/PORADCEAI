@@ -12,7 +12,7 @@ Zmapováno do `CLAUDE.md`. Zjištění:
 ## Úlohy
 | # | Úloha | Stav | Poznámka |
 |---|-------|------|----------|
-| 1 | Audit a stabilizace jádra | 🔄 | Audit hotov; ladění chunkingu/promptu/zdrojů + 5-dotazový test |
+| 1 | Audit a stabilizace jádra | ✅ | Práh podobnosti 0.65 + zkratka „nenašel jsem"; 5-dotazový test prošel |
 | 2 | OCR fallback pro skeny | ⬜ | Plán: detekce textu, OCR přes Gemini vision (multimodál) |
 | 3 | Vícezdrojové vyhledávání (filtr pojišťoven) | ⬜ | Filtr v „Ptám se" + `pojistovna` parametr v `hledej_chunky` |
 | 4 | „Řeším případ" | 🔄 | Existuje; ověřit specifičnost/podloženost na 3 profilech |
@@ -34,3 +34,8 @@ Zmapováno do `CLAUDE.md`. Zjištění:
 
 ## Log
 - Založen CLAUDE.md + POKROK.md, git baseline.
+- **ÚLOHA 1 ✅** — Změřeno rozložení podobností: relevantní 72–79 %, irelevantní ≤ 59 %.
+  Přidán práh `MIN_PODOBNOST = 0.65` v `askChatAction` + zkratka (bez volání Gemini)
+  když nic relevantního. Test 5 dotazů (3 v dok / 2 mimo) prošel: zdroje sedí, mimo dok
+  „nenašel jsem" bez falešných zdrojů. Systémový prompt už striktní — beze změny.
+  Chunking (3200/400) dává dobrou separaci — ponechán.

@@ -10,6 +10,11 @@ interface ChatMessage {
   content: string;
 }
 
+// Minimální cosine podobnost, aby byl chunk považován za relevantní.
+// Empiricky naměřeno (ÚLOHA 1): relevantní dotazy 72–78 %, irelevantní ≤ 59 %.
+// Práh 0.65 leží v mezeře → odfiltruje nesouvisející kontext (žádné „falešné" zdroje).
+const MIN_PODOBNOST = 0.65;
+
 /**
  * Zkontroluje, zda jsou nastaveny všechny potřebné klíče v env.
  */
@@ -125,18 +130,29 @@ export async function askChatAction(query: string, history: ChatMessage[]) {
     // 1. Generování embeddingu pro dotaz uživatele
     const queryEmbedding = await getEmbedding(query, 'RETRIEVAL_QUERY');
 
-    // 2. Vyhledání nejpodobnějších chunků v Supabase
-    // Hledáme top 8 chunků
+    // 2. Vyhledání nejpodobnějších chunků v Supabase (bereme víc a pak filtrujeme prahem)
     const { data: chunks, error: rpcError } = await supabaseAdmin.rpc('hledej_chunky', {
       dotaz_embedding: queryEmbedding,
-      pocet: 8,
+      pocet: 10,
     });
 
     if (rpcError) {
       throw new Error(`Chyba vyhledávání v databázi: ${rpcError.message}`);
     }
 
-    const contextChunks = chunks || [];
+    // Filtr relevance: jen chunky nad prahem podobnosti se použijí jako kontext i jako zdroje.
+    const contextChunks = (chunks || [])
+      .filter((c: any) => c.podobnost >= MIN_PODOBNOST)
+      .slice(0, 8);
+
+    // Pokud nic relevantního, vůbec nevoláme model — rovnou poctivě přiznáme, že to v podmínkách není.
+    if (contextChunks.length === 0) {
+      return {
+        success: true,
+        answer: 'Tuto informaci jsem v nahraných podmínkách nenašel.',
+        chunks: [],
+      };
+    }
 
     // 3. Generování odpovědi pomocí Gemini na základě vyhledaných chunků
     const answer = await generateChatResponse(history, contextChunks);
