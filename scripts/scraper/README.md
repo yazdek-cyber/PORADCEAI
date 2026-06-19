@@ -20,12 +20,20 @@ PORTAL_LOGIN_URL=https://portal.tvojefirma.cz/login
    ```
    V okně se přihlas (heslo + 2FA), pak v terminálu stiskni Enter. Uloží se `.session.json`.
 
-2. **Stažení stránek:**
+2. **Stažení stránek (statický DOM):**
    - Do `stranky.json` dej seznam URL, které chceš stáhnout.
    - ```bash
      npx tsx scripts/scraper/stahni.ts
      ```
    - Výstupy (HTML + text) se uloží do `scripts/scraper/data/`.
+
+2B. **Odchyt JSON API (DOPORUČENO pro Angular SPA jako eDO):**
+   - ```bash
+     npx tsx scripts/scraper/odchyt-api.ts
+     ```
+   - Otevře okno; ručně proklikej portál (analýza, produkty…). Skript zaznamená
+     všechna JSON volání na backend do `data/api/` + mapu endpointů `_endpointy.json`.
+   - Z toho jde postavit přímá a stabilní integrace (čistší než scrapovat DOM).
 
 3. Pošli jeden výstup zpět → doladí se konkrétní extrakce:
    - **produkty/sazby** → tabulka `produkty` (vstup do kalkulaček),
