@@ -36,6 +36,10 @@ yarn-error.log*
 # vercel
 .vercel
 
+# scraper firemního portálu — citlivé: přihlášená relace a stažená data
+scripts/scraper/.session.json
+scripts/scraper/data/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
