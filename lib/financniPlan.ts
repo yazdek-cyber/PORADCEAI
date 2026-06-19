@@ -53,10 +53,13 @@ export interface FinCil {
   nasporeno?: number; // už naspořeno na tento cíl
 }
 
+// Celý plán počítá v REÁLNÝCH hodnotách (dnešní hodnota peněz, výnosy NAD inflaci) — dle
+// metodiky KFP. Výnosy odpovídají historickým reálným (akcie 7,27 %, dluhopisy 1,81 %),
+// volatilita je roční směrodatná odchylka (v reálných i nominálních termínech ~stejná).
 const RIZIKO: Record<RizikovyProfil, { vynos: number; volatilita: number }> = {
-  konzervativni: { vynos: 0.03, volatilita: 0.06 },
-  vyvazeny: { vynos: 0.055, volatilita: 0.11 },
-  dynamicky: { vynos: 0.08, volatilita: 0.17 },
+  konzervativni: { vynos: 0.025, volatilita: 0.06 },
+  vyvazeny: { vynos: 0.045, volatilita: 0.11 },
+  dynamicky: { vynos: 0.065, volatilita: 0.17 },
 };
 
 // Orientační defaulty, když zdroje sazeb zatím nemají data (skeleton).
@@ -130,11 +133,12 @@ export async function pripravPodklady(profil: FinPlanProfil): Promise<Vypocty> {
   const rezervaUrovne = pojisteni.rezervaUrovne(profil.vydaje);
 
   // — POJIŠTĚNÍ — DIME potřeba krytí
-  const rokyNahrady = Math.max(5, Math.min(20, 18 - 0)); // konzervativně do osamostatnění dětí
+  // Roky náhrady příjmu: s dětmi do osamostatnění (zjednodušeně 18), bez dětí kratší (5).
+  const ROKY_NAHRADY_S_DETMI = 18;
   const pojistnaPotreba = pojisteni.pojistnaPotreba_DIME({
     dluhy: profil.jineDluhy ?? 0,
     mesicniPrijem: profil.cistyPrijem,
-    rokyNahradyPrijmu: (profil.pocetDeti ?? 0) > 0 ? rokyNahrady : 5,
+    rokyNahradyPrijmu: (profil.pocetDeti ?? 0) > 0 ? ROKY_NAHRADY_S_DETMI : 5,
     hypoteka: profil.hypotekaZustatek ?? 0,
     nakladyNaDeti: (profil.pocetDeti ?? 0) * NAKLAD_NA_DITE,
     jizKDispozici: profil.existujiciInvestice ?? 0,
@@ -149,6 +153,7 @@ export async function pripravPodklady(profil: FinPlanProfil): Promise<Vypocty> {
   const maxUver = uvery.maxUver({
     cistyMesicniPrijem: profil.cistyPrijem,
     stavajiciMesicniSplatky: profil.mesicniSplatkyDluhu ?? 0,
+    stavajiciCelkovyDluh: (profil.hypotekaZustatek ?? 0) + (profil.jineDluhy ?? 0),
     rocniSazba: trzniSazba,
     pocetMesicu: 360,
   });
@@ -240,7 +245,7 @@ export async function pripravPodklady(profil: FinPlanProfil): Promise<Vypocty> {
   const edoKryti = pojisteni.pojistnaPotreba_eDO({ mesicniCistyPrijem: profil.cistyPrijem, vek: profil.vek });
   const efpaKryti = pojisteni.pojistnaPotreba_EFPA({
     mesicniDeficitSmrt: Math.round(profil.cistyPrijem * 0.8), // výpadek příjmu po poklesu výdajů
-    mesicniDeficitInvalidita: profil.cistyPrijem, // výpadek příjmu (invalidní důchod řeší odečet)
+    mesicniDeficitInvalidita: Math.round(profil.cistyPrijem * 1.2), // výdaje ~120 % (invalidní důchod řeší odečet)
     pocetDeti: profil.pocetDeti ?? 0,
     sezdany: profil.partner ?? false,
     soucasnyMajetek: profil.existujiciInvestice ?? 0,
@@ -273,6 +278,7 @@ export function formatujPodklady(profil: FinPlanProfil, v: Vypocty): string {
   const f = (x: number) => kc(x).toLocaleString('cs-CZ');
   const pct = (x: number) => (x * 100).toFixed(1) + ' %';
   const radky: string[] = [];
+  radky.push('_Všechny částky jsou v dnešní hodnotě peněz (reálné, výnosy nad inflaci) — metodika KFP._');
 
   radky.push('## REZERVA (likvidní, metodika KFP)');
   radky.push(`- Doporučená rezerva (${v.rezerva.mesicu}× měs. výdaje): ${f(v.rezerva.doporucenaRezerva)} Kč · Chybí: ${f(v.rezerva.chybiDoRezervy)} Kč`);

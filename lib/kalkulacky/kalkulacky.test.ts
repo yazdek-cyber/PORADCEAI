@@ -44,6 +44,11 @@ console.log('— ÚVĚRY —');
   ok(mu.maxUver > 0, `maxUver > 0 (=${mu.maxUver})`);
   ok(blizko(mu.splatkaPriMaxUveru, 22_500, 0.02), 'splátka při max ≈ 45 % příjmu (DSTI)');
 
+  // OPRAVA auditu: DTI zohledňuje stávající dluh → menší prostor pro nový úvěr.
+  const muBezDluhu = uvery.maxUver({ cistyMesicniPrijem: 50_000, rocniSazba: 0.05, pocetMesicu: 360 });
+  const muSDluhem = uvery.maxUver({ cistyMesicniPrijem: 50_000, stavajiciCelkovyDluh: 3_000_000, rocniSazba: 0.05, pocetMesicu: 360 });
+  ok(muSDluhem.dleDTI === muBezDluhu.dleDTI - 3_000_000, 'DTI: stávající dluh se odečítá od stropu');
+
   // LTV strop: nemovitost 2M, LTV 80 % → max 1,6M když je nejníž.
   const muLtv = uvery.maxUver({
     cistyMesicniPrijem: 200_000,
@@ -137,6 +142,12 @@ console.log('— INVESTICE: alokace a výnosy KFP —');
   // S již naspořenou částkou pokrývající cíl → potřeba 0.
   const ki0 = investice.kolikInvestovat(100_000, 10, 0.05, 100_000);
   ok(ki0.jednorazove === 0 && ki0.mesicni === 0, 'kolikInvestovat: naspořeno pokrývá cíl → 0');
+  // OPRAVA auditu: horizont 0 → žádné dělení nulou, vrátí konečná čísla (celá částka hned).
+  const kiNula = investice.kolikInvestovat(100_000, 0, 0.05);
+  ok(Number.isFinite(kiNula.mesicni) && Number.isFinite(kiNula.jednorazove), 'kolikInvestovat roky=0 → konečné (ne Infinity)');
+  // OPRAVA auditu: Monte Carlo s pocetSimulaci 0 → guard, percentily konečné.
+  const mc0 = investice.monteCarloProjekce({ pocatecni: 1000, mesicniVklad: 0, roky: 1, ocekavanyVynos: 0.05, volatilita: 0.1, pocetSimulaci: 0 });
+  ok(Number.isFinite(mc0.median) && Number.isFinite(mc0.p10), 'monteCarlo pocetSimulaci=0 → konečné percentily (ne NaN)');
 
   // AFP glide-path výnosy: cíl 15 let = 4,4 %, renta 20 let = 5,7 %.
   ok(investice.ocekavanyVynosCile(15) === 0.044, 'AFP výnos cíle 15 let = 4,4 %');

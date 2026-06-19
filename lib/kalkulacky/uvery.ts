@@ -87,7 +87,8 @@ export const VYCHOZI_LIMITY_CNB: LimityCNB = { maxDSTI: 0.45, maxDTI: 8.5, maxLT
 
 export interface MaxUverVstup {
   cistyMesicniPrijem: number;
-  stavajiciMesicniSplatky?: number; // splátky jiných úvěrů
+  stavajiciMesicniSplatky?: number; // splátky jiných úvěrů (pro DSTI)
+  stavajiciCelkovyDluh?: number; // zůstatek jistin stávajících úvěrů (pro DTI)
   rocniSazba: number;
   pocetMesicu: number;
   hodnotaNemovitosti?: number; // pro LTV strop (volitelné)
@@ -120,9 +121,9 @@ export function maxUver(v: MaxUverVstup): MaxUverVystup {
       ? volnaSplatka * v.pocetMesicu
       : (volnaSplatka * (1 - Math.pow(1 + i, -v.pocetMesicu))) / i;
 
-  // DTI: celkový dluh ≤ násobek ročního příjmu (počítáme prostor pro NOVÝ dluh).
+  // DTI: celkový dluh ≤ násobek ročního příjmu → prostor pro NOVÝ úvěr = strop − stávající jistina.
   const rocniPrijem = v.cistyMesicniPrijem * 12;
-  const dleDTI = Math.max(0, rocniPrijem * limity.maxDTI); // stávající jistinu neznáme zvlášť, bereme strop dluhu
+  const dleDTI = Math.max(0, rocniPrijem * limity.maxDTI - (v.stavajiciCelkovyDluh ?? 0));
 
   // LTV: jen pokud známe hodnotu nemovitosti.
   const dleLTV = v.hodnotaNemovitosti ? v.hodnotaNemovitosti * limity.maxLTV : null;

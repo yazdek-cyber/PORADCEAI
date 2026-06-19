@@ -185,9 +185,11 @@ export function kolikInvestovat(
   rocniVynos: number,
   jizNasporeno = 0
 ): KolikInvestovatVystup {
-  const zbyva = Math.max(0, cil - budouciHodnota(jizNasporeno, rocniVynos, roky));
-  const jednorazove = zbyva / Math.pow(1 + rocniVynos, roky);
-  const n = Math.round(roky * 12);
+  const letBezp = Math.max(0, roky);
+  const zbyva = Math.max(0, cil - budouciHodnota(jizNasporeno, rocniVynos, letBezp));
+  const jednorazove = zbyva / Math.pow(1 + rocniVynos, letBezp);
+  // n ≥ 1 → ochrana proti dělení nulou (při horizontu 0 vyjde měsíční = celá chybějící částka).
+  const n = Math.max(1, Math.round(letBezp * 12));
   const i = mesicniMira(rocniVynos);
   const mesicni = i === 0 ? zbyva / n : (zbyva * i) / (Math.pow(1 + i, n) - 1);
   return { jednorazove, mesicni, cil, roky, rocniVynos };
@@ -222,9 +224,9 @@ export interface MonteCarloVystup {
  * Toto je "pravděpodobnost výnosu" — realistická místo jednoho bodového čísla.
  */
 export function monteCarloProjekce(v: MonteCarloVstup): MonteCarloVystup {
-  const pocet = v.pocetSimulaci ?? 5000;
+  const pocet = Math.max(1, Math.floor(v.pocetSimulaci ?? 5000)); // ochrana proti prázdnému poli/NaN
   const rng = generatorNahod(v.seed ?? 12345);
-  const n = Math.round(v.roky * 12);
+  const n = Math.max(0, Math.round(v.roky * 12));
   const mesMira = mesicniMira(v.ocekavanyVynos);
   const mesVol = v.volatilita / Math.sqrt(12);
 

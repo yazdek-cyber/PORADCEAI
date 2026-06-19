@@ -12,7 +12,7 @@ export interface RezervaVystup {
  * Finanční rezerva (nouzový fond) = násobek měsíčních výdajů.
  * Standard 3–6 měsíců; u OSVČ/nestabilního příjmu spíš 6.
  */
-export function rezerva(mesicniVydaje: number, mesicu = 4, jizNasporeno = 0): RezervaVystup {
+export function rezerva(mesicniVydaje: number, mesicu = 6, jizNasporeno = 0): RezervaVystup {
   const doporucena = mesicniVydaje * mesicu;
   return {
     doporucenaRezerva: doporucena,
@@ -65,7 +65,9 @@ export interface EfpaVystup {
   potrebaInvaliditaHruba: number;
   smrt: number; // doporučená PČ pro případ smrti (po odečtení dávek a majetku)
   invalidita: number; // doporučená PČ pro plnou invaliditu
-  trvaleNasledkyUrazu: number; // ½ potřeby invalidity (TNÚ od 10 % poškození)
+  // TNÚ = ½ ČISTÉ potřeby invalidity (po odečtu krytí) — dle EFPA „PČ = ½ pojistného plnění
+  // po odečtení toho, co už je kryto"; progresivní plnění cílí na ~60 % poškození. TNÚ od 10 % poškození.
+  trvaleNasledkyUrazu: number;
 }
 
 /**
