@@ -168,6 +168,19 @@ export interface ObjevenaPodminka {
   url: string;
 }
 
+// Sdílená instrukce: bereme JEN skutečné pojistné podmínky životního/osobního pojištění.
+const FILTR_ZIVOTNI = `Vybírej POUZE skutečné POJISTNÉ PODMÍNKY pro ŽIVOTNÍ a OSOBNÍ pojištění.
+- ZAHRŇ pouze dokumenty, které samy JSOU pojistné podmínky — všeobecné, zvláštní, doplňkové
+  nebo obecné pojistné podmínky (VPP, ZPP, DPP, OPP) pro životní, rizikové životní, úrazové,
+  nemocenské, invalidní pojištění nebo pojištění pracovní neschopnosti/příjmu osob. Název
+  takového dokumentu vždy obsahuje slovo „podmínky".
+- VYNECH ÚPLNĚ vše ostatní, zejména: formuláře a žádosti, hlášení/oznámení události, odstoupení,
+  plné moci, výpovědi; informační dokumenty o produktu (IPID), předsmluvní informace, sdělení
+  klíčových informací (KID), dokumenty k investičním fondům (fond, ETF, dluhopisový/akciový fond);
+  sazebníky, ceníky, oceňovací tabulky, letáky, marketing, výroční zprávy; a JAKÉKOLI pojištění
+  mimo osoby (majetek, domácnost, nemovitosti, vozidla, havarijní, povinné ručení, cestovní,
+  odpovědnost, podnikatelské či firemní).`;
+
 /**
  * Z textu stránky pojišťovny a seznamu odkazů vytáhne strukturovaný seznam
  * produktů a jejich dokumentů ke stažení (pojistné podmínky apod.).
@@ -183,13 +196,13 @@ export async function extrahujPodminky(
 
   const seznamOdkazu = odkazy.slice(0, 400).join('\n');
   const prompt = `Toto je obsah stránky pojišťovny "${pojistovna}" se sekcí dokumenty ke stažení.
-Vrať seznam POJISTNÝCH PRODUKTŮ a jejich DOKUMENTŮ KE STAŽENÍ (pojistné podmínky, sazebníky, informační dokumenty), které lze stáhnout jako PDF.
 
-Pravidla:
+${FILTR_ZIVOTNI}
+
+Vrať seznam vybraných dokumentů jako JSON. Pravidla:
 - "url" MUSÍ být přesně jeden z odkazů ze seznamu níže (zkopíruj doslova), ideálně končící na .pdf.
 - "produkt" = název produktu/pojištění (např. "NN Orange Risk"); když nelze určit, použij "Obecné".
-- "nazev" = název dokumentu (např. "Všeobecné pojistné podmínky").
-- Vracej jen reálné dokumenty ke stažení, NE navigaci, menu, kariéru, kontakt apod.
+- "nazev" = název dokumentu (např. "Všeobecné pojistné podmínky pro životní pojištění").
 - Odpověz POUZE platným JSON polem: [{"produkt":"...","nazev":"...","url":"..."}]. Nic jiného.
 
 DOSTUPNÉ ODKAZY:
@@ -231,7 +244,13 @@ export async function extrahujPodminkyUrlContext(
     throw new Error('GEMINI_API_KEY není nastavena v proměnných prostředí.');
   }
   const base = new URL(url).origin;
-  const prompt = `Na stránce ${url} (pojišťovna ${pojistovna}) jsou odkazy na PDF dokumenty (pojistné podmínky, sazebníky, informační dokumenty). Vrať seznam všech PDF dokumentů jako JSON pole [{"produkt","nazev","url"}]. "url" absolutní odkaz na PDF. Odpověz pouze JSON.`;
+  const prompt = `Na stránce ${url} (pojišťovna ${pojistovna}) jsou odkazy na PDF dokumenty.
+
+${FILTR_ZIVOTNI}
+
+Vrať vybrané dokumenty VÝHRADNĚ jako platný JSON (žádné HTML, žádný markdown, žádné vysvětlení) ve tvaru:
+[{"produkt":"...","nazev":"...","url":"https://...pdf"}]
+"url" musí být absolutní odkaz na PDF. Když žádné neodpovídají, vrať [].`;
 
   const response = await generujSOpakovanim(
     {
@@ -262,19 +281,23 @@ export async function extrahujPodminkyUrlContext(
     }
   };
 
-  // 1) JSON pole z odpovědi
+  // 1) Primárně filtrovaný JSON z modelu
   const m = text.match(/\[[\s\S]*\]/);
   if (m) {
     try {
       const arr = JSON.parse(m[0]);
       if (Array.isArray(arr)) for (const d of arr) if (d?.url) pridej(d.produkt, d.nazev, String(d.url));
     } catch {
-      // ignoruj — dojedeme na holé odkazy
+      // model nevrátil JSON — zkusíme nouzovou extrakci odkazů
     }
   }
-  // 2) Holé PDF odkazy (absolutní i root-relativní) jako záloha
-  for (const mm of text.matchAll(/((?:https?:\/\/|\/)[^"'\s<>()]+?\.pdf)/gi)) {
-    pridej(undefined, undefined, mm[1]);
+  // 2) Nouze JEN když JSON nic nedal: holé PDF odkazy s vyloučením formulářů a jiných odvětví
+  if (podleUrl.size === 0) {
+    const vylucit =
+      /formul|zadost|žádost|oznamen|hlasen|hlášen|odstoup|plna-moc|plná-moc|vypoved|výpověd|majetk|domacnost|domácnost|nemovit|vozid|auto|havarij|povinne-ruceni|povinné-ručen|cestov|odpovednost|odpovědnost|podnik|firemn|vyrocni|výroční/i;
+    for (const mm of text.matchAll(/((?:https?:\/\/|\/)[^"'\s<>()]+?\.pdf)/gi)) {
+      if (!vylucit.test(mm[1])) pridej(undefined, undefined, mm[1]);
+    }
   }
   return [...podleUrl.values()];
 }

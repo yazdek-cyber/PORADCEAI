@@ -68,11 +68,16 @@ export async function objevPodminky(pojistovna: string, url: string): Promise<Ob
     }
   }
 
+  // Tvrdý filtr: bereme jen dokumenty, jejichž název značí POJISTNÉ PODMÍNKY
+  // (odfiltruje IPID, předsmluvní info, fondy, sazebníky, formuláře apod.).
+  const jePodminky = (nazev: string) => /podm[ií]nk/i.test(nazev);
+
   // Deduplikace dle absolutní url
   const videno = new Set<string>();
   const vysledek: ObjevenaPodminka[] = [];
   for (const p of list) {
     if (!/^https?:/i.test(p.url) || videno.has(p.url)) continue;
+    if (!jePodminky(p.nazev)) continue;
     videno.add(p.url);
     vysledek.push({ produkt: p.produkt || 'Obecné', nazev: p.nazev, url: p.url });
   }
