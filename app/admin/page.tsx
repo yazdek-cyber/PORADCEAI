@@ -27,6 +27,7 @@ import {
   importujPodminkuAction,
 } from '@/app/actions';
 import { najdiOdkazPodminek, POJISTOVNY } from '@/lib/pojistovny';
+import { DOMENY } from '@/lib/domeny';
 
 interface Document {
   id: string;
@@ -54,6 +55,7 @@ export default function AdminPage() {
 
   // Form states
   const [pojistovna, setPojistovna] = useState('');
+  const [domena, setDomena] = useState('pojisteni');
   const [file, setFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
 
@@ -247,6 +249,7 @@ export default function AdminPage() {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('pojistovna', pojistovna.trim());
+    formData.append('domena', domena);
 
     try {
       const result = await uploadDocumentAction(formData);
@@ -423,15 +426,32 @@ $$;`}
 
             <form onSubmit={handleUploadSubmit} className="space-y-4">
               <div>
+                <label htmlFor="domena" className="block text-sm font-semibold text-slate-700 mb-1">
+                  Pilíř (doména) *
+                </label>
+                <select
+                  id="domena"
+                  value={domena}
+                  onChange={(e) => setDomena(e.target.value)}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary focus:outline-none bg-white"
+                  disabled={uploading}
+                >
+                  {DOMENY.map((d) => (
+                    <option key={d.id} value={d.id}>{d.ikona} {d.nazev}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
                 <label htmlFor="pojistovna" className="block text-sm font-semibold text-slate-700 mb-1">
-                  Pojišťovna *
+                  Poskytovatel *
                 </label>
                 <input
                   type="text"
                   id="pojistovna"
                   value={pojistovna}
                   onChange={(e) => setPojistovna(e.target.value)}
-                  placeholder="Např. Generali, Allianz, Kooperativa"
+                  placeholder="Např. Generali, Komerční banka, ČSOB AM"
                   className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary focus:outline-none"
                   required
                   disabled={uploading}

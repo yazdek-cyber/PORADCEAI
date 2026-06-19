@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { MessageSquare, FileText, FolderOpen, Shield, AlertTriangle, Columns3 } from 'lucide-react';
+import { MessageSquare, FileText, FolderOpen, Shield, AlertTriangle, Columns3, Wallet } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 export default function Navbar() {
@@ -29,6 +29,12 @@ export default function Navbar() {
       href: '/pripad',
       icon: FileText,
       active: pathname === '/pripad',
+    },
+    {
+      name: 'Finanční plán',
+      href: '/plan',
+      icon: Wallet,
+      active: pathname === '/plan',
     },
     {
       name: 'Srovnání',
