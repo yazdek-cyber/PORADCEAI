@@ -49,6 +49,7 @@ export default function PripadPage() {
   const [copied, setCopied] = useState(false);
 
   const printAreaRef = useRef<HTMLDivElement>(null);
+  const datumDnes = new Date().toLocaleDateString('cs-CZ');
 
   const simulateLoadingSteps = () => {
     setLoadingStep(1); // Searching database...
@@ -450,10 +451,11 @@ export default function PripadPage() {
                   </button>
                   <button
                     onClick={handlePrint}
+                    title="Otevře dialog tisku — vyberte „Uložit jako PDF“"
                     className="flex items-center gap-1.5 text-xs font-bold text-white bg-primary hover:bg-primary-600 border border-transparent rounded-lg px-3 py-1.5 transition-colors cursor-pointer shadow-sm"
                   >
                     <Printer className="h-3.5 w-3.5 text-accent" />
-                    Tisk / PDF
+                    Exportovat do PDF
                   </button>
                 </div>
               </div>
@@ -478,6 +480,29 @@ export default function PripadPage() {
                 {/* Markdown contents */}
                 <div className="prose prose-sm max-w-none print:prose-xs">
                   {renderMarkdown(solution)}
+                </div>
+
+                {/* Zdroje – součást tištěného PDF (na obrazovce je interaktivní panel níže) */}
+                {chunks && chunks.length > 0 && (
+                  <div className="hidden print:block mt-8 pt-4 border-t border-slate-300">
+                    <h3 className="text-sm font-bold mb-2">Použité zdroje z pojistných podmínek</h3>
+                    <ul className="text-[11px] space-y-0.5 text-slate-700 list-none pl-0">
+                      {chunks.map((c, i) => (
+                        <li key={c.id}>
+                          [{i + 1}] {c.pojistovna} — {c.nazev_dokumentu}
+                          {c.strana ? `, s. ${c.strana}` : ''}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Patička pro PDF */}
+                <div className="hidden print:block mt-8 pt-3 border-t border-slate-300 text-[10px] text-slate-500">
+                  <p className="font-semibold">
+                    Toto je analytický podklad pro licencovaného poradce, nikoliv finanční doporučení.
+                  </p>
+                  <p>Vygenerováno aplikací Poradce AI dne {datumDnes} na základě nahraných pojistných podmínek.</p>
                 </div>
               </div>
 

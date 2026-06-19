@@ -16,7 +16,7 @@ Zmapováno do `CLAUDE.md`. Zjištění:
 | 2 | OCR fallback pro skeny | ✅ | Detekce skenu + dávkové OCR přes Gemini vision (po 15 str.); test 6/6 |
 | 3 | Vícezdrojové vyhledávání (filtr pojišťoven) | ✅ | `hledej_chunky` + filtr; rozbalovátko v „Ptám se"; test napříč/na 1 prošel |
 | 4 | „Řeším případ" | ✅ | Ověřeno na 3 profilech: specifické, podložené, disclaimer; + práh relevance |
-| 5 | Export návrhu do PDF | 🔄 | Existuje `window.print()`; zvážit profesionálnější layout |
+| 5 | Export návrhu do PDF | ✅ | „Exportovat do PDF" + zdroje a patička v tisku; vizuál = uživatelský klik |
 | 6 | Kvalita a spolehlivost (hardening) | ⬜ | Chybové stavy, loading, logování, rate limity |
 | 7 | Příprava na multi-tenant | ⬜ | `workspace_id`, RLS připraveno (permisivní), bez plného loginu |
 
