@@ -1,7 +1,7 @@
 'use server';
 
 import { processPdf } from '@/lib/documentProcessor';
-import { getEmbedding, generateChatResponse, generateClientSolution, ClientProfile } from '@/lib/gemini';
+import { getEmbedding, generateChatResponse, generateClientSolution, extrahujSrovnani, ClientProfile } from '@/lib/gemini';
 import { supabaseAdmin, checkEnvConfigured } from '@/lib/supabase';
 import { POJISTOVNY } from '@/lib/pojistovny';
 import { objevPodminky } from '@/lib/podminkyScraper';
@@ -50,6 +50,49 @@ export async function getDocumentsAction() {
       success: false,
       error: error instanceof Error ? error.message : String(error),
       documents: [],
+    };
+  }
+}
+
+/**
+ * Srovnávací matice: pro vybrané pojišťovny a parametry vytáhne z podmínek
+ * konkrétní hodnoty se zdrojem (strana). Vrací matici hodnot.
+ */
+export async function srovnejParametryAction(pojistovny: string[], parametry: string[]) {
+  await checkConfig();
+  try {
+    if (!pojistovny?.length || !parametry?.length) {
+      throw new Error('Vyberte alespoň jednu pojišťovnu a jeden parametr.');
+    }
+
+    const matice: Record<string, Record<string, { hodnota: string; strana: number | null }>> = {};
+
+    for (const poj of pojistovny) {
+      // Pro každý parametr vytáhneme relevantní úryvky této pojišťovny a označíme je.
+      const bloky: string[] = [];
+      for (const param of parametry) {
+        const emb = await getEmbedding(param, 'RETRIEVAL_QUERY');
+        const { data } = await supabaseAdmin.rpc('hledej_chunky', {
+          dotaz_embedding: emb,
+          pocet: 4,
+          filtr_pojistovna: poj,
+        });
+        const chunks = (data || []).filter((c: any) => c.podobnost >= 0.6);
+        const text = chunks.map((c: any) => `[str.${c.strana ?? '?'}] ${c.obsah}`).join('\n');
+        bloky.push(`### PARAMETR: ${param}\n${text || '(nenalezeno)'}`);
+      }
+      matice[poj] = await extrahujSrovnani(poj, parametry, bloky.join('\n\n'));
+    }
+
+    return { success: true, pojistovny, parametry, matice };
+  } catch (error) {
+    console.error('Chyba srovnejParametryAction:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+      pojistovny: [],
+      parametry: [],
+      matice: {},
     };
   }
 }

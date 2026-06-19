@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { MessageSquare, FileText, FolderOpen, Shield, AlertTriangle } from 'lucide-react';
+import { MessageSquare, FileText, FolderOpen, Shield, AlertTriangle, Columns3 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 export default function Navbar() {
@@ -29,6 +29,12 @@ export default function Navbar() {
       href: '/pripad',
       icon: FileText,
       active: pathname === '/pripad',
+    },
+    {
+      name: 'Srovnání',
+      href: '/srovnani',
+      icon: Columns3,
+      active: pathname === '/srovnani',
     },
     {
       name: 'Dokumenty',

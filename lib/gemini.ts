@@ -302,6 +302,65 @@ Vrať vybrané dokumenty VÝHRADNĚ jako platný JSON (žádné HTML, žádný m
   return [...podleUrl.values()];
 }
 
+export interface SrovnaniBunka {
+  hodnota: string;
+  strana: number | null;
+}
+
+/**
+ * Z kontextu (úryvky podmínek jedné pojišťovny, sdružené po parametrech) vytáhne
+ * pro KAŽDÝ parametr stručnou konkrétní hodnotu + číslo strany zdroje. Striktně z kontextu.
+ */
+export async function extrahujSrovnani(
+  pojistovna: string,
+  parametry: string[],
+  kontext: string
+): Promise<Record<string, SrovnaniBunka>> {
+  if (!process.env.GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY není nastavena v proměnných prostředí.');
+  }
+  const seznam = parametry.map((p, i) => `${i + 1}. ${p}`).join('\n');
+  const prompt = `Jsi přesný analytik pojistných podmínek. Z níže uvedených úryvků podmínek pojišťovny "${pojistovna}" vytáhni pro KAŽDÝ parametr stručnou, konkrétní hodnotu — VÝHRADNĚ z kontextu.
+
+Parametry:
+${seznam}
+
+Pravidla:
+- "hodnota": krátce a věcně (např. "2 měsíce", "90 dní", "od 18 do 65 let", stručný výčet výluk). NEVYMÝŠLEJ — co není v kontextu, dej "hodnota": "Neuvedeno".
+- "strana": číslo strany úryvku, z něhož hodnota plyne (z označení [str.X]), jinak null.
+- Klíče v JSON musí být PŘESNĚ názvy parametrů, jak jsou zadané výše.
+- Odpověz POUZE JSON objektem: { "<parametr>": { "hodnota": "...", "strana": <číslo|null> }, ... }.
+
+KONTEXT (úryvky označené [str.X], sdružené po parametrech):
+${kontext.slice(0, 28000)}`;
+
+  const response = await generujSOpakovanim(
+    {
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: { temperature: 0, responseMimeType: 'application/json' },
+    },
+    'srovnání'
+  );
+
+  try {
+    const parsed = JSON.parse(response.text || '{}');
+    const out: Record<string, SrovnaniBunka> = {};
+    for (const p of parametry) {
+      const b = parsed?.[p];
+      out[p] = {
+        hodnota: b && typeof b.hodnota === 'string' ? b.hodnota : 'Neuvedeno',
+        strana: b && typeof b.strana === 'number' ? b.strana : null,
+      };
+    }
+    return out;
+  } catch {
+    const out: Record<string, SrovnaniBunka> = {};
+    for (const p of parametry) out[p] = { hodnota: 'Neuvedeno', strana: null };
+    return out;
+  }
+}
+
 interface ChatMessage {
   role: 'user' | 'model';
   content: string;
