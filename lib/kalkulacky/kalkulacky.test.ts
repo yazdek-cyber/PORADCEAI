@@ -116,6 +116,57 @@ console.log('— INVESTICE —');
   ok(sr[0].cistaHodnota > sr[1].cistaHodnota, 'nižší poplatky = vyšší čistá hodnota');
 }
 
+console.log('— INVESTICE: alokace a výnosy KFP —');
+{
+  // Alokace dle horizontu (Morningstar): 1 rok → 8 % akcií; 18 let → 83 %; 40 let → 93 %.
+  ok(investice.alokaceDleHorizontu(1).akcie === 0.08, 'alokace 1 rok = 8 % akcií');
+  ok(investice.alokaceDleHorizontu(18).akcie === 0.83, 'alokace 18 let = 83 % akcií');
+  ok(investice.alokaceDleHorizontu(40).akcie === 0.93, 'alokace 40 let = 93 % akcií');
+  const a = investice.alokaceDleHorizontu(10);
+  ok(blizko(a.akcie + a.dluhopisy + a.hotovost, 1, 0.0001), 'alokace sčítá na 100 %');
+
+  // Historické reálné výnosy.
+  ok(investice.VYNOSY_REALNE.akcie === 0.0727, 'reálný výnos akcií 7,27 %');
+  // Výnos portfolia 18 let (83/15/2) ≈ 6,3 % (statická alokace).
+  ok(blizko(investice.ocekavanyVynosDleHorizontu(18), 0.0631, 0.02), `výnos portfolia 18 let ≈ 6,3 % (=${(investice.ocekavanyVynosDleHorizontu(18)*100).toFixed(2)} %)`);
+
+  // AFP glide-path výnosy: cíl 15 let = 4,4 %, renta 20 let = 5,7 %.
+  ok(investice.ocekavanyVynosCile(15) === 0.044, 'AFP výnos cíle 15 let = 4,4 %');
+  ok(investice.ocekavanyVynosCile(3) === 0.025, 'AFP výnos cíle 3 roky = 2,5 %');
+  ok(investice.ocekavanyVynosRenta(20) === 0.057, 'AFP výnos renty 20 let = 5,7 %');
+}
+
+console.log('— PENZE: renta dle KFP (×200) —');
+{
+  // 30 000 Kč renta → 6 mil. majetku; 1 mil. → 5 000 Kč renty.
+  ok(penze.majetekProRentu(30_000) === 6_000_000, 'majetek pro rentu 30k = 6 mil. (×200)');
+  ok(penze.rentaZMajetku(1_000_000) === 5_000, 'renta z 1 mil. = 5 000 Kč');
+}
+
+console.log('— POJIŠTĚNÍ: EFPA + rezerva úrovně —');
+{
+  // Likvidní rezerva 3/6/12× výdaje.
+  const ru = pojisteni.rezervaUrovne(30_000);
+  ok(ru.kratkodoba === 90_000 && ru.ztrataPrace === 180_000 && ru.dlouhodobaNemoc === 360_000, 'rezerva 3/6/12× výdaje');
+
+  // EFPA: deficit smrt 20k × 200 = 4M; − sirotčí 2×1M − vdovský 2M = 4M → smrt 0; bez dětí/majetku jiné.
+  const efpa = pojisteni.pojistnaPotreba_EFPA({
+    mesicniDeficitSmrt: 20_000, mesicniDeficitInvalidita: 25_000, pocetDeti: 2, sezdany: true,
+  });
+  ok(efpa.potrebaSmrtHruba === 4_000_000, 'EFPA potřeba smrt hrubá = deficit×200');
+  // smrt = 4M − (2×1M + 2M vdovský) = 0
+  ok(efpa.smrt === 0, 'EFPA smrt po dávkách (2 děti + vdovský) = 0');
+  // invalidita = 25k×200=5M − 2M invalidní = 3M; TNÚ = 1,5M
+  ok(efpa.invalidita === 3_000_000, 'EFPA invalidita = deficit×200 − 2M');
+  ok(efpa.trvaleNasledkyUrazu === 1_500_000, 'EFPA TNÚ = ½ invalidity');
+
+  // Bez dětí/manželství: smrt = deficit×200 − majetek.
+  const efpa2 = pojisteni.pojistnaPotreba_EFPA({
+    mesicniDeficitSmrt: 15_000, mesicniDeficitInvalidita: 18_000, pocetDeti: 0, sezdany: false, soucasnyMajetek: 500_000,
+  });
+  ok(efpa2.smrt === 15_000*200 - 500_000, 'EFPA smrt singl = deficit×200 − majetek');
+}
+
 console.log('— PENZE —');
 {
   // Státní příspěvek DPS: <500 → 0; 1000 → 200; 1700+ → strop 340.

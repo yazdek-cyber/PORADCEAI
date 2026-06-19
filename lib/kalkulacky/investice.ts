@@ -10,6 +10,82 @@ function mesicniMira(rocni: number): number {
   return Math.pow(1 + rocni, 1 / 12) - 1;
 }
 
+// ── Alokace a výnosy dle metodiky eDO/KFP (akademie finančního plánování) ──────
+
+export interface Alokace {
+  akcie: number;
+  dluhopisy: number;
+  hotovost: number;
+}
+
+/** Historické PRŮMĚRNÉ REÁLNÉ výnosy (USA, 100 let, nad inflaci) — metodika KFP. */
+export const VYNOSY_REALNE: Alokace = { akcie: 0.0727, dluhopisy: 0.0181, hotovost: 0.0032 };
+
+// Doporučená alokace dle horizontu (Morningstar lifetime, akcie/dluhopisy/hotovost).
+// Portfolio se s blížícím cílem postupně zkonzervativňuje.
+const ALOKACE_TABULKA: { doMin: number; akcie: number; dluhopisy: number; hotovost: number }[] = [
+  { doMin: 1, akcie: 0.08, dluhopisy: 0.51, hotovost: 0.41 },
+  { doMin: 2, akcie: 0.12, dluhopisy: 0.71, hotovost: 0.17 },
+  { doMin: 4, akcie: 0.27, dluhopisy: 0.64, hotovost: 0.09 },
+  { doMin: 6, akcie: 0.35, dluhopisy: 0.57, hotovost: 0.08 },
+  { doMin: 8, akcie: 0.46, dluhopisy: 0.49, hotovost: 0.05 },
+  { doMin: 10, akcie: 0.56, dluhopisy: 0.42, hotovost: 0.02 },
+  { doMin: 12, akcie: 0.65, dluhopisy: 0.33, hotovost: 0.02 },
+  { doMin: 14, akcie: 0.72, dluhopisy: 0.26, hotovost: 0.02 },
+  { doMin: 16, akcie: 0.83, dluhopisy: 0.15, hotovost: 0.02 },
+  { doMin: 21, akcie: 0.89, dluhopisy: 0.09, hotovost: 0.02 },
+  { doMin: 26, akcie: 0.91, dluhopisy: 0.07, hotovost: 0.02 },
+  { doMin: 31, akcie: 0.93, dluhopisy: 0.07, hotovost: 0.0 },
+];
+
+/** Doporučená alokace dle počtu let do cíle (Morningstar, metodika KFP). */
+export function alokaceDleHorizontu(roky: number): Alokace {
+  let vybrana = ALOKACE_TABULKA[0];
+  for (const r of ALOKACE_TABULKA) {
+    if (roky >= r.doMin) vybrana = r;
+  }
+  return { akcie: vybrana.akcie, dluhopisy: vybrana.dluhopisy, hotovost: vybrana.hotovost };
+}
+
+/** Vážený očekávaný (reálný) výnos portfolia dle alokace. */
+export function ocekavanyVynosPortfolia(alokace: Alokace, vynosy: Alokace = VYNOSY_REALNE): number {
+  return alokace.akcie * vynosy.akcie + alokace.dluhopisy * vynosy.dluhopisy + alokace.hotovost * vynosy.hotovost;
+}
+
+/** Očekávaný reálný výnos portfolia doporučeného pro daný horizont (statická alokace, KFP). */
+export function ocekavanyVynosDleHorizontu(roky: number): number {
+  return ocekavanyVynosPortfolia(alokaceDleHorizontu(roky));
+}
+
+// AFP/KFP tabulka očekávaných REÁLNÝCH výnosů dle doby do cíle (vč. zkonzervativňování
+// portfolia v čase = glide path). Pro CÍL (jednorázový výběr) a pro RENTU (dlouhé čerpání).
+const VYNOS_CILE: { r: number; v: number }[] = [
+  { r: 1, v: 0.021 }, { r: 2, v: 0.023 }, { r: 3, v: 0.025 }, { r: 4, v: 0.027 },
+  { r: 5, v: 0.029 }, { r: 7, v: 0.032 }, { r: 10, v: 0.037 }, { r: 15, v: 0.044 },
+  { r: 20, v: 0.05 }, { r: 25, v: 0.054 }, { r: 30, v: 0.057 },
+];
+const VYNOS_RENTA: { r: number; v: number }[] = [
+  { r: 0, v: 0.046 }, { r: 1, v: 0.047 }, { r: 2, v: 0.048 }, { r: 4, v: 0.048 },
+  { r: 5, v: 0.049 }, { r: 7, v: 0.05 }, { r: 10, v: 0.051 }, { r: 15, v: 0.054 },
+  { r: 20, v: 0.057 }, { r: 25, v: 0.06 }, { r: 30, v: 0.062 },
+];
+
+function vyhledejVynos(tabulka: { r: number; v: number }[], roky: number): number {
+  let v = tabulka[0].v;
+  for (const radek of tabulka) if (roky >= radek.r) v = radek.v;
+  return v;
+}
+
+/** Očekávaný reálný výnos pro investici na CÍL za daný počet let (AFP glide-path). */
+export function ocekavanyVynosCile(roky: number): number {
+  return vyhledejVynos(VYNOS_CILE, roky);
+}
+
+/** Očekávaný reálný výnos pro RENTU (dlouhodobé čerpání) dle doby do začátku (AFP). */
+export function ocekavanyVynosRenta(roky: number): number {
+  return vyhledejVynos(VYNOS_RENTA, roky);
+}
+
 /** Budoucí hodnota jednorázové investice po složeném úročení. */
 export function budouciHodnota(pocatecni: number, rocniVynos: number, roky: number): number {
   return pocatecni * Math.pow(1 + rocniVynos, roky);

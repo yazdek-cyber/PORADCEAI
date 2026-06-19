@@ -91,6 +91,20 @@ export function mesicniRentaZKapitalu(
   return (kapital * i) / (1 - Math.pow(1 + i, -n));
 }
 
+// Pravidlo KFP/AFP: z 1 mil. Kč majetku ≈ 5 000 Kč měsíční renty → koeficient 200
+// (renta dlouhodobě udržitelná, inflace kompenzována rozpouštěním jistiny ~20–30 let).
+export const KOEFICIENT_RENTY = 200;
+
+/** Majetek potřebný pro cílovou měsíční rentu dle pravidla KFP (renta × 200). */
+export function majetekProRentu(mesicniRenta: number, koeficient = KOEFICIENT_RENTY): number {
+  return Math.max(0, mesicniRenta * koeficient);
+}
+
+/** Měsíční renta dosažitelná z majetku dle pravidla KFP (majetek / 200). */
+export function rentaZMajetku(majetek: number, koeficient = KOEFICIENT_RENTY): number {
+  return koeficient > 0 ? Math.max(0, majetek / koeficient) : 0;
+}
+
 export interface MezeraVDuchoduVstup {
   cilovaMesicniRenta: number; // kolik chce klient měsíčně mít navíc v důchodu
   ocekavanaStatniPenze?: number; // odhad státního důchodu (měsíčně)

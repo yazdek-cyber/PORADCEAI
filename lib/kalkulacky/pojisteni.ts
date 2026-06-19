@@ -29,6 +29,71 @@ export function pojistnaPotreba_prijmova(rocniCistyPrijem: number, rokyKryti: nu
   return Math.max(0, rocniCistyPrijem * rokyKryti);
 }
 
+export interface RezervaUrovneVystup {
+  kratkodoba: number; // 3× měsíční výdaje — neočekávané výdaje / krátkodobý výpadek
+  ztrataPrace: number; // 6× — průměrná doba hledání práce ~½ roku (tržní konsensus KFP)
+  dlouhodobaNemoc: number; // 12× — po roce nemoci zpravidla invalidní důchod
+}
+
+/** Likvidní rezerva ve třech úrovních dle metodiky KFP (nesčítají se — bere se nejvyšší relevantní). */
+export function rezervaUrovne(mesicniVydaje: number): RezervaUrovneVystup {
+  return {
+    kratkodoba: mesicniVydaje * 3,
+    ztrataPrace: mesicniVydaje * 6,
+    dlouhodobaNemoc: mesicniVydaje * 12,
+  };
+}
+
+// Snížení potřeby pojistné částky o sociální dávky (orientačně dle metodiky EFPA/KFP).
+export const SNIZENI_INVALIDITA = 2_000_000; // invalidní důchod
+export const SNIZENI_SIROTCI = 1_000_000; // sirotčí důchod na každé dítě
+export const SNIZENI_VDOVSKY = 2_000_000; // vdovský důchod (jen sezdaní s dětmi)
+
+export interface EfpaVstup {
+  /** Měsíční deficit rodinného rozpočtu při ÚMRTÍ živitele (výpadek příjmu po poklesu výdajů). */
+  mesicniDeficitSmrt: number;
+  /** Měsíční deficit při INVALIDITĚ živitele (výdaje ~120 % minus zbylý příjem/dávka). */
+  mesicniDeficitInvalidita: number;
+  pocetDeti: number;
+  sezdany: boolean;
+  soucasnyMajetek?: number;
+  koeficient?: number; // default 200 (1 mil. Kč na 5 000 Kč měsíční renty)
+}
+
+export interface EfpaVystup {
+  potrebaSmrtHruba: number;
+  potrebaInvaliditaHruba: number;
+  smrt: number; // doporučená PČ pro případ smrti (po odečtení dávek a majetku)
+  invalidita: number; // doporučená PČ pro plnou invaliditu
+  trvaleNasledkyUrazu: number; // ½ potřeby invalidity (TNÚ od 10 % poškození)
+}
+
+/**
+ * Pojistná potřeba metodou EFPA/KFP: potřebný majetek = měsíční deficit × koeficient (200),
+ * snížený o sociální dávky (invalidní/sirotčí/vdovský důchod) a o současný majetek.
+ * TNÚ = ½ potřeby invalidity (cílí na ~60 % stupeň poškození).
+ */
+export function pojistnaPotreba_EFPA(v: EfpaVstup): EfpaVystup {
+  const koef = v.koeficient ?? 200;
+  const majetek = v.soucasnyMajetek ?? 0;
+
+  const potrebaSmrtHruba = Math.max(0, v.mesicniDeficitSmrt) * koef;
+  const snizeniSmrt =
+    v.pocetDeti * SNIZENI_SIROTCI + (v.sezdany && v.pocetDeti > 0 ? SNIZENI_VDOVSKY : 0) + majetek;
+  const smrt = Math.max(0, potrebaSmrtHruba - snizeniSmrt);
+
+  const potrebaInvaliditaHruba = Math.max(0, v.mesicniDeficitInvalidita) * koef;
+  const invalidita = Math.max(0, potrebaInvaliditaHruba - (SNIZENI_INVALIDITA + majetek));
+
+  return {
+    potrebaSmrtHruba,
+    potrebaInvaliditaHruba,
+    smrt,
+    invalidita,
+    trvaleNasledkyUrazu: Math.round(invalidita / 2),
+  };
+}
+
 export interface EdoKrytiVstup {
   mesicniCistyPrijem: number;
   vek: number;

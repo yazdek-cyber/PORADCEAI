@@ -61,8 +61,10 @@ const NAKLAD_NA_DITE = 600_000; // orientační náklad na zaopatření/vzdělá
 
 export interface Vypocty {
   rezerva: ReturnType<typeof pojisteni.rezerva>;
+  rezervaUrovne: ReturnType<typeof pojisteni.rezervaUrovne>;
   pojistnaPotreba: ReturnType<typeof pojisteni.pojistnaPotreba_DIME>;
   edoKryti: ReturnType<typeof pojisteni.pojistnaPotreba_eDO>;
+  efpaKryti: ReturnType<typeof pojisteni.pojistnaPotreba_EFPA>;
   uvery: {
     maxUver: ReturnType<typeof uvery.maxUver>;
     refinancovani: ReturnType<typeof uvery.refinancovani> | null;
@@ -70,12 +72,15 @@ export interface Vypocty {
   };
   investice: {
     horizontLet: number;
+    doporucenaAlokace: ReturnType<typeof investice.alokaceDleHorizontu>;
+    ocekavanyVynosKFP: number; // reálný výnos dle horizontu (AFP glide-path)
     monteCarlo: ReturnType<typeof investice.monteCarloProjekce>;
     srovnaniForem: ReturnType<typeof investice.srovnejFormy>;
   };
   penze: {
     projekce: ReturnType<typeof penze.projekcePenze>;
     mezera: ReturnType<typeof penze.mezeraVDuchodu>;
+    potrebnyKapitalRentaKFP: number; // majetek pro cílovou rentu dle pravidla ×200
   };
   pouziteProdukty: { domena: string; pocet: number }[];
 }
@@ -102,8 +107,9 @@ export async function pripravPodklady(profil: FinPlanProfil): Promise<Vypocty> {
     nactiProduktyVse('penze').catch(() => [] as Produkt[]),
   ]);
 
-  // — REZERVA — (6 měsíců u OSVČ/nestabilního příjmu; tady jednotně 4 jako základ)
-  const rezerva = pojisteni.rezerva(profil.vydaje, 4, profil.rezervaNasporeno ?? 0);
+  // — REZERVA — dle KFP konsensus 6× měsíční výdaje (+ tři úrovně 3/6/12×).
+  const rezerva = pojisteni.rezerva(profil.vydaje, 6, profil.rezervaNasporeno ?? 0);
+  const rezervaUrovne = pojisteni.rezervaUrovne(profil.vydaje);
 
   // — POJIŠTĚNÍ — DIME potřeba krytí
   const rokyNahrady = Math.max(5, Math.min(20, 18 - 0)); // konzervativně do osamostatnění dětí
@@ -155,11 +161,16 @@ export async function pripravPodklady(profil: FinPlanProfil): Promise<Vypocty> {
       : VYCHOZI_FORMY_INVESTIC;
 
   const mesicniVklad = profil.mesicniVkladInvestice ?? 0;
+  // KFP/AFP: doporučená alokace dle horizontu (Morningstar) a očekávaný reálný výnos
+  // (glide-path). Projekci řídíme metodikou KFP (výnos dle horizontu), kolísavost dle
+  // rizikového profilu klienta.
+  const doporucenaAlokace = investice.alokaceDleHorizontu(horizont);
+  const ocekavanyVynosKFP = investice.ocekavanyVynosCile(horizont);
   const monteCarlo = investice.monteCarloProjekce({
     pocatecni: profil.existujiciInvestice ?? 0,
     mesicniVklad,
     roky: horizont,
-    ocekavanyVynos: riziko.vynos,
+    ocekavanyVynos: ocekavanyVynosKFP,
     volatilita: riziko.volatilita,
     seed: 12345,
   });
@@ -179,24 +190,38 @@ export async function pripravPodklady(profil: FinPlanProfil): Promise<Vypocty> {
     aktualniVek: profil.vek,
     vekOdchodu,
   });
+  const cilovaRenta = profil.cilovaRentaDuchod ?? Math.round(profil.cistyPrijem * 0.6);
   const mezera = penze.mezeraVDuchodu({
-    cilovaMesicniRenta: profil.cilovaRentaDuchod ?? Math.round(profil.cistyPrijem * 0.6),
+    cilovaMesicniRenta: cilovaRenta,
     ocekavanaStatniPenze: profil.ocekavanaStatniPenze ?? 0,
     naprojektovanyKapital: projekce.nasporenyKapital,
-    rocniVynosVDuchodu: 0.03,
+    rocniVynosVDuchodu: investice.ocekavanyVynosRenta(0), // ~4,6 % reálně v době čerpání (AFP)
     letVyplaty: 25,
   });
+  // KFP pravidlo ×200: majetek potřebný pro cílovou rentu nad rámec státní penze.
+  const potrebnyKapitalRentaKFP = penze.majetekProRentu(
+    Math.max(0, cilovaRenta - (profil.ocekavanaStatniPenze ?? 0))
+  );
 
-  // Doporučené pojistné částky dle praxe eDO (vedle DIME).
+  // Doporučené pojistné částky dle praxe eDO (3× příjem) a dle metodiky EFPA (koeficient 200).
   const edoKryti = pojisteni.pojistnaPotreba_eDO({ mesicniCistyPrijem: profil.cistyPrijem, vek: profil.vek });
+  const efpaKryti = pojisteni.pojistnaPotreba_EFPA({
+    mesicniDeficitSmrt: Math.round(profil.cistyPrijem * 0.8), // výpadek příjmu po poklesu výdajů
+    mesicniDeficitInvalidita: profil.cistyPrijem, // výpadek příjmu (invalidní důchod řeší odečet)
+    pocetDeti: profil.pocetDeti ?? 0,
+    sezdany: profil.partner ?? false,
+    soucasnyMajetek: profil.existujiciInvestice ?? 0,
+  });
 
   return {
     rezerva,
+    rezervaUrovne,
     pojistnaPotreba,
     edoKryti,
+    efpaKryti,
     uvery: { maxUver, refinancovani, trzniSazba },
-    investice: { horizontLet: horizont, monteCarlo, srovnaniForem },
-    penze: { projekce, mezera },
+    investice: { horizontLet: horizont, doporucenaAlokace, ocekavanyVynosKFP, monteCarlo, srovnaniForem },
+    penze: { projekce, mezera, potrebnyKapitalRentaKFP },
     pouziteProdukty: [
       { domena: 'pojisteni', pocet: pojProd.length },
       { domena: 'uvery', pocet: uvProd.length },
@@ -215,9 +240,9 @@ export function formatujPodklady(profil: FinPlanProfil, v: Vypocty): string {
   const pct = (x: number) => (x * 100).toFixed(1) + ' %';
   const radky: string[] = [];
 
-  radky.push('## REZERVA');
-  radky.push(`- Doporučená rezerva (${v.rezerva.mesicu} měs. výdajů): ${f(v.rezerva.doporucenaRezerva)} Kč`);
-  radky.push(`- Chybí do rezervy: ${f(v.rezerva.chybiDoRezervy)} Kč`);
+  radky.push('## REZERVA (likvidní, metodika KFP)');
+  radky.push(`- Doporučená rezerva (${v.rezerva.mesicu}× měs. výdaje): ${f(v.rezerva.doporucenaRezerva)} Kč · Chybí: ${f(v.rezerva.chybiDoRezervy)} Kč`);
+  radky.push(`- Úrovně: krátkodobá 3× ${f(v.rezervaUrovne.kratkodoba)} Kč · ztráta práce 6× ${f(v.rezervaUrovne.ztrataPrace)} Kč · dlouhodobá nemoc 12× ${f(v.rezervaUrovne.dlouhodobaNemoc)} Kč (nesčítají se)`);
 
   radky.push('## POJIŠTĚNÍ (potřeba krytí, metoda DIME)');
   radky.push(`- Náhrada příjmu: ${f(v.pojistnaPotreba.nahradaPrijmu)} Kč`);
@@ -227,6 +252,9 @@ export function formatujPodklady(profil: FinPlanProfil, v: Vypocty): string {
   radky.push(`- Smrt: ${f(v.edoKryti.smrt)} Kč · Invalidita: ${f(v.edoKryti.invalidita)} Kč (3× roční příjem)`);
   radky.push(`- Závažná onemocnění: ${f(v.edoKryti.zavazneOnemocneni)} Kč (1× roční příjem) · Trvalé následky úrazu: ${f(v.edoKryti.trvaleNasledkyUrazu)} Kč`);
   radky.push(`- Pracovní neschopnost: měsíční dorovnání ${f(v.edoKryti.pracovniNeschopnostMesicniDorovnani)} Kč`);
+  radky.push('### Pojistné částky dle metodiky EFPA/KFP (koeficient 200 − sociální dávky)');
+  radky.push(`- Smrt: ${f(v.efpaKryti.smrt)} Kč (hrubá potřeba ${f(v.efpaKryti.potrebaSmrtHruba)} Kč − dávky/majetek)`);
+  radky.push(`- Invalidita: ${f(v.efpaKryti.invalidita)} Kč · Trvalé následky úrazu: ${f(v.efpaKryti.trvaleNasledkyUrazu)} Kč (½ invalidity)`);
 
   radky.push('## ÚVĚRY');
   radky.push(`- Tržní sazba (použitá): ${pct(v.uvery.trzniSazba)}`);
@@ -238,9 +266,12 @@ export function formatujPodklady(profil: FinPlanProfil, v: Vypocty): string {
     radky.push('- Refinancování: nezadána stávající hypotéka k posouzení.');
   }
 
-  radky.push(`## INVESTICE (horizont ${v.investice.horizontLet} let, Monte Carlo)`);
+  radky.push(`## INVESTICE (horizont ${v.investice.horizontLet} let, metodika KFP)`);
+  const al = v.investice.doporucenaAlokace;
+  radky.push(`- Doporučená alokace dle horizontu (Morningstar): akcie ${pct(al.akcie)}, dluhopisy ${pct(al.dluhopisy)}, hotovost ${pct(al.hotovost)}`);
+  radky.push(`- Očekávaný reálný výnos (AFP glide-path): ${pct(v.investice.ocekavanyVynosKFP)} p.a.`);
   const mc = v.investice.monteCarlo;
-  radky.push(`- Pesimistický (p10): ${f(mc.p10)} Kč · Medián (p50): ${f(mc.median)} Kč · Optimistický (p90): ${f(mc.p90)} Kč`);
+  radky.push(`- Projekce Monte Carlo — pesimistický (p10): ${f(mc.p10)} Kč · medián (p50): ${f(mc.median)} Kč · optimistický (p90): ${f(mc.p90)} Kč`);
   if (mc.pravdepodobnostCile != null) radky.push(`- Pravděpodobnost dosažení cíle: ${pct(mc.pravdepodobnostCile)}`);
   radky.push('- Srovnání forem (čistá hodnota po poplatcích):');
   for (const s of v.investice.srovnaniForem) {
@@ -250,7 +281,8 @@ export function formatujPodklady(profil: FinPlanProfil, v: Vypocty): string {
   radky.push('## PENZE');
   radky.push(`- Let do důchodu: ${v.penze.projekce.letDoOdchodu} · Měsíčně spoří: ${f(v.penze.projekce.celkemMesicneSpori)} Kč (z toho stát ${f(v.penze.projekce.mesicniStatniPrispevek)} Kč)`);
   radky.push(`- Naspořený kapitál k důchodu: ${f(v.penze.projekce.nasporenyKapital)} Kč`);
-  radky.push(`- Mezera v důchodu: ${v.penze.mezera.pokryto ? 'POKRYTO' : f(v.penze.mezera.mesicniMezera) + ' Kč/měs. CHYBÍ'} · Potřebný kapitál pro cíl: ${f(v.penze.mezera.potrebnyKapital)} Kč`);
+  radky.push(`- Mezera v důchodu: ${v.penze.mezera.pokryto ? 'POKRYTO' : f(v.penze.mezera.mesicniMezera) + ' Kč/měs. CHYBÍ'}`);
+  radky.push(`- Potřebný kapitál pro cílovou rentu (pravidlo KFP ×200): ${f(v.penze.potrebnyKapitalRentaKFP)} Kč`);
 
   return radky.join('\n');
 }
