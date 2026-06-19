@@ -130,6 +130,14 @@ console.log('— INVESTICE: alokace a výnosy KFP —');
   // Výnos portfolia 18 let (83/15/2) ≈ 6,3 % (statická alokace).
   ok(blizko(investice.ocekavanyVynosDleHorizontu(18), 0.0631, 0.02), `výnos portfolia 18 let ≈ 6,3 % (=${(investice.ocekavanyVynosDleHorizontu(18)*100).toFixed(2)} %)`);
 
+  // Kolik investovat na cíl: 500k za 15 let při 4,4 % → rozumné jednorázové/měsíční > 0.
+  const ki = investice.kolikInvestovat(500_000, 15, 0.044);
+  ok(ki.jednorazove > 0 && ki.jednorazove < 500_000, 'kolikInvestovat jednorázově < cíl');
+  ok(ki.mesicni > 0 && ki.mesicni * 12 * 15 < 500_000, 'kolikInvestovat měsíčně sumárně < cíl (výnos pomáhá)');
+  // S již naspořenou částkou pokrývající cíl → potřeba 0.
+  const ki0 = investice.kolikInvestovat(100_000, 10, 0.05, 100_000);
+  ok(ki0.jednorazove === 0 && ki0.mesicni === 0, 'kolikInvestovat: naspořeno pokrývá cíl → 0');
+
   // AFP glide-path výnosy: cíl 15 let = 4,4 %, renta 20 let = 5,7 %.
   ok(investice.ocekavanyVynosCile(15) === 0.044, 'AFP výnos cíle 15 let = 4,4 %');
   ok(investice.ocekavanyVynosCile(3) === 0.025, 'AFP výnos cíle 3 roky = 2,5 %');

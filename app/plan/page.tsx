@@ -3,10 +3,10 @@
 import { useState } from 'react';
 import {
   Wallet, Loader2, AlertTriangle, CheckCircle2, Printer, Copy, BookOpen,
-  FileText, ChevronRight, Eye, Calculator, ShieldCheck, Home, TrendingUp, PiggyBank,
+  FileText, ChevronRight, Eye, Calculator, ShieldCheck, Home, TrendingUp, PiggyBank, Target, Plus, Trash2,
 } from 'lucide-react';
 import { generujFinancniPlanAction } from '@/app/actions';
-import type { FinPlanProfil, RizikovyProfil } from '@/lib/financniPlan';
+import type { FinPlanProfil, RizikovyProfil, FinCil } from '@/lib/financniPlan';
 import Markdown from '@/components/Markdown';
 
 interface SourceChunk {
@@ -77,6 +77,15 @@ export default function PlanPage() {
   const [zdravotniStav, setZdravotniStav] = useState('');
   const [cile, setCile] = useState('Zajistit rodinu při výpadku příjmu a spořit na důchod');
 
+  // Cíle klienta (CO / KDY / KOLIK) — KFP finanční mapa.
+  const [cileList, setCileList] = useState<{ nazev: string; castka: string; roky: string }[]>([
+    { nazev: 'Vzdělání dětí', castka: '500000', roky: '15' },
+  ]);
+  const pridejCil = () => setCileList((s) => [...s, { nazev: '', castka: '', roky: '' }]);
+  const upravCil = (i: number, klic: 'nazev' | 'castka' | 'roky', val: string) =>
+    setCileList((s) => s.map((c, idx) => (idx === i ? { ...c, [klic]: val } : c)));
+  const smazCil = (i: number) => setCileList((s) => s.filter((_, idx) => idx !== i));
+
   // — Výstup —
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -122,6 +131,9 @@ export default function PlanPage() {
       povolani: povolani.trim() || undefined,
       zdravotniStav: zdravotniStav.trim() || undefined,
       cile: cile.trim() || undefined,
+      cileSeznam: cileList
+        .filter((c) => c.nazev.trim() && num(c.castka) > 0 && num(c.roky) > 0)
+        .map((c): FinCil => ({ nazev: c.nazev.trim(), castka: num(c.castka), roky: num(c.roky) })),
     };
 
     try {
@@ -234,12 +246,38 @@ export default function PlanPage() {
               </div>
             </div>
 
+            {/* Cíle (CO / KDY / KOLIK) — KFP finanční mapa */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-bold text-primary flex items-center gap-1.5"><Target className="h-4 w-4 text-accent" />Cíle klienta</h3>
+                <button type="button" onClick={pridejCil} disabled={loading} className="flex items-center gap-1 text-[11px] font-bold text-primary hover:text-primary-600">
+                  <Plus className="h-3.5 w-3.5" /> Přidat cíl
+                </button>
+              </div>
+              <div className="space-y-1.5">
+                {cileList.map((c, i) => (
+                  <div key={i} className="flex items-center gap-1.5">
+                    <input value={c.nazev} onChange={(e) => upravCil(i, 'nazev', e.target.value)} placeholder="Cíl (bydlení, děti…)" disabled={loading}
+                      className="flex-1 min-w-0 rounded-lg border border-slate-200 px-2 py-1.5 text-sm focus:border-primary focus:outline-none" />
+                    <input value={c.castka} onChange={(e) => upravCil(i, 'castka', e.target.value)} placeholder="Kč" disabled={loading}
+                      className="w-20 rounded-lg border border-slate-200 px-2 py-1.5 text-sm focus:border-primary focus:outline-none" />
+                    <input value={c.roky} onChange={(e) => upravCil(i, 'roky', e.target.value)} placeholder="let" disabled={loading}
+                      className="w-12 rounded-lg border border-slate-200 px-2 py-1.5 text-sm focus:border-primary focus:outline-none" />
+                    <button type="button" onClick={() => smazCil(i)} disabled={loading} className="text-slate-400 hover:text-red-600 p-1" title="Odebrat">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+                {cileList.length === 0 && <p className="text-[11px] text-slate-400">Bez konkrétních cílů (volitelné).</p>}
+              </div>
+            </div>
+
             {/* Ostatní */}
             <div className="space-y-2">
               <Pole label="Povolání / riziková skupina" value={povolani} set={setPovolani} placeholder="Např. IT, automechanik" />
               <Pole label="Zdravotní stav" value={zdravotniStav} set={setZdravotniStav} placeholder="Např. bez komplikací" />
               <div>
-                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Cíle klienta</label>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Poznámka k cílům / situaci</label>
                 <textarea
                   value={cile} onChange={(e) => setCile(e.target.value)} rows={2} disabled={loading}
                   className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-primary focus:outline-none"

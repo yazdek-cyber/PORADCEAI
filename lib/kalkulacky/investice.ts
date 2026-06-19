@@ -166,6 +166,33 @@ function normal(rng: () => number): number {
   return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
 }
 
+export interface KolikInvestovatVystup {
+  jednorazove: number; // kolik vložit dnes jednorázově, aby cíl vyšel
+  mesicni: number; // nebo kolik investovat měsíčně (bez počáteční částky)
+  cil: number;
+  roky: number;
+  rocniVynos: number;
+}
+
+/**
+ * Kolik je třeba investovat pro dosažení cíle (AFP „jak splnit cíl"):
+ * buď jednorázově dnes (současná hodnota cíle), nebo pravidelně měsíčně (vklad anuity).
+ * Zohledňuje už naspořenou částku určenou na tento cíl.
+ */
+export function kolikInvestovat(
+  cil: number,
+  roky: number,
+  rocniVynos: number,
+  jizNasporeno = 0
+): KolikInvestovatVystup {
+  const zbyva = Math.max(0, cil - budouciHodnota(jizNasporeno, rocniVynos, roky));
+  const jednorazove = zbyva / Math.pow(1 + rocniVynos, roky);
+  const n = Math.round(roky * 12);
+  const i = mesicniMira(rocniVynos);
+  const mesicni = i === 0 ? zbyva / n : (zbyva * i) / (Math.pow(1 + i, n) - 1);
+  return { jednorazove, mesicni, cil, roky, rocniVynos };
+}
+
 export interface MonteCarloVstup {
   pocatecni: number;
   mesicniVklad: number;

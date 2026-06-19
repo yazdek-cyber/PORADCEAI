@@ -37,11 +37,20 @@ export interface FinPlanProfil {
   penzeMesicniVklad?: number;
   cilovaRentaDuchod?: number; // měsíčně
   ocekavanaStatniPenze?: number; // měsíčně
+  // Cíle klienta (KFP finanční mapa): bydlení, vzdělání dětí, auto, finanční nezávislost…
+  cileSeznam?: FinCil[];
   // Ostatní
   rizikovyProfil?: RizikovyProfil;
   povolani?: string;
   zdravotniStav?: string;
-  cile?: string;
+  cile?: string; // volný textový popis cílů (doplněk k cileSeznam)
+}
+
+export interface FinCil {
+  nazev: string;
+  castka: number; // cílová částka (dnešní hodnota)
+  roky: number; // za kolik let
+  nasporeno?: number; // už naspořeno na tento cíl
 }
 
 const RIZIKO: Record<RizikovyProfil, { vynos: number; volatilita: number }> = {
@@ -77,6 +86,15 @@ export interface Vypocty {
     monteCarlo: ReturnType<typeof investice.monteCarloProjekce>;
     srovnaniForem: ReturnType<typeof investice.srovnejFormy>;
   };
+  cile: {
+    nazev: string;
+    castka: number;
+    roky: number;
+    alokace: ReturnType<typeof investice.alokaceDleHorizontu>;
+    vynos: number;
+    jednorazove: number;
+    mesicni: number;
+  }[];
   penze: {
     projekce: ReturnType<typeof penze.projekcePenze>;
     mezera: ReturnType<typeof penze.mezeraVDuchodu>;
@@ -181,6 +199,21 @@ export async function pripravPodklady(profil: FinPlanProfil): Promise<Vypocty> {
     formy
   );
 
+  // — CÍLE — pro každý cíl spočítáme doporučenou alokaci a kolik na něj investovat (KFP).
+  const cile = (profil.cileSeznam ?? []).map((c) => {
+    const vynos = investice.ocekavanyVynosCile(c.roky);
+    const ki = investice.kolikInvestovat(c.castka, c.roky, vynos, c.nasporeno ?? 0);
+    return {
+      nazev: c.nazev,
+      castka: c.castka,
+      roky: c.roky,
+      alokace: investice.alokaceDleHorizontu(c.roky),
+      vynos,
+      jednorazove: ki.jednorazove,
+      mesicni: ki.mesicni,
+    };
+  });
+
   // — PENZE — projekce + mezera v důchodu
   const penzeVynos = RIZIKO[profil.rizikovyProfil ?? 'vyvazeny'].vynos;
   const projekce = penze.projekcePenze({
@@ -221,6 +254,7 @@ export async function pripravPodklady(profil: FinPlanProfil): Promise<Vypocty> {
     efpaKryti,
     uvery: { maxUver, refinancovani, trzniSazba },
     investice: { horizontLet: horizont, doporucenaAlokace, ocekavanyVynosKFP, monteCarlo, srovnaniForem },
+    cile,
     penze: { projekce, mezera, potrebnyKapitalRentaKFP },
     pouziteProdukty: [
       { domena: 'pojisteni', pocet: pojProd.length },
@@ -276,6 +310,15 @@ export function formatujPodklady(profil: FinPlanProfil, v: Vypocty): string {
   radky.push('- Srovnání forem (čistá hodnota po poplatcích):');
   for (const s of v.investice.srovnaniForem) {
     radky.push(`  ${s.poradi}. ${s.nazev}: ${f(s.cistaHodnota)} Kč (ztráta na poplatcích vs. hrubé: ${f(s.ztrataNaPoplatcichVsHrube)} Kč)`);
+  }
+
+  if (v.cile.length > 0) {
+    radky.push('## CÍLE KLIENTA (kolik investovat, KFP)');
+    for (const c of v.cile) {
+      radky.push(
+        `- ${c.nazev}: ${f(c.castka)} Kč za ${c.roky} let (výnos ${pct(c.vynos)}, akcie ${pct(c.alokace.akcie)}) → jednorázově ${f(c.jednorazove)} Kč NEBO měsíčně ${f(c.mesicni)} Kč`
+      );
+    }
   }
 
   radky.push('## PENZE');
