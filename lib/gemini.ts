@@ -223,8 +223,10 @@ ${textStranky.slice(0, 24000)}`;
   try {
     const parsed = JSON.parse(response.text || '[]');
     if (!Array.isArray(parsed)) return [];
+    // VALIDACE proti reálným odkazům — model nesmí vymýšlet URL (jinak 404 při importu).
+    const platne = new Set(odkazy);
     return parsed
-      .filter((p) => p && typeof p.url === 'string' && typeof p.nazev === 'string')
+      .filter((p) => p && typeof p.url === 'string' && typeof p.nazev === 'string' && platne.has(p.url))
       .map((p) => ({ produkt: String(p.produkt || 'Obecné'), nazev: String(p.nazev), url: String(p.url) }));
   } catch {
     return [];
