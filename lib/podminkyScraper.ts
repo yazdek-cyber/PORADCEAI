@@ -39,7 +39,7 @@ async function objevStaticky(pojistovna: string, url: string): Promise<ObjevenaP
   }
   const html = await res.text();
   const odkazy = vytahniOdkazy(html, url);
-  const pdfOdkazy = odkazy.filter((o) => /\.pdf(\?|#|$)/i.test(o));
+  const pdfOdkazy = odkazy.filter((o) => /\.pdf(\/|\?|#|$)/i.test(o));
   // Bez PDF odkazů ve statickém HTML nemá smysl plýtvat tokeny — rovnou na fallback.
   if (pdfOdkazy.length === 0) return [];
   const text = htmlNaText(html);
@@ -58,8 +58,9 @@ export async function objevPodminky(pojistovna: string, url: string): Promise<Ob
     // statický fetch selhal (blokace, timeout) → zkusíme url_context
   }
   if (list.length === 0) {
-    // url_context fallback bývá občas flaky (vrátí 0) — zkusíme až 2×.
-    for (let pokus = 0; pokus < 2 && list.length === 0; pokus++) {
+    // url_context fallback bývá flaky (občas vrátí 0) — zkusíme až 3× s prodlevou.
+    for (let pokus = 0; pokus < 3 && list.length === 0; pokus++) {
+      if (pokus > 0) await new Promise((r) => setTimeout(r, 3000 * pokus));
       try {
         list = await extrahujPodminkyUrlContext(pojistovna, url);
       } catch {

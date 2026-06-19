@@ -270,7 +270,7 @@ Vrať vybrané dokumenty VÝHRADNĚ jako platný JSON (žádné HTML, žádný m
     } catch {
       return;
     }
-    if (!/\.pdf(\?|#|$)/i.test(abs)) return;
+    if (!/\.pdf(\/|\?|#|$)/i.test(abs)) return;
     const stary = podleUrl.get(abs);
     if (!stary || (nazev && (!stary.nazev || stary.nazev.length < nazev.length))) {
       podleUrl.set(abs, {
@@ -295,7 +295,7 @@ Vrať vybrané dokumenty VÝHRADNĚ jako platný JSON (žádné HTML, žádný m
   if (podleUrl.size === 0) {
     const vylucit =
       /formul|zadost|žádost|oznamen|hlasen|hlášen|odstoup|plna-moc|plná-moc|vypoved|výpověd|majetk|domacnost|domácnost|nemovit|vozid|auto|havarij|povinne-ruceni|povinné-ručen|cestov|odpovednost|odpovědnost|podnik|firemn|vyrocni|výroční/i;
-    for (const mm of text.matchAll(/((?:https?:\/\/|\/)[^"'\s<>()]+?\.pdf)/gi)) {
+    for (const mm of text.matchAll(/((?:https?:\/\/|\/)[^"'\s<>()]+?\.pdf(?:\/[A-Za-z0-9._-]+)?)/gi)) {
       if (!vylucit.test(mm[1])) pridej(undefined, undefined, mm[1]);
     }
   }
