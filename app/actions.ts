@@ -53,6 +53,28 @@ export async function getDocumentsAction() {
 }
 
 /**
+ * Vrátí seznam unikátních pojišťoven (pro filtr ve vyhledávání).
+ */
+export async function getPojistovnyAction() {
+  await checkConfig();
+  try {
+    const { data, error } = await supabaseAdmin.from('dokumenty').select('pojistovna');
+    if (error) {
+      throw new Error(`Nepodařilo se načíst pojišťovny: ${error.message}`);
+    }
+    const pojistovny = [...new Set((data || []).map((d) => d.pojistovna).filter(Boolean))].sort();
+    return { success: true, pojistovny };
+  } catch (error) {
+    console.error('Chyba getPojistovnyAction:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+      pojistovny: [] as string[],
+    };
+  }
+}
+
+/**
  * Nahraje a zpracuje PDF dokument.
  */
 export async function uploadDocumentAction(formData: FormData) {
@@ -120,7 +142,11 @@ export async function deleteDocumentAction(documentId: string) {
 /**
  * Odpoví na dotaz v chatu pomocí RAG.
  */
-export async function askChatAction(query: string, history: ChatMessage[]) {
+export async function askChatAction(
+  query: string,
+  history: ChatMessage[],
+  pojistovna?: string | null
+) {
   await checkConfig();
   try {
     if (!query || query.trim() === '') {
@@ -130,10 +156,12 @@ export async function askChatAction(query: string, history: ChatMessage[]) {
     // 1. Generování embeddingu pro dotaz uživatele
     const queryEmbedding = await getEmbedding(query, 'RETRIEVAL_QUERY');
 
-    // 2. Vyhledání nejpodobnějších chunků v Supabase (bereme víc a pak filtrujeme prahem)
+    // 2. Vyhledání nejpodobnějších chunků v Supabase (bereme víc a pak filtrujeme prahem).
+    //    filtr_pojistovna=NULL => napříč všemi pojišťovnami; jinak jen vybraná.
     const { data: chunks, error: rpcError } = await supabaseAdmin.rpc('hledej_chunky', {
       dotaz_embedding: queryEmbedding,
       pocet: 10,
+      filtr_pojistovna: pojistovna || null,
     });
 
     if (rpcError) {

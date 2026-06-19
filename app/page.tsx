@@ -14,8 +14,9 @@ import {
   Maximize2,
   Eye,
   EyeOff,
+  Filter,
 } from 'lucide-react';
-import { askChatAction } from '@/app/actions';
+import { askChatAction, getPojistovnyAction } from '@/app/actions';
 
 interface Message {
   id: string;
@@ -42,6 +43,8 @@ export default function ChatPage() {
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [pojistovny, setPojistovny] = useState<string[]>([]);
+  const [vybranaPojistovna, setVybranaPojistovna] = useState<string>(''); // '' = všechny
   const [activeSourceChunk, setActiveSourceChunk] = useState<{
     obsah: string;
     pojistovna: string;
@@ -65,6 +68,15 @@ export default function ChatPage() {
   useEffect(() => {
     scrollToBottom();
   }, [messages, loading]);
+
+  // Načtení seznamu pojišťoven pro filtr
+  useEffect(() => {
+    getPojistovnyAction()
+      .then((res) => {
+        if (res.success) setPojistovny(res.pojistovny);
+      })
+      .catch(() => {});
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,7 +104,7 @@ export default function ChatPage() {
           content: msg.content,
         }));
 
-      const res = await askChatAction(userQuery, chatHistory);
+      const res = await askChatAction(userQuery, chatHistory, vybranaPojistovna || null);
 
       if (res.success) {
         setMessages((prev) => [
@@ -364,16 +376,38 @@ export default function ChatPage() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Form */}
-        <form onSubmit={handleSubmit} className="border-t border-slate-200 p-3 flex gap-2 shrink-0 bg-white">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Zeptejte se na pojistné podmínky (např. invalidita Generali)..."
-            className="flex-1 rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-primary focus:outline-none placeholder-slate-400"
-            disabled={loading}
-          />
+        {/* Filtr pojišťovny + Input Form */}
+        <div className="border-t border-slate-200 bg-white shrink-0">
+          {pojistovny.length > 0 && (
+            <div className="px-3 pt-2.5 flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] font-semibold text-slate-500 flex items-center gap-1">
+                <Filter className="h-3.5 w-3.5 text-accent" />
+                Hledat ve zdroji:
+              </span>
+              <select
+                value={vybranaPojistovna}
+                onChange={(e) => setVybranaPojistovna(e.target.value)}
+                disabled={loading}
+                className="text-xs rounded-md border border-slate-200 px-2 py-1 text-slate-700 focus:border-primary focus:outline-none cursor-pointer bg-white"
+              >
+                <option value="">Všechny pojišťovny</option>
+                {pojistovny.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          <form onSubmit={handleSubmit} className="p-3 flex gap-2">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Zeptejte se na pojistné podmínky (např. invalidita Generali)..."
+              className="flex-1 rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-primary focus:outline-none placeholder-slate-400"
+              disabled={loading}
+            />
           <button
             type="submit"
             disabled={loading || !input.trim()}
@@ -385,7 +419,8 @@ export default function ChatPage() {
           >
             <Send className="h-4 w-4 text-accent" />
           </button>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   );
