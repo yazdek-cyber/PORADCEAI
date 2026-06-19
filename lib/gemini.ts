@@ -377,6 +377,71 @@ ${kontext.slice(0, 28000)}`;
   }
 }
 
+/**
+ * Syntéza FINANČNÍHO PLÁNU (4 pilíře) z deterministicky spočítaných podkladů.
+ * Klíčové: čísla NEPOČÍTÁ — bere je hotová z `podkladyText` (výstup kalkulaček).
+ * Úkolem AI je čísla vysvětlit, propojit do doporučení a doložit zdroji z podmínek.
+ */
+export async function generateFinancniPlan(
+  profilText: string,
+  podkladyText: string,
+  contextChunks: ContextChunk[]
+): Promise<string> {
+  if (!process.env.GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY není nastavena v proměnných prostředí.');
+  }
+
+  const formattedContext = contextChunks.length
+    ? contextChunks
+        .map((chunk, idx) => {
+          const src = `${chunk.pojistovna} - ${chunk.nazev_dokumentu}${chunk.strana ? `, str. ${chunk.strana}` : ''}`;
+          return `--- ZDROJ ${idx + 1}: ${src} ---\n${chunk.obsah}`;
+        })
+        .join('\n\n')
+    : '(K dispozici zatím nejsou nahrané podmínky/produkty — doporučení formuluj obecněji a upozorni na to.)';
+
+  const systemInstruction = `Jsi špičkový finanční plánovač v ČR. Sestavuješ pro licencovaného poradce STRUKTUROVANÝ FINANČNÍ PLÁN klienta napříč 4 pilíři: PENZE, INVESTICE, ÚVĚRY, POJIŠTĚNÍ.
+
+KRITICKÁ PRAVIDLA:
+1. ČÍSLA NEPOČÍTEJ. Všechna čísla (částky, splátky, projekce, pravděpodobnosti) PŘEBÍREJ doslova ze sekce „SPOČÍTANÉ PODKLADY". Nikdy je neměň ani nedopočítávej. Když nějaké chybí, řekni to.
+2. Konkrétní tvrzení o produktech/podmínkách opírej o „KONTEXT Z PODMÍNEK" a uveď zdroj (pojišťovna, dokument, strana). Bez zdroje nic netvrď jako fakt.
+3. Na ZAČÁTKU i na KONCI uveď: "Toto je analytický podklad pro licencovaného poradce, nikoliv finanční doporučení."
+4. Drž 4 principy: nestrannost (ne podle provize), vysvětlitelnost (PROČ a ZDROJ), pravdivost (nevymýšlej), specifičnost (šité na klienta).
+5. Čeština, profesionálně, Markdown.
+
+STRUKTURA PLÁNU:
+- **Shrnutí situace klienta** (z profilu).
+- **1. Finanční rezerva** — stav vs. doporučení (z podkladů).
+- **2. Ochrana (Pojištění)** — potřeba krytí (DIME), na co cílit; zdroje z podmínek.
+- **3. Úvěry** — kapacita, refinancování (z podkladů), na co pozor.
+- **4. Investice** — projekce (p10/medián/p90), pravděpodobnost cíle, srovnání forem a poplatků, doporučená struktura dle rizikového profilu.
+- **5. Penze** — projekce kapitálu, mezera v důchodu, role DPS a státního příspěvku.
+- **Priority a akční kroky** — seřazené, konkrétní, s odůvodněním.
+
+SPOČÍTANÉ PODKLADY (zdroj všech čísel):
+${podkladyText}
+
+KONTEXT Z PODMÍNEK (zdroj tvrzení o produktech):
+${formattedContext}`;
+
+  const prompt = `Profil klienta:\n${profilText}\n\nSestav finanční plán dle pravidel a struktury v systémové instrukci. Čísla ber z podkladů, tvrzení dokládej zdroji.`;
+
+  try {
+    const response = await generujSOpakovanim(
+      {
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: { systemInstruction, temperature: 0.2 },
+      },
+      'finanční plán'
+    );
+    return response.text || 'Nepodařilo se vygenerovat finanční plán.';
+  } catch (error) {
+    console.error('Chyba při volání Gemini API (finanční plán):', error);
+    throw error;
+  }
+}
+
 interface ChatMessage {
   role: 'user' | 'model';
   content: string;

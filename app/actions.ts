@@ -1,10 +1,11 @@
 'use server';
 
 import { processPdf } from '@/lib/documentProcessor';
-import { getEmbedding, generateChatResponse, generateClientSolution, extrahujSrovnani, ClientProfile } from '@/lib/gemini';
+import { getEmbedding, generateChatResponse, generateClientSolution, extrahujSrovnani, generateFinancniPlan, ClientProfile } from '@/lib/gemini';
 import { supabaseAdmin, checkEnvConfigured } from '@/lib/supabase';
 import { POJISTOVNY } from '@/lib/pojistovny';
 import { objevPodminky } from '@/lib/podminkyScraper';
+import { pripravPodklady, formatujPodklady, type FinPlanProfil } from '@/lib/financniPlan';
 import { revalidatePath } from 'next/cache';
 
 interface ChatMessage {
@@ -253,6 +254,82 @@ export async function askChatAction(
       success: false,
       error: error instanceof Error ? error.message : String(error),
       answer: '',
+      chunks: [],
+    };
+  }
+}
+
+/**
+ * Vygeneruje komplexní FINANČNÍ PLÁN přes 4 pilíře (penze/investice/úvěry/pojištění).
+ * 1) deterministicky spočítá podklady (kalkulačky + zdroje sazeb),
+ * 2) RAG: doplní úryvky z podmínek jako zdroje,
+ * 3) AI z podkladů složí plán se zdroji a disclaimerem,
+ * 4) uloží plán do financni_plany (dohledatelnost).
+ */
+export async function generujFinancniPlanAction(profil: FinPlanProfil) {
+  await checkConfig();
+  try {
+    // 1) Deterministické podklady ze všech pilířů.
+    const vypocty = await pripravPodklady(profil);
+    const podkladyText = formatujPodklady(profil, vypocty);
+
+    // 2) RAG: vyhledáme relevantní úryvky z podmínek (napříč doménami).
+    const dotaz = `Finanční situace klienta, věk ${profil.vek}, povolání ${profil.povolani ?? '–'}, cíle: ${profil.cile ?? '–'}. Pojištění, úvěry, investice, penze.`;
+    const emb = await getEmbedding(dotaz, 'RETRIEVAL_QUERY');
+    const { data: chunks } = await supabaseAdmin.rpc('hledej_chunky', {
+      dotaz_embedding: emb,
+      pocet: 12,
+      filtr_pojistovna: null,
+    });
+    const contextChunks = (chunks || []).filter((c: any) => c.podobnost >= MIN_PODOBNOST).slice(0, 10);
+
+    // 3) Textový profil pro prompt.
+    const profilText = [
+      `Věk: ${profil.vek}`,
+      `Čistý měsíční příjem: ${profil.cistyPrijem} Kč · Výdaje: ${profil.vydaje} Kč`,
+      `Rodina: ${profil.partner ? 'partner/ka' : 'bez partnera'}, dětí: ${profil.pocetDeti ?? 0}`,
+      `Rezerva naspořeno: ${profil.rezervaNasporeno ?? 0} Kč · Investice: ${profil.existujiciInvestice ?? 0} Kč (měs. vklad ${profil.mesicniVkladInvestice ?? 0} Kč)`,
+      `Hypotéka: ${profil.hypotekaZustatek ?? 0} Kč${profil.hypotekaSazba ? `, sazba ${(profil.hypotekaSazba * 100).toFixed(2)} %, zbývá ${profil.hypotekaZbyvaMesicu ?? '?'} měs.` : ''} · Jiné dluhy: ${profil.jineDluhy ?? 0} Kč`,
+      `Penze: naspořeno ${profil.penzeNasporeno ?? 0} Kč, měs. vklad ${profil.penzeMesicniVklad ?? 0} Kč, věk odchodu ${profil.vekOdchodu ?? 65}`,
+      `Rizikový profil: ${profil.rizikovyProfil ?? 'vyvazeny'} · Zdravotní stav: ${profil.zdravotniStav ?? '–'}`,
+      `Cíle: ${profil.cile ?? '–'}`,
+    ].join('\n');
+
+    // 4) AI syntéza.
+    const plan = await generateFinancniPlan(profilText, podkladyText, contextChunks);
+
+    // 5) Uložení plánu (best-effort, neblokuje výsledek).
+    try {
+      await supabaseAdmin.from('financni_plany').insert({
+        profil: profil as unknown as Record<string, unknown>,
+        plan_md: plan,
+        vypocty: vypocty as unknown as Record<string, unknown>,
+      });
+    } catch (e) {
+      console.error('Uložení finančního plánu selhalo (nekritické):', e);
+    }
+
+    return {
+      success: true,
+      plan,
+      podklady: podkladyText,
+      chunks: contextChunks.map((c: any) => ({
+        id: c.id,
+        obsah: c.obsah,
+        pojistovna: c.pojistovna,
+        nazev_dokumentu: c.nazev_dokumentu,
+        strana: c.strana,
+        domena: c.domena,
+        podobnost: c.podobnost,
+      })),
+    };
+  } catch (error) {
+    console.error('Chyba generujFinancniPlanAction:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+      plan: '',
+      podklady: '',
       chunks: [],
     };
   }
