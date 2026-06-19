@@ -177,3 +177,13 @@ od klienta), EFPA Metodika pojištění osob (43) a vozidel (29), eDO START (20)
 po oblastech, EFPA daňové aspekty (úlevy/paušály), Handbook pro poradce (produktový slovník), mBank úvěry.
 ZÁMĚRNĚ vynecháno (off-topic/objemné, lze později přes drop-folder): marketing/nábor/osobní značka/
 soft-skills PDF, deep investiční akademie (16 podsložek burzovní vzdělávání), videa. Osobní data klientů NE.
+
+### v0.8 doplněno (2) — Akademie finančního plánování + zajištění (20 eDO dokumentů)
+Přidána KOMPLETNÍ metodika finančního plánování (KFP/EFPA):
+- Finanční mapa (metodika první schůzky: hodnoty→cíle→zdroje→závěr; pořadí dotazování)
+- Zpracování plánu (renta 1 mil.=5000 Kč/měs; pořadí: rizika→hypotéka→cíle→renta; dlouhé cíle=dlouhé zdroje)
+- Metodiky a alokace (Morningstar alokace dle horizontu; historické reálné výnosy akcie 7,27 %/dluhopisy 1,81 %; co ohrožuje plán)
+- Poradenská metodika zajištění EFPA (koeficient 200; sociální dávky; TNÚ=½; likvidní rezerva 3/6/12×)
+- Handbook (produktový slovník), TAHÁK potřeby klienta, daňové aspekty, produktové dotazníky
+Tyto metodiky jsou připravené i k DOLADĚNÍ KALKULAČEK (Morningstar alokace dle věku/horizontu, renta=200×,
+výnosy 4,6 %/5 %, koeficient 200 pro pojistnou potřebu, likvidní rezerva 6×) — přirozený další krok.
