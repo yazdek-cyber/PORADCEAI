@@ -187,3 +187,13 @@ Přidána KOMPLETNÍ metodika finančního plánování (KFP/EFPA):
 - Handbook (produktový slovník), TAHÁK potřeby klienta, daňové aspekty, produktové dotazníky
 Tyto metodiky jsou připravené i k DOLADĚNÍ KALKULAČEK (Morningstar alokace dle věku/horizontu, renta=200×,
 výnosy 4,6 %/5 %, koeficient 200 pro pojistnou potřebu, likvidní rezerva 6×) — přirozený další krok.
+
+## v0.9 — kalkulačky doladěny dle metodiky eDO/KFP
+Kalkulačky i finanční plán nyní počítají přesně podle ingestované metodiky:
+- Alokace dle horizontu (Morningstar tabulka), reálné výnosy (akcie 7,27 %/dluhopisy 1,81 %),
+  očekávaný výnos cíle/renty (AFP glide-path) → investiční projekce.
+- Renta dle pravidla KFP ×200 (1 mil. Kč = 5 000 Kč/měs).
+- Pojistná potřeba metodou EFPA (koeficient 200 − sociální dávky invalidní/sirotčí/vdovský, TNÚ ½)
+  vedle metod DIME a eDO (3× příjem).
+- Likvidní rezerva 3/6/12× výdaje (KFP konsensus 6×).
+58/58 testů, build OK, ověřeno živě.
