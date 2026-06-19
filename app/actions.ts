@@ -316,6 +316,7 @@ export async function generujFinancniPlanAction(profil: FinPlanProfil) {
       success: true,
       plan,
       podklady: podkladyText,
+      vypocty,
       chunks: contextChunks.map((c: any) => ({
         id: c.id,
         obsah: c.obsah,
@@ -333,6 +334,7 @@ export async function generujFinancniPlanAction(profil: FinPlanProfil) {
       error: error instanceof Error ? error.message : String(error),
       plan: '',
       podklady: '',
+      vypocty: null,
       chunks: [],
     };
   }

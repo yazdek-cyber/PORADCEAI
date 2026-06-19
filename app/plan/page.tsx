@@ -6,8 +6,9 @@ import {
   FileText, ChevronRight, Eye, Calculator, ShieldCheck, Home, TrendingUp, PiggyBank, Target, Plus, Trash2,
 } from 'lucide-react';
 import { generujFinancniPlanAction } from '@/app/actions';
-import type { FinPlanProfil, RizikovyProfil, FinCil } from '@/lib/financniPlan';
+import type { FinPlanProfil, RizikovyProfil, FinCil, Vypocty } from '@/lib/financniPlan';
 import Markdown from '@/components/Markdown';
+import PlanPrehled from '@/components/PlanPrehled';
 
 interface SourceChunk {
   id: string;
@@ -91,6 +92,7 @@ export default function PlanPage() {
   const [error, setError] = useState<string | null>(null);
   const [plan, setPlan] = useState('');
   const [podklady, setPodklady] = useState('');
+  const [vypocty, setVypocty] = useState<Vypocty | null>(null);
   const [chunks, setChunks] = useState<SourceChunk[]>([]);
   const [activeChunk, setActiveChunk] = useState<SourceChunk | null>(null);
   const [copied, setCopied] = useState(false);
@@ -105,6 +107,7 @@ export default function PlanPage() {
     setError(null);
     setPlan('');
     setPodklady('');
+    setVypocty(null);
     setChunks([]);
     setActiveChunk(null);
 
@@ -141,6 +144,7 @@ export default function PlanPage() {
       if (res.success) {
         setPlan(res.plan);
         setPodklady(res.podklady);
+        setVypocty((res.vypocty as Vypocty) || null);
         setChunks((res.chunks as SourceChunk[]) || []);
       } else {
         setError(res.error || 'Nepodařilo se vygenerovat finanční plán.');
@@ -342,6 +346,14 @@ export default function PlanPage() {
                   </button>
                 </div>
               </div>
+
+              {/* Vizuální přehled spočítaných podkladů */}
+              {vypocty && (
+                <div>
+                  <h3 className="text-sm font-bold text-primary mb-2 print:mt-4">Přehled (spočítaná čísla)</h3>
+                  <PlanPrehled v={vypocty} />
+                </div>
+              )}
 
               {zobrazPodklady && podklady && (
                 <div className="rounded-xl border border-primary-100 bg-primary-50/40 p-4 shadow-sm print:hidden">
