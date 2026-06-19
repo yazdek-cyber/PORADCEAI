@@ -170,3 +170,10 @@ dynamická 8 %) — používá je investiční srovnání ve finančním plánu.
 
 **Zbývá (volitelně):** produktové dotazníky (2.Produktové dotazníky), akademie/know-how složky;
 živá data produktů/sazeb z portálů eDO přes `scripts/scraper/odchyt-api.ts` (vyžaduje login uživatele).
+
+### v0.8 doplněno — produktové dotazníky + akademie (jádro metodiky)
+Přidáno do RAG (celkem 16 eDO dokumentů): produktové dotazníky (ŽP/HÚ/investice/DPS — co zjišťovat
+od klienta), EFPA Metodika pojištění osob (43) a vozidel (29), eDO START (20), TAHÁK potřeby klienta
+po oblastech, EFPA daňové aspekty (úlevy/paušály), Handbook pro poradce (produktový slovník), mBank úvěry.
+ZÁMĚRNĚ vynecháno (off-topic/objemné, lze později přes drop-folder): marketing/nábor/osobní značka/
+soft-skills PDF, deep investiční akademie (16 podsložek burzovní vzdělávání), videa. Osobní data klientů NE.
