@@ -20,7 +20,7 @@ const EMBEDDING_SOUBEH = 5;
  * Spustí asynchronní operaci nad polem s omezeným souběhem a ZACHOVÁ pořadí výsledků.
  * Když kterákoli operace selže, chyba probublá (Promise.all chování) a zpracování skončí.
  */
-async function mapSOmezenim<T, R>(
+export async function mapSOmezenim<T, R>(
   items: T[],
   limit: number,
   fn: (item: T, index: number) => Promise<R>
@@ -216,5 +216,79 @@ export async function processPdf(
       success: false,
       error: error instanceof Error ? error.message : String(error),
     };
+  }
+}
+
+/**
+ * Uloží do RAG už extrahovaný TEXT (metodika, postupy) — bez PDF parsování.
+ * Použití pro knowledge base z metodických dokumentů (Maxx/Drive, bez osobních dat).
+ * Stejné chunkování i paralelní embeddingy jako u PDF; dělení po stranách přes '\f'.
+ */
+export async function processText(
+  fullText: string,
+  fileName: string,
+  provider: string,
+  domena: string = 'metodika'
+): Promise<ProcessResult> {
+  try {
+    if (!fullText || fullText.trim() === '') throw new Error('Prázdný text.');
+    const pages = fullText.includes('\f') ? fullText.split('\f') : [fullText];
+
+    const allChunks: {
+      obsah: string; strana: number; poradi: number; pojistovna: string; nazev_dokumentu: string;
+    }[] = [];
+    let overallIndex = 0;
+    const maxChunkLength = 3200;
+    const overlap = 400;
+
+    for (let pageIdx = 0; pageIdx < pages.length; pageIdx++) {
+      const pageText = pages[pageIdx];
+      if (!pageText || pageText.trim() === '') continue;
+      const pageNumber = pageIdx + 1;
+      if (pageText.length <= maxChunkLength) {
+        allChunks.push({ obsah: pageText.trim(), strana: pageNumber, poradi: overallIndex++, pojistovna: provider, nazev_dokumentu: fileName });
+      } else {
+        let start = 0;
+        while (start < pageText.length) {
+          let end = start + maxChunkLength;
+          if (end >= pageText.length) end = pageText.length;
+          else {
+            const lastSpace = pageText.lastIndexOf(' ', end);
+            if (lastSpace > start + maxChunkLength - overlap) end = lastSpace;
+          }
+          const chunkText = pageText.substring(start, end).trim();
+          if (chunkText.length > 50) {
+            allChunks.push({ obsah: chunkText, strana: pageNumber, poradi: overallIndex++, pojistovna: provider, nazev_dokumentu: fileName });
+          }
+          if (end >= pageText.length) break;
+          const next = end - overlap;
+          start = next > start ? next : end;
+        }
+      }
+    }
+    if (allChunks.length === 0) throw new Error('Žádný text k uložení.');
+
+    const dbChunks = await mapSOmezenim(allChunks, EMBEDDING_SOUBEH, async (chunk) => ({
+      ...chunk, embedding: await getEmbedding(chunk.obsah, 'RETRIEVAL_DOCUMENT'),
+    }));
+
+    const { data: doc, error: de } = await supabaseAdmin
+      .from('dokumenty')
+      .insert({ nazev: fileName, pojistovna: provider, pocet_chunku: 0, domena })
+      .select().single();
+    if (de || !doc) throw new Error(`Nepodařilo se vytvořit dokument: ${de?.message}`);
+
+    const toInsert = dbChunks.map((c) => ({ ...c, dokument_id: doc.id, domena }));
+    const { error: ie } = await supabaseAdmin.from('chunky').insert(toInsert);
+    if (ie) {
+      await supabaseAdmin.from('dokumenty').delete().eq('id', doc.id);
+      throw new Error(`Nepodařilo se uložit chunky: ${ie.message}`);
+    }
+    await supabaseAdmin.from('dokumenty').update({ pocet_chunku: dbChunks.length }).eq('id', doc.id);
+
+    return { success: true, documentId: doc.id, chunkCount: dbChunks.length };
+  } catch (error) {
+    console.error('Chyba v processText:', error);
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
