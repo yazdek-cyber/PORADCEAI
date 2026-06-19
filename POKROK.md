@@ -102,3 +102,46 @@ nabídne import v adminu a hlídá změny.
 - **Plné přihlášení (fáze 2)**: ZÁMĚRNĚ neimplementováno. Spec ho řadí do další fáze a plné Auth
   by rozbilo dnes funkční anonymní tok (login UI, session, RLS na auth.uid()). Datový model je
   připraven (workspaces, workspace_id, RLS) — migrace zůstává bezbolestná. Udělat jako cílený krok.
+
+## v0.7 — ROZŠÍŘENÍ NA CELÉ FINANČNÍ PORADENSTVÍ (4 pilíře) — SKELET
+
+Cíl (zadání uživatele): z „AI nad pojistnými podmínkami" udělat komplexního AI poradce přes
+**🏦 PENZE · 📈 INVESTICE · 🏠 ÚVĚRY · 🛡️ POJIŠTĚNÍ** s propojením do kalkulaček a automatickým
+finančním plánem. Postaven celý skelet najednou; jednotlivé „frakce" se doladí.
+
+**Klíčový princip:** AI nepočítá čísla. Tři vrstvy — (1) znalost (RAG + strukturované produkty),
+(2) deterministické kalkulačky, (3) AI orchestrace, která z kalkulaček složí plán se zdroji.
+
+| # | Část | Stav | Ověření |
+|---|------|------|---------|
+| 4 | Kalkulačky (4 pilíře) | ✅ | 36/36 testů (tsx): anuita, RPSN, Monte Carlo, DIME, DPS, mezera v důchodu |
+| 5 | Datový model (domény + produkty + plány) | ✅ | aditivní migrace; RAG beze změny (82 % shoda); 382 chunků = pojisteni |
+| 6 | Zdroje sazeb (ruční/scraping/API) | ✅ | typecheck; ruční čte z `produkty`, scraping+API zapojené stuby |
+| 7 | AI orchestrace finančního plánu | ✅ | živě: čísla z kalkulaček, zdroje z podmínek (Kooperativa s.46), disclaimer, plán 8k |
+| 8 | UI: stránka /plan + doména v adminu + Navbar | ✅ | build OK, /plan HTTP 200, navbar odkaz |
+
+### Mapa nového kódu
+- `lib/kalkulacky/` — `uvery.ts` (anuita, splátkový kalendář, DSTI/DTI/LTV, refinancování, RPSN),
+  `investice.ts` (FV, TER dopad, **Monte Carlo** p10/p50/p90 + pravděpodobnost cíle, **srovnání forem**),
+  `penze.ts` (DPS státní příspěvek 2024, projekce, renta, mezera), `pojisteni.ts` (rezerva, DIME),
+  `kalkulacky.test.ts` (spustit `npx tsx lib/kalkulacky/kalkulacky.test.ts`).
+- `lib/domeny.ts` — 4 pilíře (id/název/ikona).
+- `lib/sazby/` — `SazbyProvider` rozhraní + ruční (DB `produkty`) / scraping (stub) / api (stub).
+- `lib/financniPlan.ts` — `FinPlanProfil`, `pripravPodklady()` (předpočet kalkulaček z profilu +
+  produkty/defaulty), `formatujPodklady()`.
+- `lib/gemini.ts` — `generateFinancniPlan()` (syntéza z podkladů, čísla nepočítá, dokládá zdroji).
+- `app/actions.ts` — `generujFinancniPlanAction()` (předpočet + RAG + syntéza + uložení do `financni_plany`).
+- `app/plan/page.tsx` — bohatý profil (4 pilíře) → plán + rozklikávací podklady + zdroje + PDF.
+- `components/Markdown.tsx` — sdílený renderer.
+- DB: `dokumenty.domena`/`chunky.domena` (default pojisteni), `hledej_chunky(..., filtr_domena)`,
+  tabulky `produkty` / `klienti` / `financni_plany` (RLS permisivní).
+
+### Otevřené k doladění „frakcí" (další iterace)
+- **Parametry DIME/horizonty**: roky náhrady příjmu nyní hrubě (18 let při dětech) — zjemnit dle věku dětí.
+- **Sazby produktů**: zatím defaulty (hypo 4,9 %, formy ETF/fond/DPS). Naplnit tabulku `produkty`
+  (ruční zadání v adminu — UI správy produktů zatím není; přidat) nebo dokončit scraping/API providery.
+- **RAG napříč doménami**: zatím data jen pro pojištění. Po nahrání úvěrových/investičních dokumentů
+  s `domena` se plán doloží i jejich zdroji.
+- **Function calling**: orchestrace je deterministický předpočet + syntéza (robustní). Ad-hoc what-if
+  scénáře přes Gemini tools jsou přirozené rozšíření.
+- **Admin: správa produktů** (CRUD nad `produkty`) a **uložené plány/klienti** — UI zatím chybí.
