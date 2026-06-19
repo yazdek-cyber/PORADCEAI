@@ -150,7 +150,10 @@ export default function AdminPage() {
     try {
       const result = await uploadDocumentAction(formData);
       if (result.success) {
-        setSuccess(`Dokument byl úspěšně zpracován a rozdělen na ${result.chunkCount} částí.`);
+        setSuccess(
+          `Dokument byl úspěšně zpracován a rozdělen na ${result.chunkCount} částí.` +
+            (result.pouzitoOcr ? ' (Naskenované PDF — text byl získán přes OCR.)' : '')
+        );
         setFile(null);
         setPojistovna('');
         if (fileInputRef.current) fileInputRef.current.value = '';

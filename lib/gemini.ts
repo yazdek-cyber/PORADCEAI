@@ -1,4 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
+import { PDFDocument } from 'pdf-lib';
 
 const apiKey = process.env.GEMINI_API_KEY || 'placeholder-gemini-key';
 export const ai = new GoogleGenAI({ apiKey });
@@ -57,6 +58,72 @@ export async function getEmbedding(
 function jeChybaLimitu(error: unknown): boolean {
   const text = error instanceof Error ? error.message : String(error);
   return text.includes('429') || text.includes('RESOURCE_EXHAUSTED') || text.includes('quota');
+}
+
+/**
+ * OCR naskenovaného PDF přes Gemini vision (gemini-2.5-flash umí číst dokumenty včetně češtiny).
+ * Pošle celé PDF jako dokument a požádá o přepis textu po stránkách.
+ * Vrací pole textů stránek (index 0 = strana 1). Stránky bez rozpoznaného textu jsou prázdné.
+ */
+const OCR_DAVKA_STRAN = 15; // stránek na jedno OCR volání (drží výstup pod limitem tokenů)
+
+export async function ocrPdfStranky(fileBuffer: Buffer): Promise<string[]> {
+  if (!process.env.GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY není nastavena v proměnných prostředí.');
+  }
+
+  // PDF rozdělíme na dávky stránek, aby se výstup OCR vešel do limitu tokenů
+  // a zvládli jsme i velké skeny (desítky/stovky stran).
+  const zdroj = await PDFDocument.load(fileBuffer, { ignoreEncryption: true });
+  const celkem = zdroj.getPageCount();
+  const pages: string[] = new Array(celkem).fill('');
+
+  for (let start = 0; start < celkem; start += OCR_DAVKA_STRAN) {
+    const konec = Math.min(start + OCR_DAVKA_STRAN, celkem);
+    const indices: number[] = [];
+    for (let i = start; i < konec; i++) indices.push(i);
+
+    const sub = await PDFDocument.create();
+    const zkopirovane = await sub.copyPages(zdroj, indices);
+    zkopirovane.forEach((p) => sub.addPage(p));
+    const base64 = Buffer.from(await sub.save()).toString('base64');
+
+    const pocetVDavce = konec - start;
+    const prompt = `Toto je část naskenovaného dokumentu (pojistné podmínky), ${pocetVDavce} stránek. Přepiš VEŠKERÝ čitelný text z každé stránky věrně a kompletně.
+Pro KAŽDOU stránku vrať přesně tento formát:
+===STRANA k===
+<přepsaný text stránky>
+Kde k je pořadí stránky v TÉTO části (1 až ${pocetVDavce}). Nevynechávej žádnou stránku. Nepřidávej žádné komentáře mimo přepsaný text.`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            { inlineData: { mimeType: 'application/pdf', data: base64 } },
+            { text: prompt },
+          ],
+        },
+      ],
+      config: { temperature: 0, maxOutputTokens: 65536 },
+    });
+
+    const text = response.text || '';
+    const matches = [...text.matchAll(/===\s*STRANA\s*(\d+)\s*===/gi)];
+    if (matches.length === 0) {
+      if (text.trim()) pages[start] = text.trim();
+      continue;
+    }
+    for (let i = 0; i < matches.length; i++) {
+      const lokalni = parseInt(matches[i][1], 10);
+      const s = matches[i].index! + matches[i][0].length;
+      const e = i + 1 < matches.length ? matches[i + 1].index! : text.length;
+      const globalni = start + lokalni - 1;
+      if (lokalni > 0 && globalni < celkem) pages[globalni] = text.slice(s, e).trim();
+    }
+  }
+  return pages;
 }
 
 interface ChatMessage {

@@ -1,5 +1,5 @@
 import { PDFParse } from 'pdf-parse';
-import { getEmbedding } from './gemini';
+import { getEmbedding, ocrPdfStranky } from './gemini';
 import { supabaseAdmin } from './supabase';
 
 interface ProcessResult {
@@ -7,6 +7,7 @@ interface ProcessResult {
   documentId?: string;
   chunkCount?: number;
   error?: string;
+  pouzitoOcr?: boolean;
 }
 
 /**
@@ -24,13 +25,32 @@ export async function processPdf(
     // pdf-parse v2: text se extrahuje přes třídu PDFParse, getText() vrací text po stránkách.
     // pageJoiner: '' vypne vkládání oddělovačů stran ("-- 1 of N --") do textu, aby se nedostaly do chunků.
     const parser = new PDFParse({ data: fileBuffer });
+    let pocetStran = 0;
     try {
       const textResult = await parser.getText({ pageJoiner: '' });
+      pocetStran = textResult.total;
       for (const page of textResult.pages) {
         pages[page.num - 1] = page.text;
       }
     } finally {
       await parser.destroy();
+    }
+
+    // Detekce naskenovaného PDF: když je z PDF extrahováno téměř žádné množství textu
+    // (na stránku méně než prah), jde nejspíš o sken → OCR fallback přes Gemini vision.
+    let pouzitoOcr = false;
+    const celkemZnaku = pages.join('').replace(/\s/g, '').length;
+    const prumerNaStranu = celkemZnaku / Math.max(1, pocetStran || pages.length);
+    if (prumerNaStranu < 40) {
+      pouzitoOcr = true;
+      const ocrPages = await ocrPdfStranky(fileBuffer);
+      pages.length = 0;
+      ocrPages.forEach((t, i) => {
+        pages[i] = t || '';
+      });
+      if (pages.join('').trim() === '') {
+        throw new Error('PDF se nepodařilo přečíst ani přes OCR (možná chráněné nebo prázdné).');
+      }
     }
 
     // Příprava chunků. Záznam o dokumentu vytvoříme až PO úspěšném vygenerování
@@ -159,6 +179,7 @@ export async function processPdf(
       success: true,
       documentId,
       chunkCount: dbChunksToInsert.length,
+      pouzitoOcr,
     };
   } catch (error) {
     console.error('Chyba v processPdf:', error);

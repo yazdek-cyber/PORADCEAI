@@ -13,7 +13,7 @@ Zmapováno do `CLAUDE.md`. Zjištění:
 | # | Úloha | Stav | Poznámka |
 |---|-------|------|----------|
 | 1 | Audit a stabilizace jádra | ✅ | Práh podobnosti 0.65 + zkratka „nenašel jsem"; 5-dotazový test prošel |
-| 2 | OCR fallback pro skeny | ⬜ | Plán: detekce textu, OCR přes Gemini vision (multimodál) |
+| 2 | OCR fallback pro skeny | ✅ | Detekce skenu + dávkové OCR přes Gemini vision (po 15 str.); test 6/6 |
 | 3 | Vícezdrojové vyhledávání (filtr pojišťoven) | ⬜ | Filtr v „Ptám se" + `pojistovna` parametr v `hledej_chunky` |
 | 4 | „Řeším případ" | 🔄 | Existuje; ověřit specifičnost/podloženost na 3 profilech |
 | 5 | Export návrhu do PDF | 🔄 | Existuje `window.print()`; zvážit profesionálnější layout |
@@ -29,8 +29,11 @@ Zmapováno do `CLAUDE.md`. Zjištění:
 6. Nepadá při chybách
 7. Model připraven na multi-tenant
 
-## Blokery
-(zatím žádné)
+## Blokery / poznámky
+- **OCR je pomalé** (~15–20 s/strana). Velký sken (50+ stran) = několik minut. V produkci
+  (serverless timeout) by velké skeny mohly vypršet — zvážit frontu/job. Pro dev OK.
+- **Live status OCR** (spec „zpracovávám přes OCR…") je zatím POST-HOC: hláška se ukáže po
+  dokončení (`pouzitoOcr` flag), ne živě během. Živý stav vyžaduje streaming — pozdější UI vylepšení.
 
 ## Log
 - Založen CLAUDE.md + POKROK.md, git baseline.

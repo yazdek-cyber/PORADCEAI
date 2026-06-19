@@ -84,7 +84,7 @@ export async function uploadDocumentAction(formData: FormData) {
     }
 
     revalidatePath('/admin');
-    return { success: true, chunkCount: result.chunkCount };
+    return { success: true, chunkCount: result.chunkCount, pouzitoOcr: result.pouzitoOcr };
   } catch (error) {
     console.error('Chyba uploadDocumentAction:', error);
     return {
