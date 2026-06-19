@@ -131,7 +131,7 @@ Pro KAŽDOU stránku vrať přesně tento formát:
 <přepsaný text stránky>
 Kde k je pořadí stránky v TÉTO části (1 až ${pocetVDavce}). Nevynechávej žádnou stránku. Nepřidávej žádné komentáře mimo přepsaný text.`;
 
-    const response = await ai.models.generateContent({
+    const response = await generujSOpakovanim({
       model: 'gemini-2.5-flash',
       contents: [
         {
@@ -143,7 +143,7 @@ Kde k je pořadí stránky v TÉTO části (1 až ${pocetVDavce}). Nevynechávej
         },
       ],
       config: { temperature: 0, maxOutputTokens: 65536 },
-    });
+    }, `OCR str. ${start + 1}+`);
 
     const text = response.text || '';
     const matches = [...text.matchAll(/===\s*STRANA\s*(\d+)\s*===/gi)];

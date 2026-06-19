@@ -138,6 +138,19 @@ export default function AdminPage() {
       setError('Vyplňte prosím název pojišťovny.');
       return;
     }
+    // Klientská validace (srozumitelná hláška dřív, než to dojde na server)
+    const MAX_MB = 20;
+    const jePdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    if (!jePdf) {
+      setError('Nahrávat lze pouze soubory ve formátu PDF.');
+      return;
+    }
+    if (file.size > MAX_MB * 1024 * 1024) {
+      setError(
+        `Soubor je příliš velký (${(file.size / 1048576).toFixed(1)} MB). Maximum je ${MAX_MB} MB.`
+      );
+      return;
+    }
 
     setUploading(true);
     setError(null);
