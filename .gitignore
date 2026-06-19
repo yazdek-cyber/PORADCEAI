@@ -46,3 +46,5 @@ next-env.d.ts
 
 # Lokální referenční materiály z firemního portálu (nepatří do gitu)
 EDO/
+# Drop-folder pro hromadný import metodických PDF (lokální, mimo git)
+metodika/
