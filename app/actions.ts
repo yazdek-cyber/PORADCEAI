@@ -526,3 +526,81 @@ export async function importujPodminkuAction(id: string) {
     return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
+
+// ── Správa produktů a sazeb (vstupy pro kalkulačky finančního plánu) ─────────
+
+const DOMENY_PLATNE = ['pojisteni', 'uvery', 'investice', 'penze'];
+
+export interface ProduktVstup {
+  id?: string;
+  domena: string;
+  poskytovatel?: string;
+  nazev: string;
+  typ?: string;
+  parametry: Record<string, unknown>;
+}
+
+/** Vrátí produkty (volitelně jen jedné domény), nejnovější nahoře. */
+export async function getProduktyAction(domena?: string) {
+  await checkConfig();
+  try {
+    let q = supabaseAdmin
+      .from('produkty')
+      .select('id, domena, poskytovatel, nazev, typ, parametry, zdroj, aktualizovano_kdy')
+      .order('aktualizovano_kdy', { ascending: false });
+    if (domena && DOMENY_PLATNE.includes(domena)) q = q.eq('domena', domena);
+    const { data, error } = await q;
+    if (error) throw new Error(`Nepodařilo se načíst produkty: ${error.message}`);
+    return { success: true, produkty: data || [] };
+  } catch (error) {
+    console.error('Chyba getProduktyAction:', error);
+    return { success: false, error: error instanceof Error ? error.message : String(error), produkty: [] };
+  }
+}
+
+/** Vytvoří nebo upraví produkt (ruční zdroj). */
+export async function ulozProduktAction(p: ProduktVstup) {
+  await checkConfig();
+  try {
+    if (!DOMENY_PLATNE.includes(p.domena)) throw new Error('Neplatná doména produktu.');
+    if (!p.nazev || p.nazev.trim() === '') throw new Error('Název produktu je povinný.');
+
+    const zaznam = {
+      domena: p.domena,
+      poskytovatel: p.poskytovatel?.trim() || null,
+      nazev: p.nazev.trim(),
+      typ: p.typ?.trim() || null,
+      parametry: p.parametry || {},
+      zdroj: 'rucni' as const,
+      aktualizovano_kdy: new Date().toISOString(),
+    };
+
+    if (p.id) {
+      const { error } = await supabaseAdmin.from('produkty').update(zaznam).eq('id', p.id);
+      if (error) throw new Error(`Úprava produktu selhala: ${error.message}`);
+    } else {
+      const { error } = await supabaseAdmin.from('produkty').insert(zaznam);
+      if (error) throw new Error(`Vytvoření produktu selhalo: ${error.message}`);
+    }
+
+    revalidatePath('/admin');
+    return { success: true };
+  } catch (error) {
+    console.error('Chyba ulozProduktAction:', error);
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+/** Smaže produkt. */
+export async function smazProduktAction(id: string) {
+  await checkConfig();
+  try {
+    const { error } = await supabaseAdmin.from('produkty').delete().eq('id', id);
+    if (error) throw new Error(`Smazání produktu selhalo: ${error.message}`);
+    revalidatePath('/admin');
+    return { success: true };
+  } catch (error) {
+    console.error('Chyba smazProduktAction:', error);
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}

@@ -138,8 +138,11 @@ finančním plánem. Postaven celý skelet najednou; jednotlivé „frakce" se d
 
 ### Otevřené k doladění „frakcí" (další iterace)
 - **Parametry DIME/horizonty**: roky náhrady příjmu nyní hrubě (18 let při dětech) — zjemnit dle věku dětí.
-- **Sazby produktů**: zatím defaulty (hypo 4,9 %, formy ETF/fond/DPS). Naplnit tabulku `produkty`
-  (ruční zadání v adminu — UI správy produktů zatím není; přidat) nebo dokončit scraping/API providery.
+- **Sazby produktů**: ✅ UI správy produktů v adminu HOTOVO (`components/SpravaProduktu.tsx` +
+  akce `getProduktyAction`/`ulozProduktAction`/`smazProduktAction`; schéma polí `PARAMETRY_DOMENY`
+  v `lib/domeny.ts`, procenta se ukládají jako desetinné). Ověřeno: produkt se sazbou 3,9 % se
+  propsal do `pripravPodklady` (refinancování přepočítáno). Zbývá naplnit reálnými sazbami nebo
+  dokončit scraping/API providery. Defaulty (hypo 4,9 %, formy ETF/fond/DPS) platí, dokud DB prázdná.
 - **RAG napříč doménami**: zatím data jen pro pojištění. Po nahrání úvěrových/investičních dokumentů
   s `domena` se plán doloží i jejich zdroji.
 - **Function calling**: orchestrace je deterministický předpočet + syntéza (robustní). Ad-hoc what-if

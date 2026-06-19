@@ -28,6 +28,7 @@ import {
 } from '@/app/actions';
 import { najdiOdkazPodminek, POJISTOVNY } from '@/lib/pojistovny';
 import { DOMENY } from '@/lib/domeny';
+import SpravaProduktu from '@/components/SpravaProduktu';
 
 interface Document {
   id: string;
@@ -632,6 +633,9 @@ $$;`}
               </div>
             )}
           </div>
+
+          {/* Správa produktů a sazeb (vstupy pro kalkulačky finančního plánu) */}
+          <SpravaProduktu />
 
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-bold text-primary mb-4 flex items-center gap-2">
