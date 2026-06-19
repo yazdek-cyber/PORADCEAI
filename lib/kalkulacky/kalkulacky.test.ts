@@ -162,6 +162,14 @@ console.log('— POJIŠTĚNÍ —');
   // Příjmová metoda: 600k ročně × 10 let = 6M.
   ok(pojisteni.pojistnaPotreba_prijmova(600_000, 10) === 6_000_000, 'příjmová metoda 10 let');
 
+  // eDO praxe: příjem 50k/měs (600k ročně) → smrt/invalidita 1,8M, ZO 600k, TN dle věku.
+  const edo = pojisteni.pojistnaPotreba_eDO({ mesicniCistyPrijem: 50_000, vek: 38 });
+  ok(edo.smrt === 1_800_000 && edo.invalidita === 1_800_000, 'eDO smrt/invalidita = 3× roční příjem');
+  ok(edo.zavazneOnemocneni === 600_000, 'eDO závažná onemocnění = 1× roční příjem');
+  ok(edo.pracovniNeschopnostMesicniDorovnani === 20_000, 'eDO PN dorovnání ≈ 40 % příjmu');
+  ok(edo.trvaleNasledkyUrazu === 2_000_000, 'eDO TN do 45 let = 2 mil.');
+  ok(pojisteni.pojistnaPotreba_eDO({ mesicniCistyPrijem: 50_000, vek: 50 }).trvaleNasledkyUrazu === 1_000_000, 'eDO TN nad 45 let = 1 mil.');
+
   // DIME: dluhy 200k + příjem 50k×12×15 + hypotéka 2,5M + děti 1M − již 300k.
   const dime = pojisteni.pojistnaPotreba_DIME({
     dluhy: 200_000,

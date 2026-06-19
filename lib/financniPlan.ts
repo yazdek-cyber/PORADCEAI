@@ -62,6 +62,7 @@ const NAKLAD_NA_DITE = 600_000; // orientační náklad na zaopatření/vzdělá
 export interface Vypocty {
   rezerva: ReturnType<typeof pojisteni.rezerva>;
   pojistnaPotreba: ReturnType<typeof pojisteni.pojistnaPotreba_DIME>;
+  edoKryti: ReturnType<typeof pojisteni.pojistnaPotreba_eDO>;
   uvery: {
     maxUver: ReturnType<typeof uvery.maxUver>;
     refinancovani: ReturnType<typeof uvery.refinancovani> | null;
@@ -186,9 +187,13 @@ export async function pripravPodklady(profil: FinPlanProfil): Promise<Vypocty> {
     letVyplaty: 25,
   });
 
+  // Doporučené pojistné částky dle praxe eDO (vedle DIME).
+  const edoKryti = pojisteni.pojistnaPotreba_eDO({ mesicniCistyPrijem: profil.cistyPrijem, vek: profil.vek });
+
   return {
     rezerva,
     pojistnaPotreba,
+    edoKryti,
     uvery: { maxUver, refinancovani, trzniSazba },
     investice: { horizontLet: horizont, monteCarlo, srovnaniForem },
     penze: { projekce, mezera },
@@ -218,6 +223,10 @@ export function formatujPodklady(profil: FinPlanProfil, v: Vypocty): string {
   radky.push(`- Náhrada příjmu: ${f(v.pojistnaPotreba.nahradaPrijmu)} Kč`);
   radky.push(`- Hypotéka: ${f(v.pojistnaPotreba.hypoteka)} Kč · Ostatní dluhy: ${f(v.pojistnaPotreba.dluhy)} Kč · Děti: ${f(v.pojistnaPotreba.deti)} Kč`);
   radky.push(`- DOPORUČENÁ pojistná částka (po odečtení zdrojů): ${f(v.pojistnaPotreba.doporucenaPojistnaCastka)} Kč`);
+  radky.push('### Doporučené pojistné částky dle praxe eDO');
+  radky.push(`- Smrt: ${f(v.edoKryti.smrt)} Kč · Invalidita: ${f(v.edoKryti.invalidita)} Kč (3× roční příjem)`);
+  radky.push(`- Závažná onemocnění: ${f(v.edoKryti.zavazneOnemocneni)} Kč (1× roční příjem) · Trvalé následky úrazu: ${f(v.edoKryti.trvaleNasledkyUrazu)} Kč`);
+  radky.push(`- Pracovní neschopnost: měsíční dorovnání ${f(v.edoKryti.pracovniNeschopnostMesicniDorovnani)} Kč`);
 
   radky.push('## ÚVĚRY');
   radky.push(`- Tržní sazba (použitá): ${pct(v.uvery.trzniSazba)}`);

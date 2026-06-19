@@ -29,6 +29,36 @@ export function pojistnaPotreba_prijmova(rocniCistyPrijem: number, rokyKryti: nu
   return Math.max(0, rocniCistyPrijem * rokyKryti);
 }
 
+export interface EdoKrytiVstup {
+  mesicniCistyPrijem: number;
+  vek: number;
+}
+
+export interface EdoKrytiVystup {
+  smrt: number; // 3× roční čistý příjem
+  invalidita: number; // 3× roční čistý příjem
+  zavazneOnemocneni: number; // 1× roční čistý příjem
+  pracovniNeschopnostMesicniDorovnani: number; // ~40 % příjmu (dorovnání nemocenské)
+  trvaleNasledkyUrazu: number; // dle věku (eDO praxe)
+}
+
+/**
+ * Doporučené pojistné částky podle PRAXE eDO (z jejich metodiky finanční analýzy):
+ * smrt i invalidita 3× roční čistý příjem, závažná onemocnění 1× roční příjem,
+ * pracovní neschopnost = měsíční dorovnání rozdílu nemocenská/příjem (~40 %),
+ * trvalé následky úrazu dle věku. Slouží vedle metody DIME jako „eDO nastavení".
+ */
+export function pojistnaPotreba_eDO(v: EdoKrytiVstup): EdoKrytiVystup {
+  const rocni = Math.max(0, v.mesicniCistyPrijem * 12);
+  return {
+    smrt: 3 * rocni,
+    invalidita: 3 * rocni,
+    zavazneOnemocneni: rocni,
+    pracovniNeschopnostMesicniDorovnani: Math.round(v.mesicniCistyPrijem * 0.4),
+    trvaleNasledkyUrazu: v.vek < 45 ? 2_000_000 : 1_000_000,
+  };
+}
+
 export interface DimeVstup {
   /** D — Debt: ostatní dluhy mimo hypotéku (úvěry, kreditky). */
   dluhy: number;
