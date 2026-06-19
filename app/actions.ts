@@ -127,13 +127,18 @@ export async function uploadDocumentAction(formData: FormData) {
   try {
     const file = formData.get('file') as File;
     const pojistovna = formData.get('pojistovna') as string;
+    // Doména (pilíř): pojisteni | uvery | investice | penze. Výchozí pojisteni
+    // kvůli zpětné kompatibilitě se stávajícím nahráváním.
+    const domenaRaw = (formData.get('domena') as string) || 'pojisteni';
+    const platneDomeny = ['pojisteni', 'uvery', 'investice', 'penze'];
+    const domena = platneDomeny.includes(domenaRaw) ? domenaRaw : 'pojisteni';
 
     if (!file || file.size === 0) {
       throw new Error('Nebyl vybrán žádný soubor.');
     }
 
     if (!pojistovna || pojistovna.trim() === '') {
-      throw new Error('Název pojišťovny je povinný.');
+      throw new Error('Název poskytovatele je povinný.');
     }
 
     if (file.type !== 'application/pdf' && !file.name.endsWith('.pdf')) {
@@ -144,7 +149,7 @@ export async function uploadDocumentAction(formData: FormData) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    const result = await processPdf(buffer, file.name, pojistovna);
+    const result = await processPdf(buffer, file.name, pojistovna, domena);
 
     if (!result.success) {
       throw new Error(result.error || 'Neznámá chyba při zpracování PDF.');

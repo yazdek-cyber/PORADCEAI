@@ -46,7 +46,8 @@ async function mapSOmezenim<T, R>(
 export async function processPdf(
   fileBuffer: Buffer,
   fileName: string,
-  insuranceCompany: string
+  insuranceCompany: string,
+  domena: string = 'pojisteni'
 ): Promise<ProcessResult> {
   try {
     const pages: string[] = [];
@@ -172,6 +173,7 @@ export async function processPdf(
         nazev: fileName,
         pojistovna: insuranceCompany,
         pocet_chunku: 0,
+        domena,
       })
       .select()
       .single();
@@ -183,7 +185,7 @@ export async function processPdf(
     const documentId = docData.id;
 
     // Doplníme vazbu na dokument a hromadně uložíme chunky.
-    const chunkyToInsert = dbChunksToInsert.map((c) => ({ ...c, dokument_id: documentId }));
+    const chunkyToInsert = dbChunksToInsert.map((c) => ({ ...c, dokument_id: documentId, domena }));
     const { error: insertError } = await supabaseAdmin.from('chunky').insert(chunkyToInsert);
 
     if (insertError) {

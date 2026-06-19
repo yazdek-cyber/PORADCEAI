@@ -13,10 +13,12 @@ VALUES ('00000000-0000-0000-0000-000000000001', 'Výchozí workspace')
 ON CONFLICT (id) DO NOTHING;
 
 -- Tabulka dokumentů
+-- domena = pilíř finančního poradenství: pojisteni | uvery | investice | penze.
 CREATE TABLE IF NOT EXISTS dokumenty (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   nazev TEXT NOT NULL,
-  pojistovna TEXT,
+  pojistovna TEXT,                       -- poskytovatel (pojišťovna/banka/správce)
+  domena TEXT NOT NULL DEFAULT 'pojisteni',
   nahrano_kdy TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   pocet_chunku INTEGER DEFAULT 0,
   workspace_id UUID DEFAULT '00000000-0000-0000-0000-000000000001'
@@ -33,6 +35,7 @@ CREATE TABLE IF NOT EXISTS chunky (
   poradi INTEGER,
   pojistovna TEXT,
   nazev_dokumentu TEXT,
+  domena TEXT NOT NULL DEFAULT 'pojisteni',
   workspace_id UUID DEFAULT '00000000-0000-0000-0000-000000000001'
     REFERENCES workspaces(id) ON DELETE CASCADE
 );
@@ -59,12 +62,13 @@ CREATE POLICY permisivni_vse ON chunky FOR ALL USING (true) WITH CHECK (true);
 --   CREATE INDEX chunky_embedding_idx ON chunky USING hnsw (embedding vector_cosine_ops);
 --   a po větších změnách REINDEX.
 
--- Funkce pro vyhledávání podobných chunků; volitelné filtry na pojišťovnu a workspace.
+-- Funkce pro vyhledávání podobných chunků; volitelné filtry na pojišťovnu, workspace a doménu.
 CREATE OR REPLACE FUNCTION hledej_chunky(
   dotaz_embedding VECTOR(768),
   pocet INTEGER DEFAULT 8,
   filtr_pojistovna TEXT DEFAULT NULL,
-  filtr_workspace UUID DEFAULT NULL
+  filtr_workspace UUID DEFAULT NULL,
+  filtr_domena TEXT DEFAULT NULL
 )
 RETURNS TABLE (
   id UUID,
@@ -72,6 +76,7 @@ RETURNS TABLE (
   pojistovna TEXT,
   nazev_dokumentu TEXT,
   strana INTEGER,
+  domena TEXT,
   podobnost FLOAT
 )
 LANGUAGE sql
@@ -82,10 +87,63 @@ AS $$
     chunky.pojistovna,
     chunky.nazev_dokumentu,
     chunky.strana,
+    chunky.domena,
     1 - (chunky.embedding <=> dotaz_embedding) AS podobnost
   FROM chunky
   WHERE (filtr_pojistovna IS NULL OR chunky.pojistovna = filtr_pojistovna)
     AND (filtr_workspace IS NULL OR chunky.workspace_id = filtr_workspace)
+    AND (filtr_domena IS NULL OR chunky.domena = filtr_domena)
   ORDER BY chunky.embedding <=> dotaz_embedding
   LIMIT pocet;
 $$;
+
+-- ============================================================================
+-- 4 PILÍŘE: strukturované produkty + klienti + finanční plány
+-- ============================================================================
+
+-- Strukturované parametry produktů (čisté vstupy pro kalkulačky napříč doménami).
+-- parametry JSONB drží doménově specifická čísla (sazba, TER, limity, výluky…).
+CREATE TABLE IF NOT EXISTS produkty (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  workspace_id UUID DEFAULT '00000000-0000-0000-0000-000000000001' REFERENCES workspaces(id),
+  domena TEXT NOT NULL CHECK (domena IN ('pojisteni','uvery','investice','penze')),
+  poskytovatel TEXT,
+  nazev TEXT NOT NULL,
+  typ TEXT,
+  parametry JSONB NOT NULL DEFAULT '{}'::jsonb,
+  zdroj TEXT NOT NULL DEFAULT 'rucni' CHECK (zdroj IN ('rucni','scraping','api')),
+  zdroj_dokument_id UUID REFERENCES dokumenty(id) ON DELETE SET NULL,
+  aktualizovano_kdy TIMESTAMPTZ DEFAULT NOW(),
+  vytvoreno_kdy TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS produkty_domena_idx ON produkty (domena);
+
+-- Klienti (profil pro finanční plán) — profil jako JSONB kvůli pružnosti.
+CREATE TABLE IF NOT EXISTS klienti (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  workspace_id UUID DEFAULT '00000000-0000-0000-0000-000000000001' REFERENCES workspaces(id),
+  jmeno TEXT,
+  profil JSONB NOT NULL DEFAULT '{}'::jsonb,
+  vytvoreno_kdy TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Vygenerované finanční plány (výstup orchestrace) + uložené výpočty pro dohledatelnost.
+CREATE TABLE IF NOT EXISTS financni_plany (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  workspace_id UUID DEFAULT '00000000-0000-0000-0000-000000000001' REFERENCES workspaces(id),
+  klient_id UUID REFERENCES klienti(id) ON DELETE SET NULL,
+  profil JSONB NOT NULL DEFAULT '{}'::jsonb,
+  plan_md TEXT,
+  vypocty JSONB DEFAULT '{}'::jsonb,
+  vytvoreno_kdy TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE produkty       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE klienti        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE financni_plany ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS permisivni_vse ON produkty;
+CREATE POLICY permisivni_vse ON produkty FOR ALL USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS permisivni_vse ON klienti;
+CREATE POLICY permisivni_vse ON klienti FOR ALL USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS permisivni_vse ON financni_plany;
+CREATE POLICY permisivni_vse ON financni_plany FOR ALL USING (true) WITH CHECK (true);
