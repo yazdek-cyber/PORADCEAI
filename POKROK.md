@@ -148,3 +148,25 @@ finančním plánem. Postaven celý skelet najednou; jednotlivé „frakce" se d
 - **Function calling**: orchestrace je deterministický předpočet + syntéza (robustní). Ad-hoc what-if
   scénáře přes Gemini tools jsou přirozené rozšíření.
 - **Admin: správa produktů** (CRUD nad `produkty`) a **uložené plány/klienti** — UI zatím chybí.
+
+## v0.8 — Knowledge base z eDO metodiky (naimportováno)
+
+RAG knowledge base naplněna metodikou eDO (doména `metodika`/`investice`/`uvery`, BEZ osobních
+dat klientů — jen postupy/metodika). Ověřeno retrievalem (75–78 % shoda na metodické dotazy).
+
+**Naimportováno (12 dokumentů, ~103 chunků):**
+- EFPA Metodika pojištění osob (43) — výpočet pojistných částek (klíčové pro kalkulačky)
+- EFPA Metodika pojištění vozidel (29)
+- eDO Průvodce START — onboarding (20)
+- Smluvní dokumentace manuál, Nejčastější chyby eSD, Přestupkový řád, NSURE, Kariérní plán,
+  Metodika finanční analýzy, Prodejní skripty, mBank úvěry (bonita/příjmy), Modelová portfolia eDO
+
+**Produkty (živé v plánu):** 3 eDO investiční strategie (konzervativní 4,5 % / vyvážená 5,5 % /
+dynamická 8 %) — používá je investiční srovnání ve finančním plánu.
+
+**Nástroje k naplnění:** `lib/documentProcessor.processText` (text→RAG), `scripts/ingest-metodika.ts`
+(drop-folder PDF). Velké Drive dokumenty se nabírají přes konektor → uložený soubor → processText
+(neprotéká kontextem AI).
+
+**Zbývá (volitelně):** produktové dotazníky (2.Produktové dotazníky), akademie/know-how složky;
+živá data produktů/sazeb z portálů eDO přes `scripts/scraper/odchyt-api.ts` (vyžaduje login uživatele).
