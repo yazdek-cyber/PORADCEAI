@@ -26,7 +26,7 @@ import {
   getDostupnePodminkyAction,
   importujPodminkuAction,
 } from '@/app/actions';
-import { najdiOdkazPodminek } from '@/lib/pojistovny';
+import { najdiOdkazPodminek, POJISTOVNY } from '@/lib/pojistovny';
 
 interface Document {
   id: string;
@@ -92,20 +92,33 @@ export default function AdminPage() {
     setScanning(true);
     setScanSouhrn(null);
     setError(null);
+    // Skenujeme po JEDNÉ pojišťovně (každé volání je krátké → nepřekročí serverless
+    // timeout; plný sken všech najednou trvá ~10 min). Průběžně hlásíme stav.
+    let nove = 0;
+    let zmenene = 0;
+    const chyby: string[] = [];
     try {
-      const res = await zkontrolujPodminkyAction();
-      if (res.success) {
-        const nove = res.souhrn.reduce((a, s) => a + (s.nove || 0), 0);
-        const zmenene = res.souhrn.reduce((a, s) => a + (s.zmenene || 0), 0);
-        const chyby = res.souhrn.filter((s) => s.chyba).map((s) => s.pojistovna);
-        setScanSouhrn(
-          `Kontrola hotová: ${nove} nových, ${zmenene} změněných dokumentů.` +
-            (chyby.length ? ` Nepodařilo se načíst: ${chyby.join(', ')}.` : '')
-        );
-        await fetchDostupne();
-      } else {
-        setError('Kontrola se nezdařila.');
+      for (let i = 0; i < POJISTOVNY.length; i++) {
+        const p = POJISTOVNY[i];
+        setScanSouhrn(`Kontroluji ${p.nazev}… (${i + 1}/${POJISTOVNY.length})`);
+        try {
+          const res = await zkontrolujPodminkyAction(p.nazev);
+          if (res.success) {
+            nove += res.souhrn.reduce((a, s) => a + (s.nove || 0), 0);
+            zmenene += res.souhrn.reduce((a, s) => a + (s.zmenene || 0), 0);
+            if (res.souhrn.some((s) => s.chyba)) chyby.push(p.nazev);
+          } else {
+            chyby.push(p.nazev);
+          }
+          await fetchDostupne(); // průběžně doplňujeme seznam, ať poradce vidí výsledky hned
+        } catch {
+          chyby.push(p.nazev);
+        }
       }
+      setScanSouhrn(
+        `Kontrola hotová: ${nove} nových, ${zmenene} změněných dokumentů.` +
+          (chyby.length ? ` Nepodařilo se načíst: ${chyby.join(', ')}.` : '')
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Chyba při kontrole podmínek.');
     } finally {

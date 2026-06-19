@@ -79,15 +79,20 @@ async function generujSOpakovanim(
 ) {
   const maxPokusu = 4;
   let posledniChyba: unknown;
+  // Když volající nastavil časový rozpočet (abortSignal), po jeho vypršení už
+  // nemá smysl opakovat — okamžitě probublá chybu (jinak by retry visel přes limit).
+  const signal = (params as { config?: { abortSignal?: AbortSignal } }).config?.abortSignal;
   for (let pokus = 0; pokus <= maxPokusu; pokus++) {
     try {
       return await ai.models.generateContent(params);
     } catch (error) {
       posledniChyba = error;
+      if (signal?.aborted) throw error;
       if ((jeChybaLimitu(error) || jePrechodnaChyba(error)) && pokus < maxPokusu) {
         const cekejMs = Math.min(30000, 1500 * 2 ** pokus);
         console.warn(`Gemini (${popis}): dočasná chyba, pokus ${pokus + 1}/${maxPokusu}, čekám ${cekejMs} ms…`);
         await new Promise((r) => setTimeout(r, cekejMs));
+        if (signal?.aborted) throw posledniChyba;
         continue;
       }
       throw error;
@@ -240,7 +245,8 @@ ${textStranky.slice(0, 24000)}`;
  */
 export async function extrahujPodminkyUrlContext(
   pojistovna: string,
-  url: string
+  url: string,
+  signal?: AbortSignal
 ): Promise<ObjevenaPodminka[]> {
   if (!process.env.GEMINI_API_KEY) {
     throw new Error('GEMINI_API_KEY není nastavena v proměnných prostředí.');
@@ -258,7 +264,15 @@ Vrať vybrané dokumenty VÝHRADNĚ jako platný JSON (žádné HTML, žádný m
     {
       model: 'gemini-2.5-flash',
       contents: prompt,
-      config: { temperature: 0, maxOutputTokens: 30000, tools: [{ urlContext: {} }] },
+      config: {
+        temperature: 0,
+        maxOutputTokens: 30000,
+        tools: [{ urlContext: {} }],
+        // Tvrdý strop na jedno volání — url_context občas visí i minuty;
+        // bez něj by retry mohlo zaseknout sken přes serverless limit.
+        httpOptions: { timeout: 80000 },
+        abortSignal: signal,
+      },
     },
     'url_context podmínky'
   );

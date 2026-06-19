@@ -6,6 +6,8 @@
 export interface PojistovnaOdkaz {
   /** Zobrazovaný název pojišťovny. */
   nazev: string;
+  /** Stabilní ASCII identifikátor (pro cron param, URL apod.). */
+  slug: string;
   /** Klíčová slova pro rozpoznání ve volně zadaném názvu (bez diakritiky, malá písmena). */
   klicovaSlova: string[];
   /** Oficiální stránka s dokumenty / pojistnými podmínkami ke stažení. */
@@ -15,31 +17,37 @@ export interface PojistovnaOdkaz {
 export const POJISTOVNY: PojistovnaOdkaz[] = [
   {
     nazev: 'Kooperativa',
+    slug: 'kooperativa',
     klicovaSlova: ['kooperativa', 'koop'],
     urlDokumenty: 'https://www.koop.cz/dokumenty-ke-stazeni/dokumenty-k-pojisteni-osob',
   },
   {
     nazev: 'NN',
+    slug: 'nn',
     klicovaSlova: ['nn', 'nationale', 'nederlanden'],
     urlDokumenty: 'https://www.nn.cz/pro-klienty/pojisteni/nn-orange-risk/dokumenty/',
   },
   {
     nazev: 'Generali Česká pojišťovna',
+    slug: 'generali',
     klicovaSlova: ['generali', 'česká pojišťovna', 'ceska pojistovna'],
     urlDokumenty: 'https://www.generaliceska.cz/dokumenty-podle-produktu',
   },
   {
     nazev: 'UNIQA',
+    slug: 'uniqa',
     klicovaSlova: ['uniqa'],
     urlDokumenty: 'https://www.uniqa.cz/zivotni-pojisteni-dokumenty/',
   },
   {
     nazev: 'Allianz',
+    slug: 'allianz',
     klicovaSlova: ['allianz'],
     urlDokumenty: 'https://www.allianz.cz/cs_CZ/pojisteni/pro-klienty/dokumenty-a-formulare.html',
   },
   {
     nazev: 'ČPP',
+    slug: 'cpp',
     klicovaSlova: ['cpp', 'podnikatelska', 'podnikatelská'],
     urlDokumenty: 'https://www.cpp.cz/klientsky-servis/dokumenty',
   },

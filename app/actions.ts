@@ -318,10 +318,14 @@ export async function generateSolutionAction(profile: ClientProfile) {
 }
 
 /**
- * Projde stránky všech pojišťoven, objeví dostupné dokumenty a uloží/aktualizuje
+ * Projde stránky pojišťoven, objeví dostupné dokumenty a uloží/aktualizuje
  * snapshot v `dostupne_podminky`. Detekuje nové a změněné dokumenty (hlídání).
+ *
+ * @param filtrPojistovna Když je zadán, skenuje JEN tuto jednu pojišťovnu (dle názvu).
+ *   Sken všech 6 najednou trvá ~10 min → překračuje serverless timeout (Vercel 300 s).
+ *   Proto admin UI i cron volají akci po jedné pojišťovně (každé volání je krátké).
  */
-export async function zkontrolujPodminkyAction() {
+export async function zkontrolujPodminkyAction(filtrPojistovna?: string) {
   await checkConfig();
   const souhrn: {
     pojistovna: string;
@@ -331,7 +335,17 @@ export async function zkontrolujPodminkyAction() {
     chyba?: string;
   }[] = [];
 
-  for (const p of POJISTOVNY) {
+  const sken = filtrPojistovna
+    ? POJISTOVNY.filter(
+        (p) => p.nazev === filtrPojistovna || p.slug === filtrPojistovna.toLowerCase()
+      )
+    : POJISTOVNY;
+
+  if (filtrPojistovna && sken.length === 0) {
+    return { success: false, error: `Neznámá pojišťovna: ${filtrPojistovna}`, souhrn };
+  }
+
+  for (const p of sken) {
     try {
       const objevene = await objevPodminky(p.nazev, p.urlDokumenty);
       let nove = 0;

@@ -1,8 +1,28 @@
 {
   "crons": [
     {
-      "path": "/api/cron/check-podminky",
+      "path": "/api/cron/check-podminky?pojistovna=kooperativa",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/check-podminky?pojistovna=nn",
+      "schedule": "10 6 * * *"
+    },
+    {
+      "path": "/api/cron/check-podminky?pojistovna=generali",
+      "schedule": "20 6 * * *"
+    },
+    {
+      "path": "/api/cron/check-podminky?pojistovna=uniqa",
+      "schedule": "30 6 * * *"
+    },
+    {
+      "path": "/api/cron/check-podminky?pojistovna=allianz",
+      "schedule": "40 6 * * *"
+    },
+    {
+      "path": "/api/cron/check-podminky?pojistovna=cpp",
+      "schedule": "50 6 * * *"
     }
   ]
 }

@@ -70,3 +70,35 @@ nabídne import v adminu a hlídá změny.
 - **Hlídání**: ruční tlačítko v adminu + `app/api/cron/check-podminky` + `vercel.json` cron
   (denně 06:00, zapne se při nasazení; chráněno `CRON_SECRET`).
 - **UI**: sekce „Podmínky pojišťoven (monitor)" v adminu — seznam s odznaky 🆕/✏️/✅ + import 1 klikem.
+
+## v0.6 — výkon a hardening (navazuje na blockery v0.5)
+
+| # | Zlepšení | Stav | Ověření |
+|---|----------|------|---------|
+| A | Paralelní embeddingy při zpracování PDF | ✅ | build + test poolu (pořadí zachováno, souběh ≤ 5, edge prázdné pole) |
+| B | Monitor: sken po JEDNÉ pojišťovně | ✅ | živě: NN 34 s, neznámá pojišťovna → graceful chyba |
+| C | Scraper: časový rozpočet + strop na 1 volání | ✅ | živě: UNIQA dřív visela 18+ min → teď ohraničeno na ~200 s, vrací graceful |
+
+### Detaily
+- **A — `lib/documentProcessor.ts`**: embeddingy se generovaly sekvenčně (`await` v cyklu) —
+  hlavní brzda u velkých/OCR dokumentů (desítky–stovky chunků). Přidán `mapSOmezenim`
+  (pool se souběhem 5, zachovává pořadí). 429 řeší existující retry uvnitř `getEmbedding`.
+  Mitiguje blocker „OCR pomalé / serverless timeout u velkých skenů".
+- **B — `app/actions.ts` + admin + cron + `lib/pojistovny.ts`**: `zkontrolujPodminkyAction(filtr?)`
+  umí skenovat jednu pojišťovnu. Admin UI iteruje po jedné s průběžným stavem („Kontroluji X… 2/6").
+  Cron přijímá `?pojistovna=<slug>`; `vercel.json` má 6 cronů (po jedné, rozložené 06:00–06:50).
+  Každé volání krátké → řeší blocker „plný sken ~587 s > Vercel 300 s". Přidán `slug` k pojišťovnám.
+- **C — `lib/gemini.ts` + `lib/podminkyScraper.ts`**: `url_context` volání občas viselo i 18 min
+  (Gemini vrací dočasné chyby, retry × pomalé volání). Přidán `httpOptions.timeout` 80 s na jedno
+  volání + `abortSignal` (deadline) + celkový rozpočet `ROZPOCET_MS` 200 s na pojišťovnu;
+  `generujSOpakovanim` po vypršení rozpočtu přestane opakovat. Sken se už nikdy nezasekne přes limit.
+
+### Otevřené (nižší priorita / vyžaduje další iteraci)
+- **Coverage UNIQA/ČPP/Kooperativa**: `url_context` proti těmto JS webům aktuálně vrací 0
+  (Gemini hlásí dočasné chyby). Chce cílenější URL listingu dokumentů, případně jiný renderer.
+  Per-insurer + rozpočet zajistily, že to aspoň nezasekne sken — ale dokumenty z těchto webů
+  zatím nepřibývají. NN (statický tier 1) funguje spolehlivě (12 dok).
+- **Live status OCR** (spec): stále post-hoc (hláška po dokončení), ne živě — chce streaming.
+- **Plné přihlášení (fáze 2)**: ZÁMĚRNĚ neimplementováno. Spec ho řadí do další fáze a plné Auth
+  by rozbilo dnes funkční anonymní tok (login UI, session, RLS na auth.uid()). Datový model je
+  připraven (workspaces, workspace_id, RLS) — migrace zůstává bezbolestná. Udělat jako cílený krok.

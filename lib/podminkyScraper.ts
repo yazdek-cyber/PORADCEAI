@@ -50,7 +50,14 @@ async function objevStaticky(pojistovna: string, url: string): Promise<ObjevenaP
  * Objeví dokumenty ke stažení na stránce pojišťovny.
  * Tier 1: statický fetch + AI. Tier 2 (fallback pro JS weby): Gemini url_context.
  */
+// Celkový časový rozpočet na sken JEDNÉ pojišťovny. url_context volání bývají
+// pomalá/flaky (i minuty na volání); bez stropu by sken jedné pojišťovny mohl
+// trvat 10–20 min a přesáhnout serverless limit (Vercel 300 s). Po vypršení
+// rozpočtu se přestane zkoušet a vrátí se, co se zatím našlo.
+const ROZPOCET_MS = 200_000;
+
 export async function objevPodminky(pojistovna: string, url: string): Promise<ObjevenaPodminka[]> {
+  const deadline = AbortSignal.timeout(ROZPOCET_MS);
   let list: ObjevenaPodminka[] = [];
   try {
     list = await objevStaticky(pojistovna, url);
@@ -58,11 +65,13 @@ export async function objevPodminky(pojistovna: string, url: string): Promise<Ob
     // statický fetch selhal (blokace, timeout) → zkusíme url_context
   }
   if (list.length === 0) {
-    // url_context fallback bývá flaky (občas vrátí 0) — zkusíme až 3× s prodlevou.
-    for (let pokus = 0; pokus < 3 && list.length === 0; pokus++) {
+    // url_context fallback bývá flaky (občas vrátí 0) — zkusíme až 2× s prodlevou,
+    // ale jen dokud nevyprší celkový rozpočet.
+    for (let pokus = 0; pokus < 2 && list.length === 0 && !deadline.aborted; pokus++) {
       if (pokus > 0) await new Promise((r) => setTimeout(r, 3000 * pokus));
+      if (deadline.aborted) break;
       try {
-        list = await extrahujPodminkyUrlContext(pojistovna, url);
+        list = await extrahujPodminkyUrlContext(pojistovna, url, deadline);
       } catch {
         // necháme list prázdný a případně zkusíme znovu
       }
