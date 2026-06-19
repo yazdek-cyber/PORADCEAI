@@ -220,18 +220,31 @@ export async function generateSolutionAction(profile: ClientProfile) {
     // 1. Generování embeddingu pro vyhledávací řetězec
     const searchEmbedding = await getEmbedding(searchString, 'RETRIEVAL_QUERY');
 
-    // 2. Vyhledání relevantních chunků v Supabase
-    // Pro komplexnější srovnání načteme více chunků (např. 12)
+    // 2. Vyhledání relevantních chunků v Supabase (napříč pojišťovnami).
+    // Bereme víc a filtrujeme prahem, ať návrh stojí jen na relevantních podmínkách.
     const { data: chunks, error: rpcError } = await supabaseAdmin.rpc('hledej_chunky', {
       dotaz_embedding: searchEmbedding,
-      pocet: 12,
+      pocet: 15,
+      filtr_pojistovna: null,
     });
 
     if (rpcError) {
       throw new Error(`Chyba vyhledávání v databázi pro případ: ${rpcError.message}`);
     }
 
-    const contextChunks = chunks || [];
+    const contextChunks = (chunks || [])
+      .filter((c: any) => c.podobnost >= MIN_PODOBNOST)
+      .slice(0, 12);
+
+    if (contextChunks.length === 0) {
+      return {
+        success: false,
+        error:
+          'V nahraných podmínkách jsem nenašel dostatek relevantních informací pro tento profil. Zkuste nahrát více pojistných podmínek nebo upřesnit cíl klienta.',
+        solution: '',
+        chunks: [],
+      };
+    }
 
     // 3. Generování analytického návrhu pomocí Gemini
     const solution = await generateClientSolution(profile, contextChunks);

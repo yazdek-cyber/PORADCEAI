@@ -60,6 +60,42 @@ function jeChybaLimitu(error: unknown): boolean {
   return text.includes('429') || text.includes('RESOURCE_EXHAUSTED') || text.includes('quota');
 }
 
+/** Rozpozná přechodnou síťovou/serverovou chybu, u které má smysl zkusit znovu. */
+function jePrechodnaChyba(error: unknown): boolean {
+  const cause = (error as { cause?: { code?: string } })?.cause?.code ?? '';
+  const text = (error instanceof Error ? error.message : String(error)) + ' ' + cause;
+  return /ECONNRESET|ETIMEDOUT|EAI_AGAIN|fetch failed|socket hang up|network|\b503\b|\b502\b|\b504\b|UNAVAILABLE|INTERNAL/i.test(
+    text
+  );
+}
+
+/**
+ * Zavolá Gemini generateContent s opakováním na přechodné chyby (429, ECONNRESET, 5xx).
+ * Exponenciální prodleva 1.5s, 3s, 6s, 12s (max 30s).
+ */
+async function generujSOpakovanim(
+  params: Parameters<typeof ai.models.generateContent>[0],
+  popis: string
+) {
+  const maxPokusu = 4;
+  let posledniChyba: unknown;
+  for (let pokus = 0; pokus <= maxPokusu; pokus++) {
+    try {
+      return await ai.models.generateContent(params);
+    } catch (error) {
+      posledniChyba = error;
+      if ((jeChybaLimitu(error) || jePrechodnaChyba(error)) && pokus < maxPokusu) {
+        const cekejMs = Math.min(30000, 1500 * 2 ** pokus);
+        console.warn(`Gemini (${popis}): dočasná chyba, pokus ${pokus + 1}/${maxPokusu}, čekám ${cekejMs} ms…`);
+        await new Promise((r) => setTimeout(r, cekejMs));
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw posledniChyba;
+}
+
 /**
  * OCR naskenovaného PDF přes Gemini vision (gemini-2.5-flash umí číst dokumenty včetně češtiny).
  * Pošle celé PDF jako dokument a požádá o přepis textu po stránkách.
@@ -183,14 +219,14 @@ DŮLEŽITÉ: Pokud kontext neobsahuje odpověď na položenou otázku, odmítni 
   ];
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await generujSOpakovanim({
       model: 'gemini-2.5-flash',
       contents: contents,
       config: {
         systemInstruction: systemInstruction,
         temperature: 0.1, // Nízká kreativita pro přesné odpovědi
       }
-    });
+    }, 'chat');
 
     return response.text || 'Omlouvám se, nepodařilo se vygenerovat odpověď.';
   } catch (error) {
@@ -260,14 +296,14 @@ ${formattedContext}`;
 Vygeneruj strukturovaný návrh splňující všechna pravidla v systémové instrukci.`;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await generujSOpakovanim({
       model: 'gemini-2.5-flash',
       contents: prompt,
       config: {
         systemInstruction: systemInstruction,
         temperature: 0.2,
       }
-    });
+    }, 'návrh');
 
     return response.text || 'Nepodařilo se vygenerovat návrh.';
   } catch (error) {
