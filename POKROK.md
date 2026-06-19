@@ -197,3 +197,12 @@ Kalkulačky i finanční plán nyní počítají přesně podle ingestované met
   vedle metod DIME a eDO (3× příjem).
 - Likvidní rezerva 3/6/12× výdaje (KFP konsensus 6×).
 58/58 testů, build OK, ověřeno živě.
+
+## v0.10 — maximum bez loginu: cíle klienta + plán ve struktuře eDO
+- Kalkulačka kolikInvestovat (jak splnit cíl: jednorázově/měsíčně dle horizontu).
+- Profil má cíle (CO/KDY/KOLIK); plán počítá per cíl alokaci (Morningstar) a výnos (AFP) → kolik investovat.
+- AI plán generován ve struktuře a pořadí eDO/KFP: Shrnutí → Rezerva → Pojištění (DIME+eDO+EFPA) →
+  Úvěry → Cíle → Investice (alokace/výnos) → Penze/renta (×200) → Priority (rizika→hypotéka→cíle→renta).
+- /plan UI: dynamické zadání cílů. 61/61 testů, build OK.
+- Ověřeno živě: plán 9,8k znaků, 7 sekcí, 8 zdrojů, disclaimer, cituje metodiku.
+LOGIN do živých portálů eDO = až úplně nakonec (na přání uživatele).
