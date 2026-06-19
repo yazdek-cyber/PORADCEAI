@@ -37,8 +37,10 @@ Zmapováno do `CLAUDE.md`. Zjištění:
 - **Monitor — délka skenu**: plný sken 6 pojišťoven trval ~587 s. Vercel serverless má limit
   300 s → v produkci by se musel sken rozdělit (1 pojišťovna/volání, fronta) nebo běžet na
   prostředí s delším limitem. Cron endpoint funguje, jen pozor na timeout.
-- **Monitor — pokrytí**: NN 42, Generali 32, Allianz 380 OK; UNIQA 4 a ČPP 1 mají dokumenty
-  hlouběji (chce cílenější URL); Kooperativa občas vrátí 0 (flakita `url_context` → přidán retry).
+- **Monitor — filtr**: bere JEN pojistné podmínky životního pojištění (prompt + post-filtr na
+  „podmínk" v názvu). Allianz 380→28, Kooperativa→30 (samé VPP/ZPP/DPP). DB vyčištěna a přeskenována.
+- **Monitor — pokrytí**: UNIQA/ČPP mají dokumenty hlouběji (chce cílenější URL); Kooperativa
+  občas vrátí 0 (flakita `url_context` → retry).
 
 ## Log
 - Založen CLAUDE.md + POKROK.md, git baseline.
