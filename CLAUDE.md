@@ -31,10 +31,13 @@ výhradně z dokumentů a (2) generovat analytický podklad pro klienta.
 - `schema.sql` — tabulky `dokumenty`, `chunky`, funkce `hledej_chunky`.
 
 ## Datový model (Supabase)
-- `dokumenty(id, nazev, pojistovna, nahrano_kdy, pocet_chunku)`
-- `chunky(id, dokument_id→dokumenty, obsah, embedding VECTOR(768), strana, poradi, pojistovna, nazev_dokumentu)`
-- `hledej_chunky(dotaz_embedding VECTOR(768), pocet INT)` — vrací top-N podle cosine.
-- **HNSW index byl zrušen** → vyhledávání je přesné (exact KNN). Pro velký objem dat zvážit znovuzavedení indexu + REINDEX.
+- `workspaces(id, nazev, vytvoreno_kdy)` — příprava na multi-tenant; výchozí WS `00000000-…-0001`.
+- `dokumenty(id, nazev, pojistovna, nahrano_kdy, pocet_chunku, workspace_id)`
+- `chunky(id, dokument_id→dokumenty, obsah, embedding VECTOR(768), strana, poradi, pojistovna, nazev_dokumentu, workspace_id)`
+- `hledej_chunky(dotaz_embedding, pocet=8, filtr_pojistovna=NULL, filtr_workspace=NULL)` — top-N dle cosine, volitelné filtry.
+- `workspace_id` má DB default = výchozí WS (viz `VYCHOZI_WORKSPACE_ID` v `lib/supabase.ts`), takže insert kód se nemění.
+- **RLS zapnuté, zatím permisivní** (service_role ji obchází) — připraveno na Supabase Auth.
+- **HNSW index zrušen** → vyhledávání je přesné (exact KNN). Pro velký objem dat zvážit index + REINDEX.
 
 ## Konvence
 - UI i komentáře **česky**. Pojmenování proměnných převážně česky.

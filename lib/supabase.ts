@@ -17,6 +17,10 @@ export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
   },
 });
 
+// Výchozí workspace — příprava na multi-tenant. Dokud není přihlašování, vše patří sem
+// (sloupce dokumenty.workspace_id a chunky.workspace_id mají tuto hodnotu jako DB default).
+export const VYCHOZI_WORKSPACE_ID = '00000000-0000-0000-0000-000000000001';
+
 export function checkEnvConfigured() {
   const isUrlValid = process.env.NEXT_PUBLIC_SUPABASE_URL && !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder');
   const isAnonValid = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY && !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY.includes('placeholder');

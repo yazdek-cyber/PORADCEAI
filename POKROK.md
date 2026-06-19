@@ -18,7 +18,7 @@ Zmapováno do `CLAUDE.md`. Zjištění:
 | 4 | „Řeším případ" | ✅ | Ověřeno na 3 profilech: specifické, podložené, disclaimer; + práh relevance |
 | 5 | Export návrhu do PDF | ✅ | „Exportovat do PDF" + zdroje a patička v tisku; vizuál = uživatelský klik |
 | 6 | Kvalita a spolehlivost (hardening) | ✅ | Retry (embed/chat/návrh/OCR), validace souboru, error boundary, graceful chyby |
-| 7 | Příprava na multi-tenant | ⬜ | `workspace_id`, RLS připraveno (permisivní), bez plného loginu |
+| 7 | Příprava na multi-tenant | ✅ | workspaces + workspace_id (DB default), RLS permisivní, filtr v hledej_chunky; test izolace OK |
 
 ## Akceptační kritérium fáze
 1. „Ptám se" přesné odpovědi se zdroji, nevymýšlí
