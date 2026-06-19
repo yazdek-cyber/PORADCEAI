@@ -10,6 +10,35 @@ interface ProcessResult {
   pouzitoOcr?: boolean;
 }
 
+// Kolik embeddingů generovat současně. Embeddingy jsou hlavní brzda zpracování
+// (u velkého/OCR dokumentu desítky až stovky chunků). Mírný souběh zkrátí čas
+// několikanásobně a přitom nepřetíží Gemini API — případné 429 řeší retry+backoff
+// uvnitř getEmbedding. Drženo nízko, ať to funguje i blízko serverless limitů.
+const EMBEDDING_SOUBEH = 5;
+
+/**
+ * Spustí asynchronní operaci nad polem s omezeným souběhem a ZACHOVÁ pořadí výsledků.
+ * Když kterákoli operace selže, chyba probublá (Promise.all chování) a zpracování skončí.
+ */
+async function mapSOmezenim<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T, index: number) => Promise<R>
+): Promise<R[]> {
+  const vysledky: R[] = new Array(items.length);
+  let dalsi = 0;
+  async function pracovnik() {
+    while (true) {
+      const i = dalsi++;
+      if (i >= items.length) return;
+      vysledky[i] = await fn(items[i], i);
+    }
+  }
+  const pocet = Math.max(1, Math.min(limit, items.length));
+  await Promise.all(Array.from({ length: pocet }, () => pracovnik()));
+  return vysledky;
+}
+
 /**
  * Zpracuje PDF soubor: extrahuje text po stránkách, rozdělí na chunky,
  * vytvoří pro každý chunk embedding pomocí Gemini a uloží do Supabase.
@@ -121,21 +150,19 @@ export async function processPdf(
       throw new Error('Nebyly nalezeny žádné textové části v dokumentu.');
     }
 
-    // Generování embeddingů pro každý chunk a uložení
-    const dbChunksToInsert = [];
-    for (const chunk of allChunks) {
-      try {
+    // Generování embeddingů pro každý chunk (paralelně s omezeným souběhem) a uložení.
+    // Pořadí výsledků odpovídá allChunks (mapSOmezenim ho zachovává).
+    let dbChunksToInsert: ({ embedding: number[] } & (typeof allChunks)[number])[];
+    try {
+      dbChunksToInsert = await mapSOmezenim(allChunks, EMBEDDING_SOUBEH, async (chunk) => {
         const embedding = await getEmbedding(chunk.obsah, 'RETRIEVAL_DOCUMENT');
-        dbChunksToInsert.push({
-          ...chunk,
-          embedding,
-        });
-      } catch (err) {
-        console.error(`Chyba generování embeddingu pro chunk ${chunk.poradi}:`, err);
-        throw new Error(
-          `Chyba při generování embeddingu: ${err instanceof Error ? err.message : String(err)}`
-        );
-      }
+        return { ...chunk, embedding };
+      });
+    } catch (err) {
+      console.error('Chyba generování embeddingu:', err);
+      throw new Error(
+        `Chyba při generování embeddingu: ${err instanceof Error ? err.message : String(err)}`
+      );
     }
 
     // Embeddingy hotové → teď teprve vytvoříme záznam o dokumentu.
