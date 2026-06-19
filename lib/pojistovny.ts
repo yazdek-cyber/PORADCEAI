@@ -23,6 +23,26 @@ export const POJISTOVNY: PojistovnaOdkaz[] = [
     klicovaSlova: ['nn', 'nationale', 'nederlanden'],
     urlDokumenty: 'https://www.nn.cz/pro-klienty/pojisteni/nn-orange-risk/dokumenty/',
   },
+  {
+    nazev: 'Generali Česká pojišťovna',
+    klicovaSlova: ['generali', 'česká pojišťovna', 'ceska pojistovna'],
+    urlDokumenty: 'https://www.generaliceska.cz/dokumenty-podle-produktu',
+  },
+  {
+    nazev: 'UNIQA',
+    klicovaSlova: ['uniqa'],
+    urlDokumenty: 'https://www.uniqa.cz/zivotni-pojisteni-dokumenty/',
+  },
+  {
+    nazev: 'Allianz',
+    klicovaSlova: ['allianz'],
+    urlDokumenty: 'https://www.allianz.cz/cs_CZ/pojisteni/pro-klienty/dokumenty-a-formulare.html',
+  },
+  {
+    nazev: 'ČPP',
+    klicovaSlova: ['cpp', 'podnikatelska', 'podnikatelská'],
+    urlDokumenty: 'https://www.cpp.cz/klientsky-servis/dokumenty',
+  },
 ];
 
 /** Normalizace pro porovnání: malá písmena, bez diakritiky, oříznuté mezery. */

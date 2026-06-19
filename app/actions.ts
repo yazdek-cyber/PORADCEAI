@@ -3,6 +3,8 @@
 import { processPdf } from '@/lib/documentProcessor';
 import { getEmbedding, generateChatResponse, generateClientSolution, ClientProfile } from '@/lib/gemini';
 import { supabaseAdmin, checkEnvConfigured } from '@/lib/supabase';
+import { POJISTOVNY } from '@/lib/pojistovny';
+import { objevPodminky } from '@/lib/podminkyScraper';
 import { revalidatePath } from 'next/cache';
 
 interface ChatMessage {
@@ -269,5 +271,119 @@ export async function generateSolutionAction(profile: ClientProfile) {
       solution: '',
       chunks: [],
     };
+  }
+}
+
+/**
+ * Projde stránky všech pojišťoven, objeví dostupné dokumenty a uloží/aktualizuje
+ * snapshot v `dostupne_podminky`. Detekuje nové a změněné dokumenty (hlídání).
+ */
+export async function zkontrolujPodminkyAction() {
+  await checkConfig();
+  const souhrn: {
+    pojistovna: string;
+    nalezeno?: number;
+    nove?: number;
+    zmenene?: number;
+    chyba?: string;
+  }[] = [];
+
+  for (const p of POJISTOVNY) {
+    try {
+      const objevene = await objevPodminky(p.nazev, p.urlDokumenty);
+      let nove = 0;
+      let zmenene = 0;
+      for (const d of objevene) {
+        const hash = `${d.produkt}|${d.nazev}`;
+        const { data: ex } = await supabaseAdmin
+          .from('dostupne_podminky')
+          .select('id, hash, stav')
+          .eq('pojistovna', p.nazev)
+          .eq('url', d.url)
+          .maybeSingle();
+
+        if (!ex) {
+          await supabaseAdmin.from('dostupne_podminky').insert({
+            pojistovna: p.nazev,
+            produkt: d.produkt,
+            nazev: d.nazev,
+            url: d.url,
+            hash,
+            stav: 'nova',
+          });
+          nove++;
+        } else {
+          const zmena = ex.hash !== hash;
+          let stav = ex.stav;
+          if (zmena) {
+            stav = 'zmenena';
+            zmenene++;
+          }
+          await supabaseAdmin
+            .from('dostupne_podminky')
+            .update({ produkt: d.produkt, nazev: d.nazev, hash, stav, posledni_videno: new Date().toISOString() })
+            .eq('id', ex.id);
+        }
+      }
+      souhrn.push({ pojistovna: p.nazev, nalezeno: objevene.length, nove, zmenene });
+    } catch (e) {
+      souhrn.push({ pojistovna: p.nazev, chyba: e instanceof Error ? e.message : String(e) });
+    }
+  }
+
+  revalidatePath('/admin');
+  return { success: true, souhrn };
+}
+
+/**
+ * Vrátí seznam objevených dostupných podmínek (pro zobrazení v adminu).
+ */
+export async function getDostupnePodminkyAction() {
+  await checkConfig();
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('dostupne_podminky')
+      .select('*')
+      .order('pojistovna', { ascending: true })
+      .order('produkt', { ascending: true });
+    if (error) throw new Error(`Nepodařilo se načíst dostupné podmínky: ${error.message}`);
+    return { success: true, podminky: data || [] };
+  } catch (error) {
+    console.error('Chyba getDostupnePodminkyAction:', error);
+    return { success: false, error: error instanceof Error ? error.message : String(error), podminky: [] };
+  }
+}
+
+/**
+ * Stáhne a importuje konkrétní objevený dokument (přes standardní pipeline).
+ */
+export async function importujPodminkuAction(id: string) {
+  await checkConfig();
+  try {
+    const { data: zaznam, error } = await supabaseAdmin
+      .from('dostupne_podminky')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error || !zaznam) throw new Error('Záznam dokumentu nebyl nalezen.');
+
+    const res = await fetch(zaznam.url, { signal: AbortSignal.timeout(60000) });
+    if (!res.ok) throw new Error(`Stažení PDF selhalo (HTTP ${res.status}).`);
+    const buffer = Buffer.from(await res.arrayBuffer());
+
+    const nazevSouboru = `${zaznam.produkt ? zaznam.produkt + ' - ' : ''}${zaznam.nazev}`;
+    const result = await processPdf(buffer, nazevSouboru, zaznam.pojistovna);
+    if (!result.success) throw new Error(result.error || 'Zpracování PDF selhalo.');
+
+    await supabaseAdmin
+      .from('dostupne_podminky')
+      .update({ stav: 'importovana', importovano_kdy: new Date().toISOString() })
+      .eq('id', id);
+
+    revalidatePath('/admin');
+    return { success: true, chunkCount: result.chunkCount, pouzitoOcr: result.pouzitoOcr };
+  } catch (error) {
+    console.error('Chyba importujPodminkuAction:', error);
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }

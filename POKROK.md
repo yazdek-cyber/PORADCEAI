@@ -34,6 +34,11 @@ Zmapováno do `CLAUDE.md`. Zjištění:
   (serverless timeout) by velké skeny mohly vypršet — zvážit frontu/job. Pro dev OK.
 - **Live status OCR** (spec „zpracovávám přes OCR…") je zatím POST-HOC: hláška se ukáže po
   dokončení (`pouzitoOcr` flag), ne živě během. Živý stav vyžaduje streaming — pozdější UI vylepšení.
+- **Monitor — délka skenu**: plný sken 6 pojišťoven trval ~587 s. Vercel serverless má limit
+  300 s → v produkci by se musel sken rozdělit (1 pojišťovna/volání, fronta) nebo běžet na
+  prostředí s delším limitem. Cron endpoint funguje, jen pozor na timeout.
+- **Monitor — pokrytí**: NN 42, Generali 32, Allianz 380 OK; UNIQA 4 a ČPP 1 mají dokumenty
+  hlouběji (chce cílenější URL); Kooperativa občas vrátí 0 (flakita `url_context` → přidán retry).
 
 ## Log
 - Založen CLAUDE.md + POKROK.md, git baseline.
@@ -50,3 +55,16 @@ Zmapováno do `CLAUDE.md`. Zjištění:
 - **ÚLOHA 7 ✅** — workspaces + workspace_id (DB default) + RLS permisivní + filtr; izolace ověřena.
 
 ## FÁZE v0.5 DOKONČENA — všech 7 úloh hotovo a zacommitováno (8 commitů).
+
+## NAVÍC: Monitor podmínek pojišťoven (nová funkce)
+Automatický „lovec" podmínek — projde weby pojišťoven, AI rozpozná produkty/dokumenty,
+nabídne import v adminu a hlídá změny.
+- **Scraper** (`lib/podminkyScraper.ts`): tier 1 statický fetch + AI extrakce; tier 2 fallback
+  Gemini `url_context` (renderuje i JS weby). Test: NN 42 dok (statický), Kooperativa 92 (url_context).
+- **Pojišťovny** (`lib/pojistovny.ts`): Kooperativa, NN, Generali, UNIQA, Allianz, ČPP.
+- **DB**: tabulka `dostupne_podminky` (snapshot, stav nova/zmenena/importovana, RLS permisivní).
+- **Akce**: `zkontrolujPodminkyAction` (sken + detekce změn), `getDostupnePodminkyAction`,
+  `importujPodminkuAction` (stáhne PDF → standardní pipeline).
+- **Hlídání**: ruční tlačítko v adminu + `app/api/cron/check-podminky` + `vercel.json` cron
+  (denně 06:00, zapne se při nasazení; chráněno `CRON_SECRET`).
+- **UI**: sekce „Podmínky pojišťoven (monitor)" v adminu — seznam s odznaky 🆕/✏️/✅ + import 1 klikem.

@@ -13,11 +13,18 @@ import {
   Layers,
   HelpCircle,
   ExternalLink,
+  Globe,
+  RefreshCw,
+  Download,
+  Sparkles,
 } from 'lucide-react';
 import {
   getDocumentsAction,
   uploadDocumentAction,
   deleteDocumentAction,
+  zkontrolujPodminkyAction,
+  getDostupnePodminkyAction,
+  importujPodminkuAction,
 } from '@/app/actions';
 import { najdiOdkazPodminek } from '@/lib/pojistovny';
 
@@ -27,6 +34,16 @@ interface Document {
   pojistovna: string;
   nahrano_kdy: string;
   pocet_chunku: number;
+}
+
+interface DostupnaPodminka {
+  id: string;
+  pojistovna: string;
+  produkt: string | null;
+  nazev: string;
+  url: string;
+  stav: 'nova' | 'zmenena' | 'importovana';
+  posledni_videno: string;
 }
 
 export default function AdminPage() {
@@ -59,6 +76,63 @@ export default function AdminPage() {
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Monitor podmínek pojišťoven
+  const [dostupne, setDostupne] = useState<DostupnaPodminka[]>([]);
+  const [scanning, setScanning] = useState(false);
+  const [scanSouhrn, setScanSouhrn] = useState<string | null>(null);
+  const [importujeId, setImportujeId] = useState<string | null>(null);
+
+  const fetchDostupne = async () => {
+    const res = await getDostupnePodminkyAction();
+    if (res.success) setDostupne(res.podminky as DostupnaPodminka[]);
+  };
+
+  const handleScan = async () => {
+    setScanning(true);
+    setScanSouhrn(null);
+    setError(null);
+    try {
+      const res = await zkontrolujPodminkyAction();
+      if (res.success) {
+        const nove = res.souhrn.reduce((a, s) => a + (s.nove || 0), 0);
+        const zmenene = res.souhrn.reduce((a, s) => a + (s.zmenene || 0), 0);
+        const chyby = res.souhrn.filter((s) => s.chyba).map((s) => s.pojistovna);
+        setScanSouhrn(
+          `Kontrola hotová: ${nove} nových, ${zmenene} změněných dokumentů.` +
+            (chyby.length ? ` Nepodařilo se načíst: ${chyby.join(', ')}.` : '')
+        );
+        await fetchDostupne();
+      } else {
+        setError('Kontrola se nezdařila.');
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Chyba při kontrole podmínek.');
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  const handleImport = async (id: string) => {
+    setImportujeId(id);
+    setError(null);
+    try {
+      const res = await importujPodminkuAction(id);
+      if (res.success) {
+        setSuccess(
+          `Dokument importován (${res.chunkCount} částí).` +
+            (res.pouzitoOcr ? ' (přes OCR)' : '')
+        );
+        await Promise.all([fetchDostupne(), fetchDocuments()]);
+      } else {
+        setError(res.error || 'Import se nezdařil.');
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Chyba při importu.');
+    } finally {
+      setImportujeId(null);
+    }
+  };
 
   const fetchDocuments = async () => {
     setLoading(true);
@@ -93,6 +167,7 @@ export default function AdminPage() {
   useEffect(() => {
     checkConfig();
     fetchDocuments();
+    fetchDostupne();
   }, []);
 
   const handleDrag = (e: React.DragEvent) => {
@@ -418,6 +493,113 @@ $$;`}
 
         {/* List Column */}
         <div className="lg:col-span-2 space-y-6">
+
+          {/* Monitor podmínek pojišťoven */}
+          <div className="rounded-xl border border-primary-100 bg-white p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+              <h2 className="text-xl font-bold text-primary flex items-center gap-2">
+                <Globe className="h-5 w-5 text-accent" />
+                Podmínky pojišťoven (monitor)
+              </h2>
+              <button
+                onClick={handleScan}
+                disabled={scanning}
+                className={`flex items-center gap-1.5 text-xs font-bold rounded-lg px-3 py-2 transition-colors ${
+                  scanning
+                    ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                    : 'bg-primary text-white hover:bg-primary-600 cursor-pointer'
+                }`}
+              >
+                {scanning ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-3.5 w-3.5 text-accent" />
+                )}
+                {scanning ? 'Kontroluji…' : 'Zkontrolovat nové podmínky'}
+              </button>
+            </div>
+            <p className="text-xs text-slate-500 mb-3">
+              Projde weby pojišťoven (Kooperativa, NN, Generali, UNIQA, Allianz, ČPP…), najde
+              dostupné dokumenty a označí nové či změněné. Importuj jedním klikem.
+            </p>
+            {scanSouhrn && (
+              <div className="mb-3 text-xs bg-primary-50 border border-primary-100 text-primary rounded-lg px-3 py-2">
+                {scanSouhrn}
+              </div>
+            )}
+
+            {dostupne.length === 0 ? (
+              <div className="text-center py-8 border border-dashed border-slate-200 rounded-lg">
+                <Sparkles className="h-8 w-8 text-slate-300 mx-auto mb-2" />
+                <p className="text-sm text-slate-600">
+                  Zatím nic nenalezeno. Klikni na „Zkontrolovat nové podmínky".
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-1.5 max-h-[420px] overflow-y-auto pr-1">
+                {dostupne.map((d) => (
+                  <div
+                    key={d.id}
+                    className="flex items-center gap-2 rounded-lg border border-slate-200 p-2.5 text-sm hover:bg-slate-50"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-semibold text-slate-800 truncate">{d.nazev}</span>
+                        {d.stav === 'nova' && (
+                          <span className="text-[10px] font-bold text-green-700 bg-green-50 border border-green-200 rounded px-1.5 py-0.5">
+                            🆕 nová
+                          </span>
+                        )}
+                        {d.stav === 'zmenena' && (
+                          <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">
+                            ✏️ změněná
+                          </span>
+                        )}
+                        {d.stav === 'importovana' && (
+                          <span className="text-[10px] font-bold text-slate-500 bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5">
+                            ✅ importovaná
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-slate-400 truncate">
+                        {d.pojistovna}
+                        {d.produkt ? ` · ${d.produkt}` : ''}
+                      </div>
+                    </div>
+                    <a
+                      href={d.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-slate-400 hover:text-primary p-1"
+                      title="Otevřít PDF"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </a>
+                    <button
+                      onClick={() => handleImport(d.id)}
+                      disabled={importujeId === d.id}
+                      className={`flex items-center gap-1 text-xs font-bold rounded-md px-2.5 py-1.5 transition-colors ${
+                        importujeId === d.id
+                          ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                          : d.stav === 'importovana'
+                            ? 'bg-slate-100 text-slate-500 hover:bg-slate-200 cursor-pointer'
+                            : 'bg-primary-50 text-primary hover:bg-primary-100 cursor-pointer'
+                      }`}
+                      title={d.stav === 'importovana' ? 'Znovu importovat' : 'Importovat do databáze'}
+                    >
+                      {importujeId === d.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Download className="h-3.5 w-3.5" />
+                      )}
+                      {d.stav === 'importovana' ? 'Znovu' : 'Importovat'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-bold text-primary mb-4 flex items-center gap-2">
               <FileText className="h-5 w-5 text-accent" />

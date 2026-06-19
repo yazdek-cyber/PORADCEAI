@@ -162,6 +162,123 @@ Kde k je pořadí stránky v TÉTO části (1 až ${pocetVDavce}). Nevynechávej
   return pages;
 }
 
+export interface ObjevenaPodminka {
+  produkt: string;
+  nazev: string;
+  url: string;
+}
+
+/**
+ * Z textu stránky pojišťovny a seznamu odkazů vytáhne strukturovaný seznam
+ * produktů a jejich dokumentů ke stažení (pojistné podmínky apod.).
+ */
+export async function extrahujPodminky(
+  pojistovna: string,
+  textStranky: string,
+  odkazy: string[]
+): Promise<ObjevenaPodminka[]> {
+  if (!process.env.GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY není nastavena v proměnných prostředí.');
+  }
+
+  const seznamOdkazu = odkazy.slice(0, 400).join('\n');
+  const prompt = `Toto je obsah stránky pojišťovny "${pojistovna}" se sekcí dokumenty ke stažení.
+Vrať seznam POJISTNÝCH PRODUKTŮ a jejich DOKUMENTŮ KE STAŽENÍ (pojistné podmínky, sazebníky, informační dokumenty), které lze stáhnout jako PDF.
+
+Pravidla:
+- "url" MUSÍ být přesně jeden z odkazů ze seznamu níže (zkopíruj doslova), ideálně končící na .pdf.
+- "produkt" = název produktu/pojištění (např. "NN Orange Risk"); když nelze určit, použij "Obecné".
+- "nazev" = název dokumentu (např. "Všeobecné pojistné podmínky").
+- Vracej jen reálné dokumenty ke stažení, NE navigaci, menu, kariéru, kontakt apod.
+- Odpověz POUZE platným JSON polem: [{"produkt":"...","nazev":"...","url":"..."}]. Nic jiného.
+
+DOSTUPNÉ ODKAZY:
+${seznamOdkazu}
+
+TEXT STRÁNKY (kontext):
+${textStranky.slice(0, 24000)}`;
+
+  const response = await generujSOpakovanim(
+    {
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: { temperature: 0, responseMimeType: 'application/json' },
+    },
+    'extrakce podmínek'
+  );
+
+  try {
+    const parsed = JSON.parse(response.text || '[]');
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((p) => p && typeof p.url === 'string' && typeof p.nazev === 'string')
+      .map((p) => ({ produkt: String(p.produkt || 'Obecné'), nazev: String(p.nazev), url: String(p.url) }));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Fallback pro JS-renderované stránky (např. Kooperativa): Gemini si stránku načte
+ * sám přes nástroj „url_context" (renderuje i JavaScript) a vrátí dokumenty.
+ * Odolné parsování — bere JSON i holé PDF odkazy z odpovědi, relativní URL dořeší.
+ */
+export async function extrahujPodminkyUrlContext(
+  pojistovna: string,
+  url: string
+): Promise<ObjevenaPodminka[]> {
+  if (!process.env.GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY není nastavena v proměnných prostředí.');
+  }
+  const base = new URL(url).origin;
+  const prompt = `Na stránce ${url} (pojišťovna ${pojistovna}) jsou odkazy na PDF dokumenty (pojistné podmínky, sazebníky, informační dokumenty). Vrať seznam všech PDF dokumentů jako JSON pole [{"produkt","nazev","url"}]. "url" absolutní odkaz na PDF. Odpověz pouze JSON.`;
+
+  const response = await generujSOpakovanim(
+    {
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: { temperature: 0, maxOutputTokens: 30000, tools: [{ urlContext: {} }] },
+    },
+    'url_context podmínky'
+  );
+
+  const text = response.text || '';
+  const podleUrl = new Map<string, ObjevenaPodminka>();
+  const pridej = (produkt: string | undefined, nazev: string | undefined, rawUrl: string) => {
+    let abs: string;
+    try {
+      abs = new URL(rawUrl, base).href;
+    } catch {
+      return;
+    }
+    if (!/\.pdf(\?|#|$)/i.test(abs)) return;
+    const stary = podleUrl.get(abs);
+    if (!stary || (nazev && (!stary.nazev || stary.nazev.length < nazev.length))) {
+      podleUrl.set(abs, {
+        produkt: produkt || stary?.produkt || 'Obecné',
+        nazev: nazev || stary?.nazev || abs.split('/').pop() || 'Dokument',
+        url: abs,
+      });
+    }
+  };
+
+  // 1) JSON pole z odpovědi
+  const m = text.match(/\[[\s\S]*\]/);
+  if (m) {
+    try {
+      const arr = JSON.parse(m[0]);
+      if (Array.isArray(arr)) for (const d of arr) if (d?.url) pridej(d.produkt, d.nazev, String(d.url));
+    } catch {
+      // ignoruj — dojedeme na holé odkazy
+    }
+  }
+  // 2) Holé PDF odkazy (absolutní i root-relativní) jako záloha
+  for (const mm of text.matchAll(/((?:https?:\/\/|\/)[^"'\s<>()]+?\.pdf)/gi)) {
+    pridej(undefined, undefined, mm[1]);
+  }
+  return [...podleUrl.values()];
+}
+
 interface ChatMessage {
   role: 'user' | 'model';
   content: string;
