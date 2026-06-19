@@ -206,3 +206,14 @@ Kalkulačky i finanční plán nyní počítají přesně podle ingestované met
 - /plan UI: dynamické zadání cílů. 61/61 testů, build OK.
 - Ověřeno živě: plán 9,8k znaků, 7 sekcí, 8 zdrojů, disclaimer, cituje metodiku.
 LOGIN do živých portálů eDO = až úplně nakonec (na přání uživatele).
+
+## v0.11 — workflow audit kalkulaček + opravy
+Spuštěn multi-agent workflow audit (30 agentů, 4 dimenze + adversariální verifikace) →
+15 potvrzených nálezů (z toho 4 duplikáty DTI). Opraveno:
+- HIGH: kolikInvestovat dělení nulou (horizont 0).
+- DTI v maxUver nově odečítá stávající jistinu dluhu (nenadhodnocuje kapacitu úvěru).
+- Sjednoceny reálné výnosy (RIZIKO 2,5/4,5/6,5 % reálně); celý plán v dnešní hodnotě.
+- Monte Carlo guard (pocetSimulaci/n → žádné NaN); EFPA deficit invalidity 1,2×;
+  rezerva default 6×; rokyNahrady vyčištěno; TNÚ komentář upřesněn.
+GDPR (dokumentačně): profil jde do Gemini pro plán → produkčně DPA s Googlem + informovat klienty.
++3 regresní testy. 64/64 testů, build OK.
