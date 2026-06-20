@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { generujFinancniPlanAction } from '@/app/actions';
 import type { FinPlanProfil, RizikovyProfil, FinCil, Vypocty } from '@/lib/financniPlan';
-import Markdown from '@/components/Markdown';
+import PlanDokument from '@/components/PlanDokument';
 import PlanPrehled from '@/components/PlanPrehled';
 import { usePripad, jePripadPrazdny, popisPripadu } from '@/lib/pripadStore';
 
@@ -494,9 +494,7 @@ export default function PlanPage() {
                   </div>
                 </div>
 
-                <div className="prose prose-sm max-w-none print:prose-xs">
-                  <Markdown text={plan} />
-                </div>
+                <PlanDokument text={plan} />
 
                 {chunks.length > 0 && (
                   <div className="hidden print:block mt-8 pt-4 border-t border-slate-300">

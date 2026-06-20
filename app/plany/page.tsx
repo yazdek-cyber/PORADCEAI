@@ -5,7 +5,7 @@ import { FolderClock, Loader2, Wallet, Printer, Trash2, ArrowLeft, FileText } fr
 import Link from 'next/link';
 import { getUlozenePlanyAction, getUlozenyPlanAction, smazUlozenyPlanAction } from '@/app/actions';
 import type { Vypocty } from '@/lib/financniPlan';
-import Markdown from '@/components/Markdown';
+import PlanDokument from '@/components/PlanDokument';
 import PlanPrehled from '@/components/PlanPrehled';
 
 interface PlanMeta {
@@ -76,7 +76,7 @@ export default function PlanyPage() {
           <div><h3 className="text-sm font-bold text-primary mb-2 print:mt-4">Přehled (spočítaná čísla)</h3><PlanPrehled v={detail.vypocty} /></div>
         )}
         <div className="rounded-xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm print:border-none print:shadow-none text-slate-900">
-          <div className="prose prose-sm max-w-none"><Markdown text={detail.plan} /></div>
+          <PlanDokument text={detail.plan} />
         </div>
       </div>
     );

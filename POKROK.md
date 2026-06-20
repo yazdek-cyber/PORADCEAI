@@ -329,9 +329,9 @@ a celé to musí být multitenant (editovatelné, ne natvrdo eDO). První krok =
 Ověřeno e2e (admin 3 skupiny 11/10/2, chat RAG vrací zdroje bez chyby). 64/64 testů, TSC 0, build OK.
 
 ### Zbývá v této ose (návazný krok)
-- ✅ **Plán/orchestrace používá kategorie RŮZNĚ** (v0.21 níže).
+- ✅ **Plán/orchestrace používá kategorie RŮZNĚ** (v0.21).
+- ✅ **eDO-vizuál plánu** (v0.22).
 - Rozlišit Plán vs Rychlý návrh (zúžit Rychlý návrh na „Pojištění — analýza z podmínek").
-- eDO-vizuál plánu (grafy, formičky, poučky, AI dokresluje).
 - Per-tenant: poskytovatelé/produkty/branding vázané na workspace (až s login fází).
 
 ## v0.21 — orchestrace plánu podle kategorií (každá kategorie hraje jinou roli)
@@ -346,3 +346,16 @@ Ověřeno e2e (admin 3 skupiny 11/10/2, chat RAG vrací zdroje bez chyby). 64/64
 - Plan UI: panel přejmenován „Zdroje z podmínek" → „Použité podklady" (obsahuje i metodiku/postupy).
 Ověřeno e2e: plán bez chyby, 6 poučky (z metodiky, vč. citace), citace produktů (Kooperativa s.46/76),
 všechny sekce, reálná čísla z kalkulaček, 17 zdrojů (8/4/5). 64/64 testů, TSC 0, build OK.
+
+## v0.22 — eDO-vizuál plánu (interaktivní dokument: formičky, poučky, ikony)
+Výstup finančního plánu už není plochý Markdown, ale interaktivní eDO-dokument:
+- `components/PlanDokument.tsx`: AI Markdown se rozdělí na SEKCE-„formičky" dle `## ` nadpisů
+  (fallback na `### `), každá s ikonou pilíře (rezerva/pojištění/úvěr/cíle/investice/penze/priority)
+  a rozklikávací (chevron); v tisku vždy rozbalené (`hidden print:block`). Intro (disclaimer + shrnutí) nad sekcemi.
+- `components/Markdown.tsx` rozšířen: **Poučky** jako vizuální callout (žárovka, accent box) — ořezává
+  `**` kolem labelu, zachová vnitřní tučné; **Akční krok / Odůvodnění / Pozor / Tip** jako barevné štítky.
+- `lib/gemini.ts`: prompt vynucuje hlavní sekce jako H2 (`## `), bez vlastního titulku — aby se
+  deterministicky rozdělily na formičky. Poučky uvádět řádkem „Poučka: ".
+- Použito na `/plan` i `/plany` (uložené plány); `/pripad` má vlastní render (beze změny).
+Ověřeno e2e: plán = 8 formiček (Shrnutí→Priority) + 6 poučky-calloutů + citace, čísla z kalkulaček.
+64/64 testů, TSC 0, build OK.

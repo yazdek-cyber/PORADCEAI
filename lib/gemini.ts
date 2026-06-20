@@ -434,18 +434,23 @@ priorit RIZIKA → HYPOTÉKA → CÍLE → RENTA. Rizika (ochrana příjmu a maj
 je v řádu milionů, riziko investic ve statisících. Počítej v dnešní hodnotě peněz. Dlouhé cíle = dlouhé
 zdroje (akcie), krátké = hotovost/dluhopisy.
 
-STRUKTURA PLÁNU:
-- **Shrnutí situace klienta a cíle** (z profilu; CO/KDY/KOLIK).
-- **1. Finanční rezerva** — doporučení 6× výdaje (úrovně 3/6/12×), stav vs. cíl.
-- **2. Ochrana (Pojištění)** — potřeba krytí: uveď a porovnej metody z podkladů (DIME, praxe eDO 3× příjem,
+FORMÁT NADPISŮ (DŮLEŽITÉ pro vizuál): KAŽDOU hlavní sekci uveď jako nadpis úrovně H2 — řádek
+začínající přesně "## ". NEPOUŽÍVEJ H1 (#) ani vlastní titulek dokumentu; začni rovnou disclaimerem
+(běžný odstavec) a hned první sekcí "## Shrnutí situace klienta a cíle". Uvnitř sekce piš odrážky a
+krátké odstavce; pod-nadpisy maximálně H3 (### ). Poučku uváděj řádkem začínajícím "Poučka: ".
+
+STRUKTURA PLÁNU (přesně tyto H2 sekce v tomto pořadí):
+## Shrnutí situace klienta a cíle  — z profilu; CO/KDY/KOLIK.
+## 1. Finanční rezerva  — doporučení 6× výdaje (úrovně 3/6/12×), stav vs. cíl.
+## 2. Ochrana (Pojištění)  — potřeba krytí: uveď a porovnej metody z podkladů (DIME, praxe eDO 3× příjem,
   EFPA koeficient 200 po odečtení sociálních dávek; TNÚ ≈ ½ invalidity), na co cílit, výluky/čekací doby ze zdrojů.
-- **3. Úvěry / bydlení** — kapacita (DSTI/DTI), refinancování (z podkladů), na co pozor.
-- **4. Cíle klienta** — pro každý cíl kolik investovat (jednorázově/měsíčně) a doporučená alokace dle horizontu (z podkladů).
-- **5. Investice** — projekce p10/medián/p90, pravděpodobnost cíle, Morningstar alokace dle horizontu,
+## 3. Úvěry / bydlení  — kapacita (DSTI/DTI), refinancování (z podkladů), na co pozor.
+## 4. Cíle klienta  — pro každý cíl kolik investovat (jednorázově/měsíčně) a doporučená alokace dle horizontu (z podkladů).
+## 5. Investice  — projekce p10/medián/p90, pravděpodobnost cíle, Morningstar alokace dle horizontu,
   očekávaný reálný výnos, srovnání forem a vliv poplatků.
-- **6. Penze / renta** — projekce kapitálu, mezera v důchodu, potřebný kapitál pro rentu (pravidlo ×200),
+## 6. Penze / renta  — projekce kapitálu, mezera v důchodu, potřebný kapitál pro rentu (pravidlo ×200),
   role DPS a státního příspěvku.
-- **Priority a akční kroky** — seřazené dle pořadí rizika→hypotéka→cíle→renta, konkrétní, s odůvodněním.
+## Priority a akční kroky  — seřazené dle pořadí rizika→hypotéka→cíle→renta, konkrétní, s odůvodněním (Akční krok / Odůvodnění).
 
 SPOČÍTANÉ PODKLADY (zdroj všech čísel):
 ${podkladyText}
