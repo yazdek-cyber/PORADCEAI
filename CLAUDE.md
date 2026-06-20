@@ -19,16 +19,34 @@ výhradně z dokumentů a (2) generovat analytický podklad pro klienta.
 4. **Specifičnost** — návrhy šité na klienta, ne šablony.
 
 ## Mapa kódu
-- `app/page.tsx` — **„Ptám se"** (chat/RAG). Volá `askChatAction`. Zobrazuje zdroje (pojišťovna, strana, % shoda) + náhled zdrojového textu.
-- `app/pripad/page.tsx` — **„Řeším případ"**. Formulář profilu klienta → `generateSolutionAction` → analytický podklad v Markdownu + tisk/PDF (`window.print()`).
-- `app/admin/page.tsx` — nahrávání PDF, seznam dokumentů, mazání, odkaz „Podmínky ke stažení" (z `lib/pojistovny.ts`).
-- `app/actions.ts` — server actions: `getDocumentsAction`, `uploadDocumentAction`, `deleteDocumentAction`, `askChatAction`, `generateSolutionAction`.
-- `app/api/check-config*` — kontrola nastavení env.
-- `lib/gemini.ts` — `getEmbedding(text, taskType)` (retry+backoff na 429), `generateChatResponse`, `generateClientSolution`. Modely: embedding `gemini-embedding-001` (768 dim), chat/návrh `gemini-2.5-flash`.
-- `lib/documentProcessor.ts` — `processPdf`: pdf-parse v2 → text po stránkách → chunking → embeddingy → uložení. Dokument se v DB zakládá AŽ po úspěšných embeddinzích (žádné osiřelé záznamy).
-- `lib/supabase.ts` — `supabase` (anon) a `supabaseAdmin` (service role) klient + `checkEnvConfigured`.
-- `lib/pojistovny.ts` — mapování pojišťovna → oficiální URL podmínek.
-- `schema.sql` — tabulky `dokumenty`, `chunky`, funkce `hledej_chunky`.
+Aplikace se rozšířila z „AI nad pojistnými podmínkami" na **komplexní finanční poradenství přes
+4 pilíře (penze/investice/úvěry/pojištění)** dle metodiky eDO/KFP. Detailní stav fází v `POKROK.md`
+(v0.5–v0.15), předloha eDO v `docs/edo-blueprint.md`.
+
+Stránky (UI):
+- `app/page.tsx` — **„Ptám se"** (chat/RAG). `askChatAction`. Zdroje + náhled, filtr pojišťovny.
+- `app/pripad/page.tsx` — **„Řeším případ"** (jednodušší návrh). `generateSolutionAction` → Markdown + tisk.
+- `app/plan/page.tsx` — **„Finanční plán"** (4 pilíře). Bohatý profil + cíle → `generujFinancniPlanAction`;
+  `components/PlanPrehled.tsx` vizuální přehled (donut, 3 metody pojištění…), `components/Markdown.tsx`, PDF.
+- `app/kalkulacky/page.tsx` — **„Kalkulačky"**: 11 interaktivních kalkulaček bez dat (počítají v prohlížeči
+  z `lib/kalkulacky`), 4 záložky, grafy/donut, tisk.
+- `app/srovnani/page.tsx` — **„Srovnání"** (matice parametrů přes pojišťovny). `srovnejParametryAction` + export PDF.
+- `app/admin/page.tsx` — nahrávání PDF, monitor podmínek, **správa produktů** (`components/SpravaProduktu.tsx`).
+
+Logika:
+- `app/actions.ts` — server actions: dokumenty (upload/delete + validace %PDF-/limit), `askChatAction`,
+  `generateSolutionAction`, `generujFinancniPlanAction`, `srovnejParametryAction`, monitor podmínek,
+  produkty CRUD. SSRF allowlist `jeBezpecnaUrl` u importu.
+- `lib/kalkulacky/` — **čisté deterministické kalkulačky** (uvery, investice, penze, pojisteni) — zdroj všech
+  čísel; testy `kalkulacky.test.ts` (`npm test`). Dle metodiky KFP (Morningstar alokace, výnosy, ×200, EFPA).
+- `lib/financniPlan.ts` — `pripravPodklady` (předpočet kalkulaček z profilu) + `formatujPodklady`.
+- `lib/sazby/` — `SazbyProvider` (ruční/scraping/api) pro parametry produktů.
+- `lib/gemini.ts` — embeddingy (retry), `generateChatResponse/ClientSolution/FinancniPlan` (čísla nepočítá,
+  bere z podkladů), OCR, url_context. Prompty zpevněné proti injection (kontext=data).
+- `lib/documentProcessor.ts` — `processPdf` (+ OCR, paralelní embeddingy) a `processText` (text→RAG).
+- `lib/domeny.ts` — 4 pilíře + schéma parametrů produktů. `lib/supabase.ts`, `lib/pojistovny.ts`, `lib/podminkyScraper.ts`.
+- `scripts/scraper/` — Playwright scraper portálu (login se session, odchyt API) — pro budoucí napojení eDO.
+- `schema.sql` — `dokumenty`, `chunky` (+`domena`), `produkty`, `klienti`, `financni_plany`, `hledej_chunky`.
 
 ## Datový model (Supabase)
 - `workspaces(id, nazev, vytvoreno_kdy)` — příprava na multi-tenant; výchozí WS `00000000-…-0001`.

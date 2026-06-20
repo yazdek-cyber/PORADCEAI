@@ -251,3 +251,9 @@ Konzistentní karty, alokační pruhy, položka v Navbaru. Ověřeno e2e (změna
 - Alokace jako donut (SVG koláč) místo pruhu napříč investičními kalkulačkami.
 - Tlačítko Tisk na /kalkulacky (window.print + print:hidden na ovládání).
 Celkem 11 interaktivních kalkulaček bez nutnosti dat. Ověřeno e2e, build OK.
+
+## v0.16 — splátkový kalendář (tabulka), sjednocené vizuály, aktualizace CLAUDE.md
+- Hypotéka: rozklikávací splátkový kalendář po letech (úroky/úmor/zůstatek), k tisku.
+- Sdílené vizuály `components/Vizualy.tsx` (Donut, AlokaceVizual, MiniGraf); plán i kalkulačky je sdílí.
+- Investiční projekce: graf očekávaného růstu. CLAUDE.md mapa kódu zaktualizována na současný stav.
+Build OK, e2e OK.

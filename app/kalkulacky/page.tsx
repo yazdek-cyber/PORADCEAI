@@ -65,9 +65,22 @@ function HypotekaKalk() {
   const [jistina, setJistina] = useState('3000000');
   const [sazba, setSazba] = useState('4.9');
   const [roky, setRoky] = useState('30');
+  const [kalendar, setKalendar] = useState(false);
   const r = useMemo(() => uvery.splatkovyKalendar(num(jistina), num(sazba) / 100, Math.max(1, num(roky)) * 12), [jistina, sazba, roky]);
+  // Agregace splátkového kalendáře po letech (pro tabulku k tisku).
+  const poLetech = useMemo(() => {
+    const out: { rok: number; urok: number; umor: number; zustatek: number }[] = [];
+    r.radky.forEach((x, i) => {
+      const rok = Math.floor(i / 12);
+      if (!out[rok]) out[rok] = { rok: rok + 1, urok: 0, umor: 0, zustatek: x.zustatek };
+      out[rok].urok += x.urok;
+      out[rok].umor += x.umor;
+      out[rok].zustatek = x.zustatek;
+    });
+    return out;
+  }, [r]);
   return (
-    <Karta ikona={<Home className="h-4 w-4 text-accent" />} titulek="Hypoteční splátka" popis="Anuitní splátka a přeplatek úvěru.">
+    <Karta ikona={<Home className="h-4 w-4 text-accent" />} titulek="Hypoteční splátka" popis="Anuitní splátka, přeplatek a splátkový kalendář.">
       <div className="grid grid-cols-3 gap-2">
         <Pole label="Výše úvěru" value={jistina} set={setJistina} suffix="Kč" />
         <Pole label="Sazba" value={sazba} set={setSazba} suffix="%" />
@@ -80,6 +93,28 @@ function HypotekaKalk() {
       </div>
       <div className="text-[10px] text-slate-400 mt-2">Zůstatek úvěru v čase</div>
       <MiniGraf hodnoty={[...r.radky.filter((_, i) => i % 12 === 0).map((x) => x.zustatek), 0]} />
+      <button onClick={() => setKalendar((s) => !s)} className="mt-3 text-xs font-bold text-primary hover:text-primary-600 print:hidden">
+        {kalendar ? 'Skrýt splátkový kalendář' : 'Zobrazit splátkový kalendář (po letech)'}
+      </button>
+      {kalendar && (
+        <div className="mt-2 max-h-64 overflow-y-auto print:max-h-none print:overflow-visible">
+          <table className="w-full text-xs">
+            <thead className="text-slate-400 text-left sticky top-0 bg-white">
+              <tr><th className="font-semibold py-1">Rok</th><th className="font-semibold text-right">Úroky</th><th className="font-semibold text-right">Úmor</th><th className="font-semibold text-right">Zůstatek</th></tr>
+            </thead>
+            <tbody className="text-slate-700">
+              {poLetech.map((y) => (
+                <tr key={y.rok} className="border-t border-slate-50">
+                  <td className="py-1">{y.rok}.</td>
+                  <td className="text-right">{f(y.urok)}</td>
+                  <td className="text-right">{f(y.umor)}</td>
+                  <td className="text-right font-medium">{f(y.zustatek)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </Karta>
   );
 }
