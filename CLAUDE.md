@@ -23,10 +23,21 @@ Aplikace se rozšířila z „AI nad pojistnými podmínkami" na **komplexní fi
 4 pilíře (penze/investice/úvěry/pojištění)** dle metodiky eDO/KFP. Detailní stav fází v `POKROK.md`
 (v0.5–v0.15), předloha eDO v `docs/edo-blueprint.md`.
 
+UI shell & design systém (v0.18):
+- `components/AppShell.tsx` — **levý sidebar** se sekcemi (Domů/Poradna · Případ klienta · Znalosti & data)
+  + mobilní zásuvka; nahradil horní `Navbar`. Použit v `app/layout.tsx`.
+- `components/ui.tsx` — **sdílené primitivy** (PageHeader, Card/CardHeader, Field, Stat, Radek, Badge, Button,
+  SectionLabel) — jeden vizuální jazyk. Tokeny v `app/globals.css` (shadow-soft/card/pop, sémantická zeleň).
+- `lib/pripadStore.ts` — **sdílený „případ klienta"** (`usePripad()` hook, localStorage, BEZ serveru). Profil se
+  zadá jednou v plánu a propíše se do kalkulaček (předvyplnění), Rychlého návrhu i karty na Domů.
+
 Stránky (UI):
-- `app/page.tsx` — **„Ptám se"** (chat/RAG). `askChatAction`. Zdroje + náhled, filtr pojišťovny.
-- `app/pripad/page.tsx` — **„Řeším případ"** (jednodušší návrh). `generateSolutionAction` → Markdown + tisk.
-- `app/plan/page.tsx` — **„Finanční plán"** (4 pilíře). Bohatý profil + cíle → `generujFinancniPlanAction`;
+- `app/page.tsx` — **„Domů"** (dashboard/rozcestník). Dlaždice funkcí + principy + karta Aktivní případ + poslední plány.
+- `app/poradna/page.tsx` — **„Poradna"** (chat/RAG, dříve na `/`). `askChatAction`. Zdroje + náhled, filtr pojišťovny.
+- `app/pripad/page.tsx` — **„Rychlý návrh"** (jednodušší návrh z podmínek). `generateSolutionAction` → Markdown + tisk;
+  předvyplní se ze sdíleného případu, cross-link na plný plán.
+- `app/plan/page.tsx` — **„Finanční plán"** (4 pilíře). Bohatý profil + cíle → `generujFinancniPlanAction`; lišta
+  případu (načíst/uložit), auto-uložení po vygenerování;
   `components/PlanPrehled.tsx` vizuální přehled (donut, 3 metody pojištění…), `components/Markdown.tsx`, PDF.
 - `app/kalkulacky/page.tsx` — **„Kalkulačky"**: 11 interaktivních kalkulaček bez dat (počítají v prohlížeči
   z `lib/kalkulacky`), 4 záložky, grafy/donut, tisk.

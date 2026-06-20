@@ -4,10 +4,11 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   MessageSquare, Wallet, Calculator, Columns3, FolderOpen, FileText,
-  FolderClock, ArrowRight, Sparkles, ShieldCheck, TrendingUp, Loader2,
+  FolderClock, ArrowRight, Sparkles, ShieldCheck, TrendingUp, Loader2, UserRound,
 } from 'lucide-react';
 import { getUlozenePlanyAction } from '@/app/actions';
 import { PageHeader, Card, Badge } from '@/components/ui';
+import { usePripad, jePripadPrazdny, popisPripadu } from '@/lib/pripadStore';
 
 interface PlanMeta {
   id: string;
@@ -52,6 +53,8 @@ function Dlazdice({ name, href, icon: Icon, desc }: { name: string; href: string
 export default function DashboardPage() {
   const [plany, setPlany] = useState<PlanMeta[]>([]);
   const [loading, setLoading] = useState(true);
+  const { pripad, nacteno } = usePripad();
+  const maPripad = nacteno && !jePripadPrazdny(pripad);
 
   useEffect(() => {
     getUlozenePlanyAction()
@@ -74,6 +77,26 @@ export default function DashboardPage() {
         titulek="Vítejte v PoradceAI"
         popis="Asistent finančního poradce: postavte klientovi finanční plán, ověřte detaily v pojistných podmínkách a doložte vše čísly i zdroji."
       />
+
+      {/* Aktivní případ klienta — zobrazí se, jen když je vyplněný */}
+      {maPripad && (
+        <Link href="/plan" className="group block mb-8">
+          <Card className="border-primary-200 bg-gradient-to-r from-primary-50/80 to-white hover:shadow-card transition-all">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-white shadow-soft">
+                  <UserRound className="h-5 w-5 text-accent" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Aktivní případ klienta</div>
+                  <div className="font-bold text-primary truncate">{popisPripadu(pripad)}</div>
+                </div>
+              </div>
+              <Badge tone="primary">Pokračovat v plánu →</Badge>
+            </div>
+          </Card>
+        </Link>
+      )}
 
       {/* Princip produktu — krátká připomínka hodnoty */}
       <div className="grid sm:grid-cols-3 gap-3 mb-8">

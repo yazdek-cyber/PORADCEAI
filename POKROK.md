@@ -266,3 +266,32 @@ Build OK, e2e OK.
   - [nízká] PenzeKalk tiché `Math.max` přepsání věku → viditelné varování, UI = vstup.
   - [nízká] Pevný výnos 4,5 % → volitelné pole „Výnos" (default 3 % reálně) + poznámka ke strategii fondu.
 Testy 64/64, TSC 0, build OK.
+
+## v0.18 — přepracování UI: sidebar shell + Domů dashboard + propojení případu klienta
+Zadání uživatele: „vyladit celkové UI (nelíbí se) a lépe logicky spojit". Tři fáze:
+- **A — Design systém**: svěžejší tokeny v `globals.css` (měkčí stíny shadow-soft/card/pop, sémantická
+  zeleň, vzdušný gradient, zaoblenější rádiusy) + sdílené primitivy `components/ui.tsx`
+  (PageHeader, Card, Field, Stat, Radek, Badge, Button, SectionLabel) → jeden vizuální jazyk.
+- **B — Shell & navigace**: `components/AppShell.tsx` (levý sidebar se sekcemi Domů/Poradna ·
+  Případ klienta · Znalosti & data + mobilní zásuvka) nahradil horní `Navbar`. Nové `/` = **Domů
+  dashboard** (rozcestník + principy + poslední plány). Chat přesunut z `/` na `/poradna`.
+  Doplněny dříve „ztracené" Uložené plány do navigace.
+- **D — Propojení případu (datově)**: `lib/pripadStore.ts` (`usePripad()`, localStorage, BEZ serveru —
+  reálná data klienta neopouštějí prohlížeč). Profil se zadá jednou ve `/plan` (lišta Uložit/Načíst +
+  auto-uložení po vygenerování), propíše se na **Domů** (karta Aktivní případ), do **/kalkulacky**
+  (banner + „Předvyplnit z případu" → hypotéka/max. úvěr/renta/penze přes context+remount klíč) a do
+  **/pripad** (Rychlý návrh se předvyplní; cross-link na plný plán). Heading sjednocen na „Rychlý návrh".
+Ověřeno e2e (Playwright): uložení v plánu → karta na Domů → banner v kalkulačkách → hypotéka
+3 000 000 → 2 800 000 po předvyplnění. Starý `Navbar.tsx` odstraněn. 64/64 testů, TSC 0, build 13 rout OK.
+
+### Zbývá (volitelné doladění)
+- Plné sloučení Plán + Rychlý návrh do jednoho průvodce (zatím propojeno cross-linkem + sdíleným případem).
+- Refaktor zbylých stránek plně na `components/ui` (vizuál už drží přes sdílené tokeny).
+- Chat na /poradna: dotáhnout fill-height pod novým shellem.
+
+### Roadmapa k ostrému provozu (další velký krok — po dohodě)
+1. **Login fáze (Supabase Auth)** — ZÁMĚRNĚ odložená na konec. Datový model připraven (workspaces,
+   workspace_id, RLS). Přidat: login UI, session, RLS na `auth.uid()`, ochrana admin/mutací.
+2. **Reálná data/sazby produktů** — naplnit `produkty` (hypo sazby, investiční formy) ručně nebo přes
+   scraping/API provider; RAG napříč doménami po nahrání úvěrových/investičních dokumentů.
+3. **Nasazení (Vercel)** — env, cron limity (sken po 1 pojišťovně), DPA s Googlem (GDPR profil→Gemini).

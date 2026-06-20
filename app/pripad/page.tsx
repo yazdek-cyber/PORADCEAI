@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   FileText,
   UserCheck,
@@ -16,8 +16,12 @@ import {
   ChevronRight,
   BookOpen,
   Eye,
+  UserRound,
+  Wallet,
 } from 'lucide-react';
+import Link from 'next/link';
 import { generateSolutionAction } from '@/app/actions';
+import { usePripad, jePripadPrazdny, popisPripadu } from '@/lib/pripadStore';
 
 interface SourceChunk {
   id: string;
@@ -50,6 +54,37 @@ export default function PripadPage() {
 
   const printAreaRef = useRef<HTMLDivElement>(null);
   const datumDnes = new Date().toLocaleDateString('cs-CZ');
+
+  // Sdílený případ klienta — předvyplň volný formulář z uloženého profilu (jednou).
+  const { pripad, nacteno } = usePripad();
+  const maPripad = nacteno && !jePripadPrazdny(pripad);
+  const autoNactenoRef = useRef(false);
+
+  const predvyplnZPripadu = () => {
+    const p = pripad;
+    if (p.vek !== undefined) setVek(p.vek);
+    if (p.cistyPrijem !== undefined) setPrijem(`${p.cistyPrijem.toLocaleString('cs-CZ')} Kč čistého/měs`);
+    if (p.povolani) setPovolani(p.povolani);
+    if (p.zdravotniStav) setZdravotniStav(p.zdravotniStav);
+    if (p.cile) setCil(p.cile);
+    if (p.hypotekaZustatek) {
+      setZavazky(`Hypotéka ${p.hypotekaZustatek.toLocaleString('cs-CZ')} Kč` +
+        (p.hypotekaSazba ? `, sazba ${p.hypotekaSazba} %` : ''));
+    }
+    const rod = [
+      p.partner ? 's partnerem/kou' : null,
+      typeof p.pocetDeti === 'number' && p.pocetDeti > 0 ? `${p.pocetDeti} děti` : null,
+    ].filter(Boolean).join(', ');
+    if (rod) setRodina(rod);
+  };
+
+  useEffect(() => {
+    if (nacteno && !autoNactenoRef.current && !jePripadPrazdny(pripad)) {
+      autoNactenoRef.current = true;
+      predvyplnZPripadu();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nacteno]);
 
   const simulateLoadingSteps = () => {
     setLoadingStep(1); // Searching database...
@@ -221,11 +256,40 @@ export default function PripadPage() {
     <div className="space-y-6 animate-fade-in">
       {/* Title */}
       <div className="print:hidden">
-        <h1 className="text-3xl font-extrabold tracking-tight text-primary">Řeším případ (Srovnávač & Analýza)</h1>
-        <p className="mt-2 text-slate-600 text-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h1 className="text-3xl font-extrabold tracking-tight text-primary flex items-center gap-2">
+            <FileText className="h-7 w-7 text-accent" /> Rychlý návrh z podmínek
+          </h1>
+          <Link href="/plan" className="text-sm font-bold text-primary hover:text-primary-600 inline-flex items-center gap-1.5 whitespace-nowrap">
+            <Wallet className="h-4 w-4 text-accent" /> Plný finanční plán →
+          </Link>
+        </div>
+        <p className="mt-2 text-slate-600 text-sm max-w-3xl">
           Zadejte profil klienta a jeho cíle. Systém prohledá všechny nahrané pojistné podmínky a na základě zjištěných faktů (čekací doby, výluky, definice) sestaví strukturovaný podklad a doporučení pojišťoven.
         </p>
       </div>
+
+      {/* Lišta sdíleného případu */}
+      {maPripad && (
+        <div className="print:hidden flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary-100 bg-primary-50/60 px-4 py-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-primary shadow-soft">
+              <UserRound className="h-4.5 w-4.5" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Případ klienta</div>
+              <div className="text-sm font-semibold text-primary truncate">{popisPripadu(pripad)}</div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={predvyplnZPripadu}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-white border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-primary hover:border-primary-200 transition-colors"
+          >
+            <UserCheck className="h-3.5 w-3.5" /> Předvyplnit z případu
+          </button>
+        </div>
+      )}
 
       {/* Main Form/Result Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">

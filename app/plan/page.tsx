@@ -1,14 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Wallet, Loader2, AlertTriangle, CheckCircle2, Printer, Copy, BookOpen,
   FileText, ChevronRight, Eye, Calculator, ShieldCheck, Home, TrendingUp, PiggyBank, Target, Plus, Trash2,
+  Save, Download, UserRound,
 } from 'lucide-react';
 import { generujFinancniPlanAction } from '@/app/actions';
 import type { FinPlanProfil, RizikovyProfil, FinCil, Vypocty } from '@/lib/financniPlan';
 import Markdown from '@/components/Markdown';
 import PlanPrehled from '@/components/PlanPrehled';
+import { usePripad, jePripadPrazdny, popisPripadu } from '@/lib/pripadStore';
 
 interface SourceChunk {
   id: string;
@@ -102,6 +104,76 @@ export default function PlanPage() {
 
   const datumDnes = new Date().toLocaleDateString('cs-CZ');
 
+  // — Sdílený případ klienta (propojení s kalkulačkami / Domů / Rychlým návrhem) —
+  const { pripad, nacteno, ulozPripad } = usePripad();
+  const maPripad = nacteno && !jePripadPrazdny(pripad);
+  const autoNactenoRef = useRef(false);
+
+  /** Naplní formulář z uloženého případu (jen pole, která případ zná). */
+  const nactiZPripadu = () => {
+    const p = pripad;
+    if (p.vek !== undefined) setVek(String(p.vek));
+    if (p.vekOdchodu !== undefined) setVekOdchodu(String(p.vekOdchodu));
+    if (p.cistyPrijem !== undefined) setCistyPrijem(String(p.cistyPrijem));
+    if (p.vydaje !== undefined) setVydaje(String(p.vydaje));
+    if (p.rizikovyProfil) setRizikovyProfil(p.rizikovyProfil);
+    if (p.rezervaNasporeno !== undefined) setRezervaNasporeno(String(p.rezervaNasporeno));
+    if (p.existujiciInvestice !== undefined) setExistujiciInvestice(String(p.existujiciInvestice));
+    if (p.mesicniVkladInvestice !== undefined) setMesicniVkladInvestice(String(p.mesicniVkladInvestice));
+    if (p.hypotekaZustatek !== undefined) setHypotekaZustatek(String(p.hypotekaZustatek));
+    if (p.hypotekaSazba !== undefined) setHypotekaSazba(String(p.hypotekaSazba));
+    if (p.hypotekaZbyvaMesicu !== undefined) setHypotekaZbyvaMesicu(String(p.hypotekaZbyvaMesicu));
+    if (p.jineDluhy !== undefined) setJineDluhy(String(p.jineDluhy));
+    if (p.mesicniSplatkyDluhu !== undefined) setMesicniSplatkyDluhu(String(p.mesicniSplatkyDluhu));
+    if (p.partner !== undefined) setPartner(p.partner);
+    if (p.pocetDeti !== undefined) setPocetDeti(String(p.pocetDeti));
+    if (p.penzeNasporeno !== undefined) setPenzeNasporeno(String(p.penzeNasporeno));
+    if (p.penzeMesicniVklad !== undefined) setPenzeMesicniVklad(String(p.penzeMesicniVklad));
+    if (p.cilovaRentaDuchod !== undefined) setCilovaRentaDuchod(String(p.cilovaRentaDuchod));
+    if (p.ocekavanaStatniPenze !== undefined) setOcekavanaStatniPenze(String(p.ocekavanaStatniPenze));
+    if (p.povolani) setPovolani(p.povolani);
+    if (p.zdravotniStav) setZdravotniStav(p.zdravotniStav);
+    if (p.cile) setCile(p.cile);
+  };
+
+  /** Uloží aktuální formulář do sdíleného případu (zachová jméno klienta). */
+  const ulozDoPripadu = () => {
+    ulozPripad({
+      jmeno: pripad.jmeno,
+      vek: num(vek) || undefined,
+      cistyPrijem: num(cistyPrijem) || undefined,
+      vydaje: num(vydaje) || undefined,
+      rezervaNasporeno: num(rezervaNasporeno) || undefined,
+      existujiciInvestice: num(existujiciInvestice) || undefined,
+      mesicniVkladInvestice: num(mesicniVkladInvestice) || undefined,
+      hypotekaZustatek: num(hypotekaZustatek) || undefined,
+      hypotekaSazba: num(hypotekaSazba) || undefined,
+      hypotekaZbyvaMesicu: num(hypotekaZbyvaMesicu) || undefined,
+      jineDluhy: num(jineDluhy) || undefined,
+      mesicniSplatkyDluhu: num(mesicniSplatkyDluhu) || undefined,
+      partner,
+      pocetDeti: num(pocetDeti) || undefined,
+      vekOdchodu: num(vekOdchodu) || undefined,
+      penzeNasporeno: num(penzeNasporeno) || undefined,
+      penzeMesicniVklad: num(penzeMesicniVklad) || undefined,
+      cilovaRentaDuchod: num(cilovaRentaDuchod) || undefined,
+      ocekavanaStatniPenze: num(ocekavanaStatniPenze) || undefined,
+      rizikovyProfil,
+      povolani: povolani.trim() || undefined,
+      zdravotniStav: zdravotniStav.trim() || undefined,
+      cile: cile.trim() || undefined,
+    });
+  };
+
+  // Při prvním příchodu na stránku, pokud existuje aktivní případ, předvyplň z něj formulář.
+  useEffect(() => {
+    if (nacteno && !autoNactenoRef.current && !jePripadPrazdny(pripad)) {
+      autoNactenoRef.current = true;
+      nactiZPripadu();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nacteno]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading) return;
@@ -148,6 +220,7 @@ export default function PlanPage() {
         setPodklady(res.podklady);
         setVypocty((res.vypocty as Vypocty) || null);
         setChunks((res.chunks as SourceChunk[]) || []);
+        ulozDoPripadu(); // udrž aktivní případ v souladu s vygenerovaným plánem
       } else {
         setError(res.error || 'Nepodařilo se vygenerovat finanční plán.');
       }
@@ -183,6 +256,39 @@ export default function PlanPage() {
           deterministické kalkulačky (anuita, Monte&nbsp;Carlo, DIME, mezera v důchodu…), AI je propojí do
           plánu a tvrzení o produktech doloží zdroji z podmínek.
         </p>
+      </div>
+
+      {/* Lišta sdíleného případu klienta */}
+      <div className="print:hidden flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary-100 bg-primary-50/60 px-4 py-3">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-primary shadow-soft">
+            <UserRound className="h-4.5 w-4.5" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Případ klienta</div>
+            <div className="text-sm font-semibold text-primary truncate">
+              {maPripad ? popisPripadu(pripad) : 'Zatím nevyplněn — vyplňte profil a uložte jej jako případ'}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {maPripad && (
+            <button
+              type="button"
+              onClick={nactiZPripadu}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-white border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-primary hover:border-primary-200 transition-colors"
+            >
+              <Download className="h-3.5 w-3.5" /> Načíst do formuláře
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={ulozDoPripadu}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-primary text-white px-3 py-1.5 text-xs font-semibold hover:bg-primary-600 shadow-soft transition-colors"
+          >
+            <Save className="h-3.5 w-3.5 text-accent" /> Uložit do případu
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">

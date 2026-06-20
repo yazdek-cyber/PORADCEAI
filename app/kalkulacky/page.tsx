@@ -1,9 +1,36 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { Calculator, Home, TrendingUp, PiggyBank, ShieldCheck, Target, Landmark, Wallet, Printer } from 'lucide-react';
+import { useState, useMemo, useContext, createContext } from 'react';
+import { Calculator, Home, TrendingUp, PiggyBank, ShieldCheck, Target, Landmark, Wallet, Printer, UserRound, UserCheck } from 'lucide-react';
 import { uvery, investice, penze, pojisteni } from '@/lib/kalkulacky';
 import { AlokaceVizual, MiniGraf } from '@/components/Vizualy';
+import { usePripad, jePripadPrazdny, popisPripadu, type Pripad } from '@/lib/pripadStore';
+
+// Předvyplnění kalkulaček z aktivního případu klienta. Hodnoty jsou UI-ready řetězce;
+// kalkulačky je čtou v inicializátoru useState (remount přes `key` zajistí přepsání).
+interface KalkInit {
+  hypoJistina?: string; hypoSazba?: string; hypoRoky?: string;
+  prijem?: string; splatky?: string;
+  rentaStatni?: string; rentaNasporeno?: string;
+  penzeVek?: string; penzeOdchod?: string; penzeNasporeno?: string; penzeVlastni?: string;
+}
+const KalkInitCtx = createContext<KalkInit>({});
+const iv = (n?: number): string | undefined => (n === undefined || n === null ? undefined : String(n));
+function odvoditInit(p: Pripad): KalkInit {
+  return {
+    hypoJistina: iv(p.hypotekaZustatek),
+    hypoSazba: iv(p.hypotekaSazba),
+    hypoRoky: p.hypotekaZbyvaMesicu ? String(Math.round(p.hypotekaZbyvaMesicu / 12)) : undefined,
+    prijem: iv(p.cistyPrijem),
+    splatky: iv(p.mesicniSplatkyDluhu),
+    rentaStatni: iv(p.ocekavanaStatniPenze),
+    rentaNasporeno: iv(p.penzeNasporeno),
+    penzeVek: iv(p.vek),
+    penzeOdchod: iv(p.vekOdchodu),
+    penzeNasporeno: iv(p.penzeNasporeno),
+    penzeVlastni: iv(p.penzeMesicniVklad),
+  };
+}
 
 // ── Pomocné ───────────────────────────────────────────────────────────────
 function num(v: string): number {
@@ -62,9 +89,10 @@ function Radek({ label, hodnota }: { label: string; hodnota: string }) {
 
 // ── ÚVĚRY ───────────────────────────────────────────────────────────────────
 function HypotekaKalk() {
-  const [jistina, setJistina] = useState('3000000');
-  const [sazba, setSazba] = useState('4.9');
-  const [roky, setRoky] = useState('30');
+  const init = useContext(KalkInitCtx);
+  const [jistina, setJistina] = useState(() => init.hypoJistina ?? '3000000');
+  const [sazba, setSazba] = useState(() => init.hypoSazba ?? '4.9');
+  const [roky, setRoky] = useState(() => init.hypoRoky ?? '30');
   const [kalendar, setKalendar] = useState(false);
   const r = useMemo(() => uvery.splatkovyKalendar(num(jistina), num(sazba) / 100, Math.max(1, num(roky)) * 12), [jistina, sazba, roky]);
   // Agregace splátkového kalendáře po letech (pro tabulku k tisku).
@@ -120,9 +148,10 @@ function HypotekaKalk() {
 }
 
 function MaxUverKalk() {
-  const [prijem, setPrijem] = useState('50000');
-  const [splatky, setSplatky] = useState('0');
-  const [sazba, setSazba] = useState('4.9');
+  const init = useContext(KalkInitCtx);
+  const [prijem, setPrijem] = useState(() => init.prijem ?? '50000');
+  const [splatky, setSplatky] = useState(() => init.splatky ?? '0');
+  const [sazba, setSazba] = useState(() => init.hypoSazba ?? '4.9');
   const [hodnota, setHodnota] = useState('');
   const r = useMemo(() => uvery.maxUver({
     cistyMesicniPrijem: num(prijem), stavajiciMesicniSplatky: num(splatky),
@@ -283,10 +312,11 @@ function SrovnaniForemKalk() {
 
 // ── RENTA & PENZE ────────────────────────────────────────────────────────────
 function RentaKalk() {
+  const init = useContext(KalkInitCtx);
   const [renta, setRenta] = useState('30000');
-  const [statni, setStatni] = useState('18000');
+  const [statni, setStatni] = useState(() => init.rentaStatni ?? '18000');
   const [roky, setRoky] = useState('25');
-  const [nasporeno, setNasporeno] = useState('200000');
+  const [nasporeno, setNasporeno] = useState(() => init.rentaNasporeno ?? '200000');
   const r = useMemo(() => {
     const let_ = Math.max(0, num(roky));
     const potreba = Math.max(0, num(renta) - num(statni));
@@ -314,10 +344,11 @@ function RentaKalk() {
 }
 
 function PenzeKalk() {
-  const [vek, setVek] = useState('35');
-  const [vekOdchodu, setVekOdchodu] = useState('65');
-  const [nasporeno, setNasporeno] = useState('150000');
-  const [vlastni, setVlastni] = useState('1700');
+  const init = useContext(KalkInitCtx);
+  const [vek, setVek] = useState(() => init.penzeVek ?? '35');
+  const [vekOdchodu, setVekOdchodu] = useState(() => init.penzeOdchod ?? '65');
+  const [nasporeno, setNasporeno] = useState(() => init.penzeNasporeno ?? '150000');
+  const [vlastni, setVlastni] = useState(() => init.penzeVlastni ?? '1700');
   const [zamestnavatel, setZamestnavatel] = useState('0');
   const [vynos, setVynos] = useState('3'); // % reálně p.a. — volitelné dle strategie fondu
   const neplatnyVek = num(vekOdchodu) <= num(vek);
@@ -454,6 +485,14 @@ const ZALOZKY = [
 export default function KalkulackyPage() {
   const [zalozka, setZalozka] = useState('uvery');
   const aktivni = ZALOZKY.find((z) => z.id === zalozka) ?? ZALOZKY[0];
+
+  // Předvyplnění z aktivního případu klienta. `verze` = remount klíč kalkulaček.
+  const { pripad, nacteno } = usePripad();
+  const maPripad = nacteno && !jePripadPrazdny(pripad);
+  const [init, setInit] = useState<KalkInit>({});
+  const [verze, setVerze] = useState(0);
+  const predvyplnit = () => { setInit(odvoditInit(pripad)); setVerze((v) => v + 1); };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
@@ -465,6 +504,28 @@ export default function KalkulackyPage() {
           Hodnoty si nastav sám; výsledek se přepočítá okamžitě. (Komplexní plán napříč pilíři najdeš v sekci Finanční plán.)
         </p>
       </div>
+
+      {/* Lišta sdíleného případu — předvyplní relevantní kalkulačky z profilu klienta */}
+      {maPripad && (
+        <div className="print:hidden flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary-100 bg-primary-50/60 px-4 py-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-primary shadow-soft">
+              <UserRound className="h-4.5 w-4.5" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Případ klienta</div>
+              <div className="text-sm font-semibold text-primary truncate">{popisPripadu(pripad)}</div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={predvyplnit}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-white border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-primary hover:border-primary-200 transition-colors"
+          >
+            <UserCheck className="h-3.5 w-3.5" /> Předvyplnit z případu
+          </button>
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center gap-1.5 print:hidden">
         {ZALOZKY.map((z) => {
@@ -489,9 +550,11 @@ export default function KalkulackyPage() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {aktivni.kalk.map((K, i) => <K key={i} />)}
-      </div>
+      <KalkInitCtx.Provider value={init}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {aktivni.kalk.map((K, i) => <K key={`${i}-${verze}`} />)}
+        </div>
+      </KalkInitCtx.Provider>
 
       <p className="text-[11px] text-slate-400">
         Orientační výpočty pro licencovaného poradce, nikoliv finanční doporučení. Výnosy jsou reálné (nad inflaci),
