@@ -257,3 +257,12 @@ Celkem 11 interaktivních kalkulaček bez nutnosti dat. Ověřeno e2e, build OK.
 - Sdílené vizuály `components/Vizualy.tsx` (Donut, AlokaceVizual, MiniGraf); plán i kalkulačky je sdílí.
 - Investiční projekce: graf očekávaného růstu. CLAUDE.md mapa kódu zaktualizována na současný stav.
 Build OK, e2e OK.
+
+## v0.17 — uložené plány + 3. kolo auditu (oprava nálezů)
+- Uložené plány: `app/plany/page.tsx` (seznam + detail s PlanPrehled + Markdown + tisk + smazání), akce `getUlozenePlany/getUlozenyPlan/smazUlozenyPlan`.
+- Audit #3 (multiagentní, nový kód) — opraveny 4 potvrzené nálezy:
+  - [vysoká] Prázdné `vypocty {}` z DB (DEFAULT '{}') shazovalo PlanPrehled → validace tvaru v `/plany` + guard v `PlanPrehled`.
+  - [střední] Nesoulad alokace (donut) vs. výnos: glide-path výnos vs. statická alokace → sjednoceno na `ocekavanyVynosDleHorizontu` (vážený výnos zobrazené alokace) v Projekce/Cíl/Renta i ve `financniPlan` (výnos↔volatilita↔MC z jednoho zdroje).
+  - [nízká] PenzeKalk tiché `Math.max` přepsání věku → viditelné varování, UI = vstup.
+  - [nízká] Pevný výnos 4,5 % → volitelné pole „Výnos" (default 3 % reálně) + poznámka ke strategii fondu.
+Testy 64/64, TSC 0, build OK.

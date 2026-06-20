@@ -34,7 +34,12 @@ export default function PlanyPage() {
     setNacitamDetail(true);
     setError(null);
     const res = await getUlozenyPlanAction(id);
-    if (res.success) setDetail({ id, plan: res.plan, vypocty: (res.vypocty as Vypocty) || null, datum: res.vytvoreno_kdy as string });
+    if (res.success) {
+      // Nedůvěřuj tvaru z DB: prázdný objekt {} (DB default) je truthy → ověř klíče.
+      const raw = res.vypocty as Partial<Vypocty> | null | undefined;
+      const vypocty = raw && raw.rezerva && raw.investice && raw.penze ? (raw as Vypocty) : null;
+      setDetail({ id, plan: res.plan, vypocty, datum: res.vytvoreno_kdy as string });
+    }
     else setError(res.error || 'Plán se nepodařilo otevřít.');
     setNacitamDetail(false);
   };

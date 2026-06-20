@@ -183,7 +183,8 @@ function ProjekceKalk() {
   const r = useMemo(() => {
     const let_ = Math.max(1, num(roky));
     const alokace = investice.alokaceDleHorizontu(let_);
-    const vynos = investice.ocekavanyVynosCile(let_);
+    // Výnos i volatilita ze STEJNÉ (zobrazené) alokace → donut, výnos a Monte Carlo jsou konzistentní.
+    const vynos = investice.ocekavanyVynosDleHorizontu(let_);
     const mc = investice.monteCarloProjekce({
       pocatecni: num(pocatecni), mesicniVklad: num(mesicni), roky: let_,
       ocekavanyVynos: vynos, volatilita: investice.volatilitaPortfolia(alokace), seed: 12345,
@@ -222,7 +223,8 @@ function CilKalk() {
   const [nasporeno, setNasporeno] = useState('0');
   const r = useMemo(() => {
     const let_ = Math.max(0, num(roky));
-    const vynos = investice.ocekavanyVynosCile(let_);
+    // Výnos odvozen ze zobrazené alokace (stejný horizont) → donut a výnos jsou konzistentní.
+    const vynos = investice.ocekavanyVynosDleHorizontu(let_);
     return { vynos, ...investice.kolikInvestovat(num(cil), let_, vynos, num(nasporeno)), alokace: investice.alokaceDleHorizontu(let_) };
   }, [cil, roky, nasporeno]);
   return (
@@ -289,7 +291,8 @@ function RentaKalk() {
     const let_ = Math.max(0, num(roky));
     const potreba = Math.max(0, num(renta) - num(statni));
     const majetek = penze.majetekProRentu(potreba);
-    const vynos = investice.ocekavanyVynosCile(let_);
+    // Akumulační fáze: výnos dle horizontu (konzistentní s ostatními kalkulačkami).
+    const vynos = investice.ocekavanyVynosDleHorizontu(let_);
     const ki = investice.kolikInvestovat(majetek, let_, vynos, num(nasporeno));
     return { majetek, vynos, ...ki };
   }, [renta, statni, roky, nasporeno]);
@@ -316,10 +319,12 @@ function PenzeKalk() {
   const [nasporeno, setNasporeno] = useState('150000');
   const [vlastni, setVlastni] = useState('1700');
   const [zamestnavatel, setZamestnavatel] = useState('0');
+  const [vynos, setVynos] = useState('3'); // % reálně p.a. — volitelné dle strategie fondu
+  const neplatnyVek = num(vekOdchodu) <= num(vek);
   const r = useMemo(() => penze.projekcePenze({
     aktualniKapital: num(nasporeno), vlastniPrispevek: num(vlastni), prispevekZamestnavatele: num(zamestnavatel),
-    rocniVynos: 0.045, aktualniVek: num(vek), vekOdchodu: Math.max(num(vek) + 1, num(vekOdchodu)),
-  }), [vek, vekOdchodu, nasporeno, vlastni, zamestnavatel]);
+    rocniVynos: num(vynos) / 100, aktualniVek: num(vek), vekOdchodu: num(vekOdchodu),
+  }), [vek, vekOdchodu, nasporeno, vlastni, zamestnavatel, vynos]);
   return (
     <Karta ikona={<PiggyBank className="h-4 w-4 text-accent" />} titulek="Penze / DPS" popis="Doplňkové penzijní spoření vč. státního příspěvku.">
       <div className="grid grid-cols-3 gap-2">
@@ -328,7 +333,10 @@ function PenzeKalk() {
         <Pole label="Naspořeno" value={nasporeno} set={setNasporeno} suffix="Kč" />
         <Pole label="Vlastní" value={vlastni} set={setVlastni} suffix="Kč/měs" />
         <Pole label="Zaměstnavatel" value={zamestnavatel} set={setZamestnavatel} suffix="Kč/měs" />
+        <Pole label="Výnos" value={vynos} set={setVynos} suffix="% reálně" />
       </div>
+      <p className="text-[10px] text-slate-400 mt-1">Výnos reálně (nad inflaci) p.a. — konzervativní fond ~1–2 %, dynamická strategie ~4–5 %.</p>
+      {neplatnyVek && <p role="alert" className="text-[11px] text-red-600 mt-1.5">Věk odchodu musí být vyšší než aktuální věk.</p>}
       <Hlavni label="Kapitál k důchodu (reálně)" hodnota={`${f(r.nasporenyKapital)} Kč`} />
       <div className="mt-2">
         <Radek label="Měsíčně spoří celkem" hodnota={`${f(r.celkemMesicneSpori)} Kč`} />

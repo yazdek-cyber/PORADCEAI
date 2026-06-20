@@ -85,7 +85,7 @@ export interface Vypocty {
   investice: {
     horizontLet: number;
     doporucenaAlokace: ReturnType<typeof investice.alokaceDleHorizontu>;
-    ocekavanyVynosKFP: number; // reálný výnos dle horizontu (AFP glide-path)
+    ocekavanyVynosKFP: number; // vážený reálný výnos doporučené alokace dle horizontu
     monteCarlo: ReturnType<typeof investice.monteCarloProjekce>;
     srovnaniForem: ReturnType<typeof investice.srovnejFormy>;
   };
@@ -184,11 +184,11 @@ export async function pripravPodklady(profil: FinPlanProfil): Promise<Vypocty> {
       : VYCHOZI_FORMY_INVESTIC;
 
   const mesicniVklad = profil.mesicniVkladInvestice ?? 0;
-  // KFP/AFP: doporučená alokace dle horizontu (Morningstar) a očekávaný reálný výnos
-  // (glide-path). Projekci řídíme metodikou KFP (výnos dle horizontu), kolísavost dle
-  // rizikového profilu klienta.
+  // KFP/AFP: doporučená alokace dle horizontu (Morningstar). Očekávaný výnos, kolísavost
+  // i Monte Carlo odvozujeme ze STEJNÉ (doporučené) alokace, aby donut, výnos a projekce
+  // byly vzájemně konzistentní (vážený reálný výnos zobrazené alokace).
   const doporucenaAlokace = investice.alokaceDleHorizontu(horizont);
-  const ocekavanyVynosKFP = investice.ocekavanyVynosCile(horizont);
+  const ocekavanyVynosKFP = investice.ocekavanyVynosDleHorizontu(horizont);
   // Výnos i volatilita ze STEJNÉHO zdroje (alokace dle horizontu) — konzistentní projekce.
   const monteCarlo = investice.monteCarloProjekce({
     pocatecni: profil.existujiciInvestice ?? 0,
@@ -207,7 +207,8 @@ export async function pripravPodklady(profil: FinPlanProfil): Promise<Vypocty> {
 
   // — CÍLE — pro každý cíl spočítáme doporučenou alokaci a kolik na něj investovat (KFP).
   const cile = (profil.cileSeznam ?? []).map((c) => {
-    const vynos = investice.ocekavanyVynosCile(c.roky);
+    // Výnos ze zobrazené alokace cíle (konzistentní s donut alokace cíle).
+    const vynos = investice.ocekavanyVynosDleHorizontu(c.roky);
     const ki = investice.kolikInvestovat(c.castka, c.roky, vynos, c.nasporeno ?? 0);
     return {
       nazev: c.nazev,
@@ -310,7 +311,7 @@ export function formatujPodklady(profil: FinPlanProfil, v: Vypocty): string {
   radky.push(`## INVESTICE (horizont ${v.investice.horizontLet} let, metodika KFP)`);
   const al = v.investice.doporucenaAlokace;
   radky.push(`- Doporučená alokace dle horizontu (Morningstar): akcie ${pct(al.akcie)}, dluhopisy ${pct(al.dluhopisy)}, hotovost ${pct(al.hotovost)}`);
-  radky.push(`- Očekávaný reálný výnos (AFP glide-path): ${pct(v.investice.ocekavanyVynosKFP)} p.a.`);
+  radky.push(`- Očekávaný reálný výnos (vážený, dle doporučené alokace): ${pct(v.investice.ocekavanyVynosKFP)} p.a.`);
   const mc = v.investice.monteCarlo;
   radky.push(`- Projekce Monte Carlo — pesimistický (p10): ${f(mc.p10)} Kč · medián (p50): ${f(mc.median)} Kč · optimistický (p90): ${f(mc.p90)} Kč`);
   if (mc.pravdepodobnostCile != null) radky.push(`- Pravděpodobnost dosažení cíle: ${pct(mc.pravdepodobnostCile)}`);

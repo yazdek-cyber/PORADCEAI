@@ -18,6 +18,8 @@ function Karta({ ikona, titulek, children }: { ikona: React.ReactNode; titulek: 
 
 /** Vizuální přehled spočítaných podkladů (deterministická čísla) — nad AI textem plánu. */
 export default function PlanPrehled({ v }: { v: Vypocty }) {
+  // Obrana proti neúplným datům z DB (sloupec vypocty má DEFAULT '{}' → prázdný objekt projde jako truthy).
+  if (!v || !v.rezerva || !v.investice || !v.penze) return null;
   const rezPokryto = v.rezerva.doporucenaRezerva > 0
     ? Math.min(100, ((v.rezerva.doporucenaRezerva - v.rezerva.chybiDoRezervy) / v.rezerva.doporucenaRezerva) * 100)
     : 100;
