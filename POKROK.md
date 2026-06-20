@@ -295,3 +295,18 @@ Ověřeno e2e (Playwright): uložení v plánu → karta na Domů → banner v k
 2. **Reálná data/sazby produktů** — naplnit `produkty` (hypo sazby, investiční formy) ručně nebo přes
    scraping/API provider; RAG napříč doménami po nahrání úvěrových/investičních dokumentů.
 3. **Nasazení (Vercel)** — env, cron limity (sken po 1 pojišťovně), DPA s Googlem (GDPR profil→Gemini).
+
+## v0.19 — evidence klientů + záznam z jednání (přidaná hodnota pro denní použití)
+Po strategické rozvaze (přidaná hodnota / mezery / trh) přidány dvě funkce, co dělají z dema nástroj,
+BEZ překročení hranice soukromí (vše v prohlížeči, nic se neodesílá):
+- **Evidence klientů** — `lib/pripadStore.ts` rozšířen ze single-case na VÍCE pojmenovaných klientů
+  s aktivním klientem. Modul-level store + `useSyncExternalStore` → všechny instance `usePripad`
+  ve stejném dokumentu se synchronizují (oprava nalezeného bugu: přepínač vs. obsah stránky byly
+  rozsynchronizované, protože `storage` event se v jednom dokumentu nespouští). Migrace ze v0.18.
+  Přepínač klientů v `AppShell` (sidebar): přepnout / nový / přejmenovat / smazat. Pole „Jméno klienta"
+  v plánu. Formuláře (plán/Rychlý návrh/záznam) se znovu načtou při PŘEPNUTÍ klienta (klíčeno na `aktivniId`).
+- **Záznam z jednání** — `app/zaznam/page.tsx` (v ČR povinný dle zákona o distribuci). Z aktivního
+  klienta předvyplní požadavky/situaci; poradce doplní doporučení, zdůvodnění vhodnosti, poučení o
+  rizicích → tisk/PDF s podpisovými poli. Identita poradce uložena (`poradceai:poradce`).
+Ověřeno e2e (Playwright): jméno→uložení→přepínač, nový klient, předvyplnění záznamu, synchronizace
+karty na dashboardu po přepnutí bez reloadu. 64/64 testů, TSC 0, build 14 rout OK.

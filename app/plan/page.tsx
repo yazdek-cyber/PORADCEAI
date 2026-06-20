@@ -54,6 +54,7 @@ function Pole({ label, value, set, placeholder, suffix }: {
 
 export default function PlanPage() {
   // — Profil (4 pilíře) —
+  const [jmeno, setJmeno] = useState('');
   const [vek, setVek] = useState('38');
   const [cistyPrijem, setCistyPrijem] = useState('55000');
   const [vydaje, setVydaje] = useState('35000');
@@ -105,13 +106,14 @@ export default function PlanPage() {
   const datumDnes = new Date().toLocaleDateString('cs-CZ');
 
   // — Sdílený případ klienta (propojení s kalkulačkami / Domů / Rychlým návrhem) —
-  const { pripad, nacteno, ulozPripad } = usePripad();
+  const { pripad, nacteno, aktivniId, ulozPripad } = usePripad();
   const maPripad = nacteno && !jePripadPrazdny(pripad);
-  const autoNactenoRef = useRef(false);
+  const poslIdRef = useRef<string | null | undefined>(undefined);
 
   /** Naplní formulář z uloženého případu (jen pole, která případ zná). */
   const nactiZPripadu = () => {
     const p = pripad;
+    if (p.jmeno !== undefined) setJmeno(p.jmeno);
     if (p.vek !== undefined) setVek(String(p.vek));
     if (p.vekOdchodu !== undefined) setVekOdchodu(String(p.vekOdchodu));
     if (p.cistyPrijem !== undefined) setCistyPrijem(String(p.cistyPrijem));
@@ -139,7 +141,7 @@ export default function PlanPage() {
   /** Uloží aktuální formulář do sdíleného případu (zachová jméno klienta). */
   const ulozDoPripadu = () => {
     ulozPripad({
-      jmeno: pripad.jmeno,
+      jmeno: jmeno.trim() || pripad.jmeno,
       vek: num(vek) || undefined,
       cistyPrijem: num(cistyPrijem) || undefined,
       vydaje: num(vydaje) || undefined,
@@ -165,14 +167,14 @@ export default function PlanPage() {
     });
   };
 
-  // Při prvním příchodu na stránku, pokud existuje aktivní případ, předvyplň z něj formulář.
+  // Načti formulář z aktivního klienta — při příchodu i při PŘEPNUTÍ klienta v sidebaru.
   useEffect(() => {
-    if (nacteno && !autoNactenoRef.current && !jePripadPrazdny(pripad)) {
-      autoNactenoRef.current = true;
-      nactiZPripadu();
-    }
+    if (!nacteno) return;
+    if (aktivniId === poslIdRef.current) return; // stejný klient → nepřepisuj rozdělanou práci
+    poslIdRef.current = aktivniId;
+    if (!jePripadPrazdny(pripad)) nactiZPripadu();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nacteno]);
+  }, [nacteno, aktivniId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -299,6 +301,9 @@ export default function PlanPage() {
             {/* Základ */}
             <div>
               <h3 className="text-sm font-bold text-primary mb-2 flex items-center gap-1.5"><Calculator className="h-4 w-4 text-accent" />Základ</h3>
+              <div className="mb-2">
+                <Pole label="Jméno klienta" value={jmeno} set={setJmeno} placeholder="např. Jan Novák" />
+              </div>
               <div className="grid grid-cols-2 gap-2">
                 <Pole label="Věk" value={vek} set={setVek} />
                 <Pole label="Věk odchodu" value={vekOdchodu} set={setVekOdchodu} />

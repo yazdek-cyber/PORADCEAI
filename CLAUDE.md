@@ -28,8 +28,10 @@ UI shell & design systém (v0.18):
   + mobilní zásuvka; nahradil horní `Navbar`. Použit v `app/layout.tsx`.
 - `components/ui.tsx` — **sdílené primitivy** (PageHeader, Card/CardHeader, Field, Stat, Radek, Badge, Button,
   SectionLabel) — jeden vizuální jazyk. Tokeny v `app/globals.css` (shadow-soft/card/pop, sémantická zeleň).
-- `lib/pripadStore.ts` — **sdílený „případ klienta"** (`usePripad()` hook, localStorage, BEZ serveru). Profil se
-  zadá jednou v plánu a propíše se do kalkulaček (předvyplnění), Rychlého návrhu i karty na Domů.
+- `lib/pripadStore.ts` — **evidence klientů + sdílený „případ"** (`usePripad()`, localStorage, BEZ serveru).
+  VÍCE pojmenovaných klientů s aktivním klientem; modul-level store + `useSyncExternalStore` (všechny instance
+  se synchronizují — přepínač v sidebaru ihned promítne i obsah stránky). Migrace ze single-case v0.18.
+  Profil se zadá jednou v plánu a propíše se do kalkulaček (předvyplnění), Rychlého návrhu, záznamu i Domů.
 
 Stránky (UI):
 - `app/page.tsx` — **„Domů"** (dashboard/rozcestník). Dlaždice funkcí + principy + karta Aktivní případ + poslední plány.
@@ -42,6 +44,8 @@ Stránky (UI):
 - `app/kalkulacky/page.tsx` — **„Kalkulačky"**: 11 interaktivních kalkulaček bez dat (počítají v prohlížeči
   z `lib/kalkulacky`), 4 záložky, grafy/donut, tisk.
 - `app/srovnani/page.tsx` — **„Srovnání"** (matice parametrů přes pojišťovny). `srovnejParametryAction` + export PDF.
+- `app/zaznam/page.tsx` — **„Záznam z jednání"** (compliance). Z aktivního klienta předvyplní požadavky;
+  poradce doplní doporučení/zdůvodnění → tisk/PDF. Identita poradce v localStorage (`poradceai:poradce`).
 - `app/admin/page.tsx` — nahrávání PDF, monitor podmínek, **správa produktů** (`components/SpravaProduktu.tsx`).
 
 Logika:

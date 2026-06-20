@@ -2,11 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState, useEffect, type ReactNode } from 'react';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
 import {
-  Home, MessageSquare, FolderKanban, Wallet, Calculator, FolderClock,
+  Home, MessageSquare, Wallet, Calculator, FolderClock,
   Columns3, FolderOpen, Shield, AlertTriangle, Menu, X, FileText,
+  UserRound, ChevronDown, Plus, Trash2, Pencil, Check, ClipboardCheck,
 } from 'lucide-react';
+import { usePripad, jmenoKlienta, popisPripadu } from '@/lib/pripadStore';
 
 // Navigace seskupená podle logiky práce poradce: rozcestník → poradna (znalosti) →
 // PŘÍPAD klienta (profil/plán/kalkulačky/uložené) → srovnání → dokumenty.
@@ -26,6 +28,7 @@ const NAV: NavGroup[] = [
       { name: 'Finanční plán', href: '/plan', icon: Wallet },
       { name: 'Rychlý návrh', href: '/pripad', icon: FileText },
       { name: 'Kalkulačky', href: '/kalkulacky', icon: Calculator },
+      { name: 'Záznam z jednání', href: '/zaznam', icon: ClipboardCheck },
       { name: 'Uložené plány', href: '/plany', icon: FolderClock },
     ],
   },
@@ -41,6 +44,94 @@ const NAV: NavGroup[] = [
 function jeAktivni(pathname: string, href: string): boolean {
   if (href === '/') return pathname === '/';
   return pathname === href || pathname.startsWith(href + '/');
+}
+
+// Přepínač klientů — vždy viditelný v sidebaru. Tady „žije" aktivní případ.
+function KlientSwitcher() {
+  const { pripad, klienti, aktivniId, nacteno, novyKlient, prepniKlienta, prejmenujKlienta, smazKlienta } = usePripad();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, []);
+
+  const pridej = () => {
+    const jmeno = window.prompt('Jméno nového klienta:');
+    if (jmeno !== null) { novyKlient(jmeno); setOpen(false); }
+  };
+  const prejmenuj = (id: string, soucasne: string) => {
+    const jmeno = window.prompt('Nové jméno klienta:', soucasne);
+    if (jmeno !== null && jmeno.trim()) prejmenujKlienta(id, jmeno);
+  };
+  const smaz = (id: string, jmeno: string) => {
+    if (window.confirm(`Smazat klienta „${jmeno}"? Profil zůstane jen v tomto prohlížeči.`)) smazKlienta(id);
+  };
+
+  const maAktivni = nacteno && aktivniId;
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-left hover:border-primary-200 transition-colors"
+      >
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary">
+          <UserRound className="h-4 w-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide leading-tight">Aktivní klient</div>
+          <div className="text-sm font-semibold text-primary truncate leading-tight">
+            {maAktivni ? jmenoKlienta(pripad) : 'Žádný klient'}
+          </div>
+        </div>
+        <ChevronDown className={`h-4 w-4 text-slate-400 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div className="absolute z-50 mt-1.5 w-full rounded-xl border border-slate-200 bg-white shadow-pop p-1.5 animate-fade-in">
+          <div className="max-h-64 overflow-y-auto">
+            {klienti.length === 0 && (
+              <div className="px-2.5 py-2 text-xs text-slate-400">Zatím žádní klienti.</div>
+            )}
+            {klienti.map((k) => {
+              const aktivni = k.id === aktivniId;
+              return (
+                <div
+                  key={k.id}
+                  className={`group flex items-center gap-1 rounded-lg px-2 py-1.5 ${aktivni ? 'bg-primary-50' : 'hover:bg-slate-50'}`}
+                >
+                  <button onClick={() => { prepniKlienta(k.id); setOpen(false); }} className="flex items-center gap-2 min-w-0 flex-1 text-left">
+                    {aktivni ? <Check className="h-3.5 w-3.5 text-primary shrink-0" /> : <span className="w-3.5 shrink-0" />}
+                    <div className="min-w-0">
+                      <div className={`text-sm font-semibold truncate ${aktivni ? 'text-primary' : 'text-slate-700'}`}>{jmenoKlienta(k.profil)}</div>
+                      <div className="text-[10px] text-slate-400 truncate">{popisPripadu(k.profil)}</div>
+                    </div>
+                  </button>
+                  <button onClick={() => prejmenuj(k.id, k.profil.jmeno || '')} title="Přejmenovat" className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-primary">
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                  <button onClick={() => smaz(k.id, jmenoKlienta(k.profil))} title="Smazat" className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-600">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+          <button
+            onClick={pridej}
+            className="mt-1 w-full flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-semibold text-primary hover:bg-primary-50 border-t border-slate-100"
+          >
+            <Plus className="h-4 w-4" /> Nový klient
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function AppShell({ children }: { children: ReactNode }) {
@@ -74,6 +165,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
   const Navigace = (
     <nav className="flex flex-col gap-5">
+      <KlientSwitcher />
       {NAV.map((group, gi) => (
         <div key={gi} className="flex flex-col gap-1">
           {group.label && (

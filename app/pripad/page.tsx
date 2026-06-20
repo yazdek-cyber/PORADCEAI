@@ -55,10 +55,10 @@ export default function PripadPage() {
   const printAreaRef = useRef<HTMLDivElement>(null);
   const datumDnes = new Date().toLocaleDateString('cs-CZ');
 
-  // Sdílený případ klienta — předvyplň volný formulář z uloženého profilu (jednou).
-  const { pripad, nacteno } = usePripad();
+  // Sdílený případ klienta — předvyplň volný formulář z uloženého profilu.
+  const { pripad, nacteno, aktivniId } = usePripad();
   const maPripad = nacteno && !jePripadPrazdny(pripad);
-  const autoNactenoRef = useRef(false);
+  const poslIdRef = useRef<string | null | undefined>(undefined);
 
   const predvyplnZPripadu = () => {
     const p = pripad;
@@ -79,12 +79,12 @@ export default function PripadPage() {
   };
 
   useEffect(() => {
-    if (nacteno && !autoNactenoRef.current && !jePripadPrazdny(pripad)) {
-      autoNactenoRef.current = true;
-      predvyplnZPripadu();
-    }
+    if (!nacteno) return;
+    if (aktivniId === poslIdRef.current) return;
+    poslIdRef.current = aktivniId;
+    if (!jePripadPrazdny(pripad)) predvyplnZPripadu();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nacteno]);
+  }, [nacteno, aktivniId]);
 
   const simulateLoadingSteps = () => {
     setLoadingStep(1); // Searching database...
