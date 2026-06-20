@@ -1,15 +1,17 @@
 @import "tailwindcss";
 
 @theme {
+  /* Značka — tmavě modrá (důvěra) + zlatý accent. Svěžejší, vzdušnější provedení v0.18. */
   --color-primary-900: #0f1a3a;
   --color-primary-800: #14214a;
   --color-primary: #1B2B5E;
   --color-primary-600: #253a7a;
   --color-primary-500: #334d9a;
   --color-primary-400: #4a67be;
+  --color-primary-200: #c7d1ec;
   --color-primary-100: #e8ecf7;
-  --color-primary-50: #f1f4fc;
-  
+  --color-primary-50: #f4f6fd;
+
   --color-accent-800: #965f05;
   --color-accent-700: #ae6f07;
   --color-accent: #C77F0A;
@@ -17,6 +19,18 @@
   --color-accent-400: #eaa126;
   --color-accent-100: #fef3c7;
   --color-accent-50: #fffbeb;
+
+  /* Sémantická finanční zeleň (pozitivní hodnoty, „v pořádku"). */
+  --color-positive: #0f9d6f;
+  --color-positive-50: #ecfdf5;
+
+  /* Měkčí, modernější stíny a plochy. */
+  --shadow-soft: 0 1px 2px rgba(15, 26, 58, 0.04), 0 8px 24px -16px rgba(15, 26, 58, 0.18);
+  --shadow-card: 0 1px 3px rgba(15, 26, 58, 0.05), 0 12px 32px -18px rgba(15, 26, 58, 0.22);
+  --shadow-pop: 0 8px 40px -12px rgba(15, 26, 58, 0.28);
+
+  --radius-xl: 0.875rem;
+  --radius-2xl: 1.125rem;
 
   --animate-fade-in: fade-in 0.35s ease-out;
 
@@ -33,7 +47,7 @@
 }
 
 :root {
-  --background: #f8fafc;
+  --background: #f6f8fc;
   --foreground: #0f172a;
 }
 
@@ -41,6 +55,11 @@ body {
   background-color: var(--background);
   color: var(--foreground);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  /* Jemný vzdušný podklad — světlejší nahoře, ať obsah „dýchá". */
+  background-image:
+    radial-gradient(60rem 60rem at 110% -10%, rgba(27, 43, 94, 0.05), transparent 55%),
+    radial-gradient(50rem 50rem at -10% 0%, rgba(199, 127, 10, 0.04), transparent 50%);
+  background-attachment: fixed;
 }
 
 /* Tisk / export do PDF: skryj navigaci a aplikační chrome, ať dokument pro klienta

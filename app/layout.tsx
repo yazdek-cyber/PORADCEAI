@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import Navbar from '@/components/Navbar';
+import AppShell from '@/components/AppShell';
 
 export const metadata: Metadata = {
-  title: 'Poradce AI — Asistent Finančního Poradce',
-  description: 'AI asistent pro vyhledávání a analýzu pojistných podmínek založený na RAG a Gemini API.',
+  title: 'PoradceAI — Asistent finančního poradce',
+  description: 'AI asistent pro finanční poradenství: poradna nad pojistnými podmínkami, finanční plán (4 pilíře), kalkulačky a srovnání.',
 };
 
 export default function RootLayout({
@@ -14,11 +14,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="cs" className="h-full antialiased">
-      <body className="min-h-full flex flex-col bg-slate-50 text-slate-900">
-        <Navbar />
-        <main className="flex-1 flex flex-col w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          {children}
-        </main>
+      <body className="min-h-full text-slate-900">
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );
