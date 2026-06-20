@@ -228,3 +228,11 @@ Opraveno:
   prompt-injection hardening (kontext=data), upload limit 25 MB + ověření %PDF- signatury, oprava SQL v adminu.
 ODLOŽENO na login-fázi: plná autentizace adminu a mutujících akcí (Supabase Auth).
 64/64 testů, build OK.
+
+## v0.13 — dotažení bez loginu (srovnání UX, npm test, e2e verifikace)
+- Srovnání: Export PDF + Kopírovat (tab tabulka), prázdný stav, varování „vše Neuvedeno", tisk jen matice.
+- package.json: `npm test` (tsx) + tsx jako devDependency → snadné spouštění/CI.
+- End-to-end ověření přes Playwright: /plan vygeneruje reálný plán (UI→akce→kalkulačky→RAG→Gemini→render),
+  ověřen vizuální přehled, alokace, AI plán (sekce), 3 metody pojištění i panel zdrojů. Plán OK, bez chyb
+  (zdánlivý „alert" byl jen Next.js dev overlay s prázdným textem). Screenshot potvrdil profesionální výstup.
+64/64 testů, build OK.
