@@ -351,15 +351,30 @@ export async function generujFinancniPlanAction(profil: FinPlanProfil) {
     const vypocty = await pripravPodklady(profil);
     const podkladyText = formatujPodklady(profil, vypocty);
 
-    // 2) RAG: vyhledáme relevantní úryvky z podmínek (napříč doménami).
-    const dotaz = `Finanční situace klienta, věk ${profil.vek}, povolání ${profil.povolani ?? '–'}, cíle: ${profil.cile ?? '–'}. Pojištění, úvěry, investice, penze.`;
-    const emb = await getEmbedding(dotaz, 'RETRIEVAL_QUERY');
-    const { data: chunks } = await supabaseAdmin.rpc('hledej_chunky', {
-      dotaz_embedding: emb,
-      pocet: 12,
-      filtr_pojistovna: null,
-    });
-    const contextChunks = (chunks || []).filter((c: any) => c.podobnost >= MIN_PODOBNOST).slice(0, 10);
+    // 2) RAG PO KATEGORIÍCH — každá hraje v plánu jinou roli:
+    //    produktove_podminky = doložená FAKTA o produktech (cituj zdroj)
+    //    postup_firmy        = závazná KOSTRA a pořadí kroků (jak firma chce, aby se pracovalo)
+    //    metodika            = JAK počítat a uvažovat + POUČKY pro klienta
+    const dotazSituace = `Finanční situace klienta, věk ${profil.vek}, povolání ${profil.povolani ?? '–'}, cíle: ${profil.cile ?? '–'}. Pojištění, úvěry, investice, penze.`;
+    const dotazMetodika = 'Metodika a postup finančního plánu: pořadí priorit rizika, hypotéka, cíle, renta; výpočet pojistné částky (DIME, EFPA koeficient 200, TNÚ); alokace dle horizontu; renta ×200; likvidní rezerva; poučky pro klienta.';
+    const [embSituace, embMetodika] = await Promise.all([
+      getEmbedding(dotazSituace, 'RETRIEVAL_QUERY'),
+      getEmbedding(dotazMetodika, 'RETRIEVAL_QUERY'),
+    ]);
+    // Metodické/procesní podklady jsou řidší a koncepčnější → mírnější práh než u faktických podmínek.
+    const PRAH_METODIKA = 0.5;
+    const vytahniChunky = async (emb: number[], kategorie: string, pocet: number, prah: number) => {
+      const { data } = await supabaseAdmin.rpc('hledej_chunky', {
+        dotaz_embedding: emb, pocet, filtr_pojistovna: null, filtr_kategorie: kategorie,
+      });
+      return (data || []).filter((c: any) => c.podobnost >= prah);
+    };
+    const [podminky, postupy, metodiky] = await Promise.all([
+      vytahniChunky(embSituace, 'produktove_podminky', 8, MIN_PODOBNOST),
+      vytahniChunky(embMetodika, 'postup_firmy', 5, PRAH_METODIKA),
+      vytahniChunky(embMetodika, 'metodika', 6, PRAH_METODIKA),
+    ]);
+    const contextChunks = [...podminky.slice(0, 8), ...postupy.slice(0, 4), ...metodiky.slice(0, 5)];
 
     // 3) Textový profil pro prompt.
     const profilText = [
@@ -403,6 +418,7 @@ export async function generujFinancniPlanAction(profil: FinPlanProfil) {
         nazev_dokumentu: c.nazev_dokumentu,
         strana: c.strana,
         domena: c.domena,
+        kategorie: c.kategorie,
         podobnost: c.podobnost,
       })),
     };

@@ -329,8 +329,20 @@ a celé to musí být multitenant (editovatelné, ne natvrdo eDO). První krok =
 Ověřeno e2e (admin 3 skupiny 11/10/2, chat RAG vrací zdroje bez chyby). 64/64 testů, TSC 0, build OK.
 
 ### Zbývá v této ose (návazný krok)
-- **Plán/orchestrace používá kategorie RŮZNĚ**: postup firmy = kostra a pravidla pořadí, metodika = jak
-  počítat + poučky, produktové podmínky = doložená fakta. Dnes se v RAG míchají. (4. bod „struktury".)
+- ✅ **Plán/orchestrace používá kategorie RŮZNĚ** (v0.21 níže).
 - Rozlišit Plán vs Rychlý návrh (zúžit Rychlý návrh na „Pojištění — analýza z podmínek").
 - eDO-vizuál plánu (grafy, formičky, poučky, AI dokresluje).
 - Per-tenant: poskytovatelé/produkty/branding vázané na workspace (až s login fází).
+
+## v0.21 — orchestrace plánu podle kategorií (každá kategorie hraje jinou roli)
+4. bod „struktury": finanční plán už netáhne jeden smíchaný balík chunků, ale RAG PO KATEGORIÍCH:
+- `generujFinancniPlanAction` (actions.ts): 2 embeddingy (situace klienta + metodický dotaz) → 3 RPC
+  `hledej_chunky` s `filtr_kategorie`: produktove_podminky (situace, práh 0,65, 8) · postup_firmy
+  (metodický dotaz, práh 0,5, 4) · metodika (metodický dotaz, práh 0,5, 5). Spojené do contextu (≤17).
+- `generateFinancniPlan` (gemini.ts): contextChunks nesou `kategorie`, prompt je rozdělí do TŘÍ sekcí
+  s odlišnou rolí: POSTUP FIRMY = závazná kostra/pořadí (přednost před obecnou metodikou) · ODBORNÁ
+  METODIKA = jak počítat + vkládat **Poučky** pro klienta · PRODUKTOVÉ PODMÍNKY = doložená fakta (cituj).
+  Obecná metodika eDO/KFP zůstává jako fallback, když postup_firmy/metodika chybí.
+- Plan UI: panel přejmenován „Zdroje z podmínek" → „Použité podklady" (obsahuje i metodiku/postupy).
+Ověřeno e2e: plán bez chyby, 6 poučky (z metodiky, vč. citace), citace produktů (Kooperativa s.46/76),
+všechny sekce, reálná čísla z kalkulaček, 17 zdrojů (8/4/5). 64/64 testů, TSC 0, build OK.

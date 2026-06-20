@@ -517,7 +517,7 @@ export default function PlanPage() {
 
               {chunks.length > 0 && (
                 <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm print:hidden">
-                  <h3 className="text-sm font-bold text-primary mb-3 flex items-center gap-1.5"><BookOpen className="h-4 w-4 text-accent" />Zdroje z podmínek ({chunks.length})</h3>
+                  <h3 className="text-sm font-bold text-primary mb-3 flex items-center gap-1.5"><BookOpen className="h-4 w-4 text-accent" />Použité podklady ({chunks.length})</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
                       {chunks.map((chunk) => (
