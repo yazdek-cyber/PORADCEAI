@@ -2,6 +2,7 @@
 
 import type { Vypocty } from '@/lib/financniPlan';
 import { ShieldCheck, TrendingUp, Home, PiggyBank, Target, Wallet } from 'lucide-react';
+import { AlokaceVizual } from '@/components/Vizualy';
 
 const f = (x: number) => Math.round(x).toLocaleString('cs-CZ');
 const pct = (x: number) => (x * 100).toFixed(1).replace('.0', '') + ' %';
@@ -11,24 +12,6 @@ function Karta({ ikona, titulek, children }: { ikona: React.ReactNode; titulek: 
     <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       <h4 className="text-sm font-bold text-primary mb-2 flex items-center gap-1.5">{ikona}{titulek}</h4>
       {children}
-    </div>
-  );
-}
-
-/** Naskládaný pruh alokace akcie/dluhopisy/hotovost. */
-function AlokacePruh({ akcie, dluhopisy, hotovost }: { akcie: number; dluhopisy: number; hotovost: number }) {
-  return (
-    <div>
-      <div className="flex h-3 w-full overflow-hidden rounded-full">
-        <div style={{ width: `${akcie * 100}%` }} className="bg-primary" title={`Akcie ${pct(akcie)}`} />
-        <div style={{ width: `${dluhopisy * 100}%` }} className="bg-accent" title={`Dluhopisy ${pct(dluhopisy)}`} />
-        <div style={{ width: `${hotovost * 100}%` }} className="bg-slate-300" title={`Hotovost ${pct(hotovost)}`} />
-      </div>
-      <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-slate-500">
-        <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary" />Akcie {pct(akcie)}</span>
-        <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-accent" />Dluhopisy {pct(dluhopisy)}</span>
-        <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-slate-300" />Hotovost {pct(hotovost)}</span>
-      </div>
     </div>
   );
 }
@@ -69,7 +52,7 @@ export default function PlanPrehled({ v }: { v: Vypocty }) {
 
       {/* Investice — alokace + projekce */}
       <Karta ikona={<TrendingUp className="h-4 w-4 text-accent" />} titulek={`Investice (horizont ${v.investice.horizontLet} let)`}>
-        <AlokacePruh {...v.investice.doporucenaAlokace} />
+        <AlokaceVizual {...v.investice.doporucenaAlokace} />
         <div className="text-[11px] text-slate-500 mt-1.5">Oček. reálný výnos: <strong className="text-slate-700">{pct(v.investice.ocekavanyVynosKFP)}</strong> p.a.</div>
         <div className="mt-1.5 text-xs text-slate-700">
           Projekce: <span className="text-red-600">{f(v.investice.monteCarlo.p10)}</span> · <strong>{f(v.investice.monteCarlo.median)}</strong> · <span className="text-green-600">{f(v.investice.monteCarlo.p90)}</span> Kč

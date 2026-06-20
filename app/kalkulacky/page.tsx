@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { Calculator, Home, TrendingUp, PiggyBank, ShieldCheck, Target, Landmark, Wallet, Printer } from 'lucide-react';
 import { uvery, investice, penze, pojisteni } from '@/lib/kalkulacky';
+import { AlokaceVizual, MiniGraf } from '@/components/Vizualy';
 
 // ── Pomocné ───────────────────────────────────────────────────────────────
 function num(v: string): number {
@@ -57,60 +58,7 @@ function Radek({ label, hodnota }: { label: string; hodnota: string }) {
   );
 }
 
-/** Alokační koláč (donut) — tři segmenty akcie/dluhopisy/hotovost. */
-function Donut({ a }: { a: investice.Alokace }) {
-  const r = 26;
-  const C = 2 * Math.PI * r;
-  const segs = [
-    { v: a.akcie, c: 'var(--color-primary)' },
-    { v: a.dluhopisy, c: 'var(--color-accent)' },
-    { v: a.hotovost, c: '#cbd5e1' },
-  ];
-  let off = 0;
-  return (
-    <svg viewBox="0 0 64 64" className="h-16 w-16 shrink-0 -rotate-90" aria-hidden="true">
-      <circle cx="32" cy="32" r={r} fill="none" stroke="#f1f5f9" strokeWidth="10" />
-      {segs.map((s, i) => {
-        const len = Math.max(0, s.v) * C;
-        const el = (
-          <circle key={i} cx="32" cy="32" r={r} fill="none" stroke={s.c} strokeWidth="10"
-            strokeDasharray={`${len} ${C - len}`} strokeDashoffset={-off} strokeLinecap="butt" />
-        );
-        off += len;
-        return el;
-      })}
-    </svg>
-  );
-}
-
-function AlokacePruh({ a }: { a: investice.Alokace }) {
-  return (
-    <div className="mt-2 flex items-center gap-3">
-      <Donut a={a} />
-      <div className="flex-1 min-w-0 space-y-0.5 text-[11px] text-slate-600">
-        <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary" />Akcie {pct(a.akcie)}</span>
-        <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-accent" />Dluhopisy {pct(a.dluhopisy)}</span>
-        <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-slate-300" />Hotovost {pct(a.hotovost)}</span>
-      </div>
-    </div>
-  );
-}
-
-/** Mini SVG graf zůstatku úvěru v čase (vzorkováno po letech). */
-function AmortChart({ radky }: { radky: uvery.RadekKalendare[] }) {
-  if (radky.length < 2) return null;
-  const body = radky.filter((_, i) => i % 12 === 0);
-  if (body[body.length - 1] !== radky[radky.length - 1]) body.push(radky[radky.length - 1]);
-  const max = radky[0].zustatek || 1;
-  const w = 300, h = 64;
-  const pts = body.map((r, i) => `${(i / (body.length - 1)) * w},${h - (r.zustatek / max) * h}`).join(' ');
-  return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-16 mt-1" preserveAspectRatio="none" aria-hidden="true">
-      <polyline points={`0,${h} ${pts} ${w},${h}`} fill="var(--color-primary-100)" stroke="none" />
-      <polyline points={pts} fill="none" stroke="var(--color-primary)" strokeWidth="2" vectorEffect="non-scaling-stroke" />
-    </svg>
-  );
-}
+// Vizuály (donut, mini graf) jsou ve sdílené komponentě components/Vizualy.tsx.
 
 // ── ÚVĚRY ───────────────────────────────────────────────────────────────────
 function HypotekaKalk() {
@@ -131,7 +79,7 @@ function HypotekaKalk() {
         <Radek label="Z toho úroky (přeplatek)" hodnota={`${f(r.celkemUroky)} Kč`} />
       </div>
       <div className="text-[10px] text-slate-400 mt-2">Zůstatek úvěru v čase</div>
-      <AmortChart radky={r.radky} />
+      <MiniGraf hodnoty={[...r.radky.filter((_, i) => i % 12 === 0).map((x) => x.zustatek), 0]} />
     </Karta>
   );
 }
@@ -206,7 +154,12 @@ function ProjekceKalk() {
       ocekavanyVynos: vynos, volatilita: investice.volatilitaPortfolia(alokace), seed: 12345,
     });
     const vlozeno = num(pocatecni) + num(mesicni) * let_ * 12;
-    return { alokace, vynos, mc, vlozeno };
+    // Očekávaný (deterministický) růst po letech pro mini graf.
+    const rust: number[] = [];
+    for (let y = 0; y <= let_; y++) {
+      rust.push(investice.budouciHodnota(num(pocatecni), vynos, y) + investice.budouciHodnotaPravidelna(num(mesicni), vynos, y));
+    }
+    return { alokace, vynos, mc, vlozeno, rust };
   }, [pocatecni, mesicni, roky]);
   return (
     <Karta ikona={<TrendingUp className="h-4 w-4 text-accent" />} titulek="Investiční projekce" popis="Pravděpodobnostní vývoj (Monte Carlo), reálné výnosy dle horizontu.">
@@ -221,7 +174,9 @@ function ProjekceKalk() {
         <Radek label="Vloženo celkem" hodnota={`${f(r.vlozeno)} Kč`} />
         <Radek label="Oček. reálný výnos" hodnota={`${pct(r.vynos)} p.a.`} />
       </div>
-      <AlokacePruh a={r.alokace} />
+      <div className="text-[10px] text-slate-400 mt-2">Očekávaný růst hodnoty</div>
+      <MiniGraf hodnoty={r.rust} />
+      <AlokaceVizual {...r.alokace} />
     </Karta>
   );
 }
@@ -247,7 +202,7 @@ function CilKalk() {
         <Radek label="Nebo jednorázově dnes" hodnota={`${f(r.jednorazove)} Kč`} />
         <Radek label="Oček. reálný výnos" hodnota={`${pct(r.vynos)} p.a.`} />
       </div>
-      <AlokacePruh a={r.alokace} />
+      <AlokaceVizual {...r.alokace} />
     </Karta>
   );
 }
