@@ -384,6 +384,52 @@ export async function generujFinancniPlanAction(profil: FinPlanProfil) {
   }
 }
 
+/** Seznam uložených finančních plánů (metadata, bez těžkého plan_md). */
+export async function getUlozenePlanyAction() {
+  await checkConfig();
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('financni_plany')
+      .select('id, vytvoreno_kdy, profil')
+      .order('vytvoreno_kdy', { ascending: false })
+      .limit(50);
+    if (error) throw new Error(`Nepodařilo se načíst plány: ${error.message}`);
+    return { success: true, plany: data || [] };
+  } catch (error) {
+    console.error('Chyba getUlozenePlanyAction:', error);
+    return { success: false, error: error instanceof Error ? error.message : String(error), plany: [] };
+  }
+}
+
+/** Detail jednoho uloženého plánu (Markdown + spočítané podklady). */
+export async function getUlozenyPlanAction(id: string) {
+  await checkConfig();
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('financni_plany')
+      .select('plan_md, vypocty, profil, vytvoreno_kdy')
+      .eq('id', id)
+      .single();
+    if (error || !data) throw new Error('Plán nebyl nalezen.');
+    return { success: true, plan: data.plan_md as string, vypocty: data.vypocty, profil: data.profil, vytvoreno_kdy: data.vytvoreno_kdy };
+  } catch (error) {
+    console.error('Chyba getUlozenyPlanAction:', error);
+    return { success: false, error: error instanceof Error ? error.message : String(error), plan: '', vypocty: null };
+  }
+}
+
+/** Smaže uložený plán. */
+export async function smazUlozenyPlanAction(id: string) {
+  await checkConfig();
+  try {
+    const { error } = await supabaseAdmin.from('financni_plany').delete().eq('id', id);
+    if (error) throw new Error(`Smazání selhalo: ${error.message}`);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
 /**
  * Vygeneruje strukturovaný analytický návrh pro klienta.
  */

@@ -172,9 +172,12 @@ export default function PlanPage() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="print:hidden">
-        <h1 className="text-3xl font-extrabold tracking-tight text-primary flex items-center gap-2">
-          <Wallet className="h-7 w-7 text-accent" /> Finanční plán (4 pilíře)
-        </h1>
+        <div className="flex items-center justify-between gap-2">
+          <h1 className="text-3xl font-extrabold tracking-tight text-primary flex items-center gap-2">
+            <Wallet className="h-7 w-7 text-accent" /> Finanční plán (4 pilíře)
+          </h1>
+          <a href="/plany" className="text-sm font-bold text-primary hover:text-primary-600 whitespace-nowrap">Uložené plány →</a>
+        </div>
         <p className="mt-2 text-slate-600 text-sm max-w-3xl">
           Komplexní plán napříč <strong>penzí, investicemi, úvěry a pojištěním</strong>. Čísla počítají
           deterministické kalkulačky (anuita, Monte&nbsp;Carlo, DIME, mezera v důchodu…), AI je propojí do
