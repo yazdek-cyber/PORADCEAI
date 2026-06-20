@@ -31,11 +31,13 @@ function num(v: string): number {
 function Pole({ label, value, set, placeholder, suffix }: {
   label: string; value: string; set: (v: string) => void; placeholder?: string; suffix?: string;
 }) {
+  const id = 'pole-' + label.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-');
   return (
     <div>
-      <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">{label}</label>
+      <label htmlFor={id} className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">{label}</label>
       <div className="relative">
         <input
+          id={id}
           type="text"
           value={value}
           onChange={(e) => set(e.target.value)}
@@ -79,10 +81,10 @@ export default function PlanPage() {
   const [cile, setCile] = useState('Zajistit rodinu při výpadku příjmu a spořit na důchod');
 
   // Cíle klienta (CO / KDY / KOLIK) — KFP finanční mapa.
-  const [cileList, setCileList] = useState<{ nazev: string; castka: string; roky: string }[]>([
-    { nazev: 'Vzdělání dětí', castka: '500000', roky: '15' },
+  const [cileList, setCileList] = useState<{ id: string; nazev: string; castka: string; roky: string }[]>([
+    { id: 'c1', nazev: 'Vzdělání dětí', castka: '500000', roky: '15' },
   ]);
-  const pridejCil = () => setCileList((s) => [...s, { nazev: '', castka: '', roky: '' }]);
+  const pridejCil = () => setCileList((s) => [...s, { id: `c${Date.now()}${s.length}`, nazev: '', castka: '', roky: '' }]);
   const upravCil = (i: number, klic: 'nazev' | 'castka' | 'roky', val: string) =>
     setCileList((s) => s.map((c, idx) => (idx === i ? { ...c, [klic]: val } : c)));
   const smazCil = (i: number) => setCileList((s) => s.filter((_, idx) => idx !== i));
@@ -156,11 +158,15 @@ export default function PlanPage() {
     }
   };
 
-  const handleCopy = () => {
+  const handleCopy = async () => {
     if (!plan) return;
-    navigator.clipboard.writeText(plan);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(plan);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setError('Kopírování do schránky se nezdařilo (zkuste ručně označit text).');
+    }
   };
 
   return (
@@ -198,9 +204,9 @@ export default function PlanPage() {
                   disabled={loading}
                   className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-primary focus:outline-none bg-white"
                 >
-                  <option value="konzervativni">Konzervativní (3 % p.a.)</option>
-                  <option value="vyvazeny">Vyvážený (5,5 % p.a.)</option>
-                  <option value="dynamicky">Dynamický (8 % p.a.)</option>
+                  <option value="konzervativni">Konzervativní (2,5 % reálně)</option>
+                  <option value="vyvazeny">Vyvážený (4,5 % reálně)</option>
+                  <option value="dynamicky">Dynamický (6,5 % reálně)</option>
                 </select>
               </div>
             </div>
@@ -260,7 +266,7 @@ export default function PlanPage() {
               </div>
               <div className="space-y-1.5">
                 {cileList.map((c, i) => (
-                  <div key={i} className="flex items-center gap-1.5">
+                  <div key={c.id} className="flex items-center gap-1.5">
                     <input value={c.nazev} onChange={(e) => upravCil(i, 'nazev', e.target.value)} placeholder="Cíl (bydlení, děti…)" disabled={loading}
                       className="flex-1 min-w-0 rounded-lg border border-slate-200 px-2 py-1.5 text-sm focus:border-primary focus:outline-none" />
                     <input value={c.castka} onChange={(e) => upravCil(i, 'castka', e.target.value)} placeholder="Kč" disabled={loading}
@@ -313,7 +319,7 @@ export default function PlanPage() {
           )}
 
           {error && (
-            <div className="rounded-xl border border-red-200 bg-red-50 p-6 flex gap-4 items-start print:hidden">
+            <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-6 flex gap-4 items-start print:hidden">
               <AlertTriangle className="h-6 w-6 text-red-600 shrink-0 mt-0.5" />
               <div>
                 <h3 className="font-bold text-red-900">Chyba při generování plánu</h3>

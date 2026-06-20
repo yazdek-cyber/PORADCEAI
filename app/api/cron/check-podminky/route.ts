@@ -18,11 +18,13 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
   if (secret) {
-    const auth = req.headers.get('authorization');
-    const param = req.nextUrl.searchParams.get('secret');
-    if (auth !== `Bearer ${secret}` && param !== secret) {
+    // Jen Authorization hlavička (query param by skončil v access logu).
+    if (req.headers.get('authorization') !== `Bearer ${secret}`) {
       return NextResponse.json({ error: 'Neautorizováno' }, { status: 401 });
     }
+  } else if (process.env.NODE_ENV === 'production') {
+    // Fail-closed: na produkci bez tajemství endpoint neotevíráme.
+    return NextResponse.json({ error: 'Cron není nakonfigurován (chybí CRON_SECRET).' }, { status: 503 });
   }
 
   const pojistovna = req.nextUrl.searchParams.get('pojistovna') || undefined;

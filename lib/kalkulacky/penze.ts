@@ -46,7 +46,7 @@ export interface ProjekcePenzeVystup {
   letDoOdchodu: number;
   mesicniStatniPrispevek: number;
   celkemMesicneSpori: number; // vlastní + zaměstnavatel + stát
-  nasporenyKapital: number; // nominálně v čase odchodu
+  nasporenyKapital: number; // v dnešní hodnotě (reálně), počítá-li se reálným výnosem dle metodiky KFP
   vlozenoCelkem: number; // součet vkladů (bez výnosu)
   vynosCelkem: number;
 }

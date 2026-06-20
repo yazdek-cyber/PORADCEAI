@@ -108,11 +108,15 @@ export default function PripadPage() {
     }
   };
 
-  const handleCopy = () => {
+  const handleCopy = async () => {
     if (!solution) return;
-    navigator.clipboard.writeText(solution);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(solution);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setError('Kopírování do schránky se nezdařilo (zkuste ručně označit text).');
+    }
   };
 
   const handlePrint = () => {

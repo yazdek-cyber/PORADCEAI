@@ -359,57 +359,12 @@ export default function AdminPage() {
           </div>
 
           <div className="pt-2 border-t border-amber-200">
-            <p className="text-xs font-semibold text-slate-700 mb-2">SQL pro inicializaci Supabase databáze:</p>
-            <pre className="max-h-40 overflow-y-auto bg-slate-900 text-slate-200 p-3 rounded-lg text-xs font-mono select-all">
-{`CREATE EXTENSION IF NOT EXISTS vector;
-
-CREATE TABLE dokumenty (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  nazev TEXT NOT NULL,
-  pojistovna TEXT,
-  nahrano_kdy TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  pocet_chunku INTEGER DEFAULT 0
-);
-
-CREATE TABLE chunky (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  dokument_id UUID REFERENCES dokumenty(id) ON DELETE CASCADE,
-  obsah TEXT NOT NULL,
-  embedding VECTOR(768),
-  strana INTEGER,
-  poradi INTEGER,
-  pojistovna TEXT,
-  nazev_dokumentu TEXT
-);
-
-CREATE INDEX ON chunky USING hnsw (embedding vector_cosine_ops);
-
-CREATE OR REPLACE FUNCTION hledej_chunky(
-  dotaz_embedding VECTOR(768),
-  pocet INTEGER DEFAULT 8
-)
-RETURNS TABLE (
-  id UUID,
-  obsah TEXT,
-  pojistovna TEXT,
-  nazev_dokumentu TEXT,
-  strana INTEGER,
-  podobnost FLOAT
-)
-LANGUAGE sql
-AS $$
-  SELECT
-    chunky.id,
-    chunky.obsah,
-    chunky.pojistovna,
-    chunky.nazev_dokumentu,
-    chunky.strana,
-    1 - (chunky.embedding <=> dotaz_embedding) AS podobnost
-  FROM chunky
-  ORDER BY chunky.embedding <=> dotaz_embedding
-  LIMIT pocet;
-$$;`}
-            </pre>
+            <p className="text-xs font-semibold text-slate-700 mb-1">Inicializace Supabase databáze:</p>
+            <p className="text-xs text-slate-600">
+              Spusťte v Supabase SQL editoru obsah souboru <code className="bg-slate-100 px-1 rounded">schema.sql</code> z kořene
+              projektu — obsahuje aktuální schéma (workspaces, dokumenty/chunky vč. <code>domena</code>, produkty,
+              klienti, finanční plány, funkce <code>hledej_chunky</code> a RLS).
+            </p>
           </div>
         </div>
       )}

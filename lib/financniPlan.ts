@@ -189,12 +189,13 @@ export async function pripravPodklady(profil: FinPlanProfil): Promise<Vypocty> {
   // rizikového profilu klienta.
   const doporucenaAlokace = investice.alokaceDleHorizontu(horizont);
   const ocekavanyVynosKFP = investice.ocekavanyVynosCile(horizont);
+  // Výnos i volatilita ze STEJNÉHO zdroje (alokace dle horizontu) — konzistentní projekce.
   const monteCarlo = investice.monteCarloProjekce({
     pocatecni: profil.existujiciInvestice ?? 0,
     mesicniVklad,
     roky: horizont,
     ocekavanyVynos: ocekavanyVynosKFP,
-    volatilita: riziko.volatilita,
+    volatilita: investice.volatilitaPortfolia(doporucenaAlokace),
     seed: 12345,
   });
   const srovnaniForem = investice.srovnejFormy(

@@ -52,6 +52,17 @@ export function ocekavanyVynosPortfolia(alokace: Alokace, vynosy: Alokace = VYNO
   return alokace.akcie * vynosy.akcie + alokace.dluhopisy * vynosy.dluhopisy + alokace.hotovost * vynosy.hotovost;
 }
 
+// Orientační roční volatilita tříd aktiv (směrodatná odchylka výnosů).
+const VOLATILITA_TRIDY: Alokace = { akcie: 0.16, dluhopisy: 0.05, hotovost: 0.005 };
+
+/**
+ * Odhad volatility portfolia dle alokace (konzervativně bez korelací — váženým součtem,
+ * tj. mírně nadhodnoceno). Aby Monte Carlo bralo výnos i kolísavost ze STEJNÉHO zdroje (horizont).
+ */
+export function volatilitaPortfolia(alokace: Alokace, vol: Alokace = VOLATILITA_TRIDY): number {
+  return alokace.akcie * vol.akcie + alokace.dluhopisy * vol.dluhopisy + alokace.hotovost * vol.hotovost;
+}
+
 /** Očekávaný reálný výnos portfolia doporučeného pro daný horizont (statická alokace, KFP). */
 export function ocekavanyVynosDleHorizontu(roky: number): number {
   return ocekavanyVynosPortfolia(alokaceDleHorizontu(roky));

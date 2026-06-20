@@ -43,3 +43,11 @@ body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
+/* Tisk / export do PDF: skryj navigaci a aplikační chrome, ať dokument pro klienta
+   začíná obsahem. Doplňuje utility print:hidden na konkrétních blocích. */
+@media print {
+  header { display: none !important; }
+  body { background: #fff; }
+  @page { margin: 16mm; }
+}
+

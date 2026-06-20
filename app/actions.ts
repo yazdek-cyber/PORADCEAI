@@ -19,6 +19,33 @@ interface ChatMessage {
 const MIN_PODOBNOST = 0.65;
 
 /**
+ * Ochrana proti SSRF: povolíme stažení jen z HTTPS a jen z domén pojišťoven z `POJISTOVNY`.
+ * URL k importu pochází z LLM extrakce / scrapingu (nedůvěryhodné), proto allowlist.
+ */
+function jeBezpecnaUrl(raw: string): boolean {
+  let u: URL;
+  try {
+    u = new URL(raw);
+  } catch {
+    return false;
+  }
+  if (u.protocol !== 'https:') return false;
+  if (u.hostname === 'localhost' || /^[0-9.:]+$/.test(u.hostname)) return false; // ne IP/loopback
+  const host = u.hostname.replace(/^www\./, '');
+  const povolene = POJISTOVNY.map((p) => {
+    try {
+      return new URL(p.urlDokumenty).hostname.replace(/^www\./, '');
+    } catch {
+      return '';
+    }
+  }).filter(Boolean);
+  return povolene.some((d) => {
+    const base = d.split('.').slice(-2).join('.'); // registrovatelná doména (koop.cz, nn.cz…)
+    return host === d || host === base || host.endsWith('.' + base);
+  });
+}
+
+/**
  * Zkontroluje, zda jsou nastaveny všechny potřebné klíče v env.
  */
 async function checkConfig() {
@@ -146,9 +173,20 @@ export async function uploadDocumentAction(formData: FormData) {
       throw new Error('Nahrávat lze pouze soubory ve formátu PDF.');
     }
 
+    // Limit velikosti (i na serveru, ne jen v UI) — ochrana proti přetížení/timeoutu.
+    const MAX_BAJTU = 25 * 1024 * 1024;
+    if (file.size > MAX_BAJTU) {
+      throw new Error(`Soubor je příliš velký (${(file.size / 1048576).toFixed(1)} MB). Maximum je 25 MB.`);
+    }
+
     // Převedení souboru na Buffer
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+
+    // Ověření skutečné PDF signatury (%PDF-) — nespoléhat jen na MIME/příponu z klienta.
+    if (buffer.subarray(0, 5).toString('latin1') !== '%PDF-') {
+      throw new Error('Soubor není platné PDF (chybí PDF signatura).');
+    }
 
     const result = await processPdf(buffer, file.name, pojistovna, domena);
 
@@ -269,6 +307,11 @@ export async function askChatAction(
 export async function generujFinancniPlanAction(profil: FinPlanProfil) {
   await checkConfig();
   try {
+    // Validace: věk odchodu musí být po aktuálním věku (jinak nemá horizont smysl).
+    const vekOdchodu = profil.vekOdchodu ?? 65;
+    if (!(profil.vek > 0) || vekOdchodu <= profil.vek) {
+      throw new Error('Věk odchodu do důchodu musí být vyšší než aktuální věk klienta.');
+    }
     // 1) Deterministické podklady ze všech pilířů.
     const vypocty = await pripravPodklady(profil);
     const podkladyText = formatujPodklady(profil, vypocty);
@@ -303,11 +346,12 @@ export async function generujFinancniPlanAction(profil: FinPlanProfil) {
 
     // 5) Uložení plánu (best-effort, neblokuje výsledek).
     try {
-      await supabaseAdmin.from('financni_plany').insert({
+      const { error: insErr } = await supabaseAdmin.from('financni_plany').insert({
         profil: profil as unknown as Record<string, unknown>,
         plan_md: plan,
         vypocty: vypocty as unknown as Record<string, unknown>,
       });
+      if (insErr) console.error('Uložení finančního plánu selhalo (nekritické):', insErr.message);
     } catch (e) {
       console.error('Uložení finančního plánu selhalo (nekritické):', e);
     }
@@ -511,6 +555,9 @@ export async function importujPodminkuAction(id: string) {
       .single();
     if (error || !zaznam) throw new Error('Záznam dokumentu nebyl nalezen.');
 
+    if (!jeBezpecnaUrl(zaznam.url)) {
+      throw new Error('Nepovolená URL dokumentu (povoleny jen HTTPS domény pojišťoven).');
+    }
     const res = await fetch(zaznam.url, { signal: AbortSignal.timeout(60000) });
     if (!res.ok) throw new Error(`Stažení PDF selhalo (HTTP ${res.status}).`);
     const buffer = Buffer.from(await res.arrayBuffer());
