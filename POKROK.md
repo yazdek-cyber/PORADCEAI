@@ -429,3 +429,14 @@ Zpracováno přímo přes konektor (Google Drive MCP → text → `processText`)
 - Vynecháno: duplicity (Smluvní dokumentace, Kariérní plán už v DB), čisté UI manuály (Aplikace eDO,
   HypoKalkulačka, Wealth návod), kontakty/osobní data (do RAG nepatří).
 Embedding ověřen (chunky s embedding v DB). Dočasný ingest skript po doběhnutí smazán.
+
+## v0.28 — doplnění eDO metodiky z Drive (dávka 2)
+Přes konektor (Drive MCP → text → processText) doplněno z folderů 2.Produktové dotazníky a Modelová portfolia:
+- **eDO Modelová portfolia** (metodika/investice): konzervativní 4,5 % / vyvážený 5,5 % / dynamický 7 %,
+  konkrétní fondy s ISIN, vahami a max. drawdown + komentáře (Future X1, Conseq Repofond, GS Czech Bond,
+  Amundi/FF akciové…) + požadovaná dokumentace.
+- **eDO Produktové dotazníky — co zjišťovat od klienta** (postup_firmy): souhrn napříč ŽP/HÚ/investice/DPS/
+  auto/majetek (jaké údaje sbírat, zdravotní dotazník, bonus/malus u POV, atd.).
+Vynecháno: duplicity (EFPA pojištění osob/vozidel, mBank — už v DB), akademie/knihy/know-how (objemné
+vzdělávání, nižší priorita pro plán), kontakty/smlouvy (osobní data).
+Knowledge base celkem: metodika 12 · postup firmy 15 · produktové podmínky 2 = **29 dokumentů**.
