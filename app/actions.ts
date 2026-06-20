@@ -493,12 +493,15 @@ export async function generateSolutionAction(profile: ClientProfile) {
     // 1. Generování embeddingu pro vyhledávací řetězec
     const searchEmbedding = await getEmbedding(searchString, 'RETRIEVAL_QUERY');
 
-    // 2. Vyhledání relevantních chunků v Supabase (napříč pojišťovnami).
-    // Bereme víc a filtrujeme prahem, ať návrh stojí jen na relevantních podmínkách.
+    // 2. Vyhledání relevantních chunků — ZACÍLENO na produktové podmínky POJIŠTĚNÍ
+    //    (ne metodika/postupy firmy). Tahle stránka je „Pojištění — analýza z podmínek",
+    //    komplexní plán napříč pilíři řeší /plan.
     const { data: chunks, error: rpcError } = await supabaseAdmin.rpc('hledej_chunky', {
       dotaz_embedding: searchEmbedding,
       pocet: 15,
       filtr_pojistovna: null,
+      filtr_domena: 'pojisteni',
+      filtr_kategorie: 'produktove_podminky',
     });
 
     if (rpcError) {
@@ -513,7 +516,7 @@ export async function generateSolutionAction(profile: ClientProfile) {
       return {
         success: false,
         error:
-          'V nahraných podmínkách jsem nenašel dostatek relevantních informací pro tento profil. Zkuste nahrát více pojistných podmínek nebo upřesnit cíl klienta.',
+          'V nahraných pojistných podmínkách jsem nenašel dostatek relevantních informací pro tento profil. Nahrajte pojistné podmínky (kategorie „Produktové podmínky", pilíř Pojištění) nebo upřesněte cíl klienta.',
         solution: '',
         chunks: [],
       };

@@ -38,7 +38,7 @@ const LABEL_TONE: Record<string, string> = {
 /**
  * Markdown renderer pro finanční plán / podklady. Kromě nadpisů, odrážek a tučně umí
  * vizuální „poučky" (callout) a štítkované akční kroky — aby plán působil jako v eDO.
- * Sdílený mezi „Finanční plán", „Uložené plány" a „Rychlý návrh".
+ * Sdílený mezi „Finanční plán" a „Uložené plány" (přes PlanDokument).
  */
 export default function Markdown({ text }: { text: string }) {
   if (!text) return null;

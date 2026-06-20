@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useState, useEffect, useRef, type ReactNode } from 'react';
 import {
   Home, MessageSquare, Wallet, Calculator, FolderClock,
-  Columns3, FolderOpen, Shield, AlertTriangle, Menu, X, FileText,
+  Columns3, FolderOpen, Shield, ShieldCheck, AlertTriangle, Menu, X,
   UserRound, ChevronDown, Plus, Trash2, Pencil, Check, ClipboardCheck,
 } from 'lucide-react';
 import { usePripad, jmenoKlienta, popisPripadu } from '@/lib/pripadStore';
@@ -26,7 +26,7 @@ const NAV: NavGroup[] = [
     label: 'Případ klienta',
     items: [
       { name: 'Finanční plán', href: '/plan', icon: Wallet },
-      { name: 'Rychlý návrh', href: '/pripad', icon: FileText },
+      { name: 'Pojištění — analýza', href: '/pripad', icon: ShieldCheck },
       { name: 'Kalkulačky', href: '/kalkulacky', icon: Calculator },
       { name: 'Záznam z jednání', href: '/zaznam', icon: ClipboardCheck },
       { name: 'Uložené plány', href: '/plany', icon: FolderClock },

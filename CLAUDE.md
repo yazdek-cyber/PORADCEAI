@@ -36,8 +36,9 @@ UI shell & design systém (v0.18):
 Stránky (UI):
 - `app/page.tsx` — **„Domů"** (dashboard/rozcestník). Dlaždice funkcí + principy + karta Aktivní případ + poslední plány.
 - `app/poradna/page.tsx` — **„Poradna"** (chat/RAG, dříve na `/`). `askChatAction`. Zdroje + náhled, filtr pojišťovny.
-- `app/pripad/page.tsx` — **„Rychlý návrh"** (jednodušší návrh z podmínek). `generateSolutionAction` → Markdown + tisk;
-  předvyplní se ze sdíleného případu, cross-link na plný plán.
+- `app/pripad/page.tsx` — **„Pojištění — analýza z podmínek"** (zaměřeno na 1 pilíř). `generateSolutionAction`
+  s RAG ZACÍLENÝM na `produktove_podminky` + doména `pojisteni` (ne metodika/postupy) → Markdown + tisk;
+  předvyplní se ze sdíleného případu, cross-link na komplexní plán. Komplexní 4 pilíře řeší `/plan`.
 - `app/plan/page.tsx` — **„Finanční plán"** (4 pilíře). Bohatý profil + cíle → `generujFinancniPlanAction`; lišta
   případu (načíst/uložit), auto-uložení po vygenerování;
   `components/PlanPrehled.tsx` vizuální přehled (donut, 3 metody pojištění…), `components/Markdown.tsx`, PDF.

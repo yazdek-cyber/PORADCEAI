@@ -19,7 +19,7 @@ interface PlanMeta {
 // Rozcestník hlavních funkcí — seskupený podle logiky práce s případem klienta.
 const PRIPAD = [
   { name: 'Finanční plán', href: '/plan', icon: Wallet, desc: 'Komplexní plán přes 4 pilíře (penze, investice, úvěry, pojištění) z profilu klienta.' },
-  { name: 'Rychlý návrh', href: '/pripad', icon: FileText, desc: 'Jednodušší analytický podklad pro klienta z pojistných podmínek.' },
+  { name: 'Pojištění — analýza', href: '/pripad', icon: ShieldCheck, desc: 'Analýza pojistné ochrany z nahraných podmínek — čekací doby, výluky, definice, doporučení pojišťoven.' },
   { name: 'Kalkulačky', href: '/kalkulacky', icon: Calculator, desc: '11 interaktivních kalkulaček — hypotéka, investice, renta, pojistná potřeba.' },
   { name: 'Uložené plány', href: '/plany', icon: FolderClock, desc: 'Znovu otevřít, vytisknout nebo smazat dříve vytvořené plány.' },
 ];

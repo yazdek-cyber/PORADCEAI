@@ -1,7 +1,7 @@
 'use client';
 
 // SDÍLENÝ „PŘÍPAD KLIENTA" + EVIDENCE KLIENTŮ (v0.19).
-// Profil klienta se zadá jednou a propíše se do plánu, kalkulaček, Rychlého návrhu, záznamu
+// Profil klienta se zadá jednou a propíše se do plánu, kalkulaček, analýzy pojištění, záznamu
 // z jednání i na Domů. Nově: VÍCE pojmenovaných klientů s přepínačem (aktivní klient).
 // Úložiště: localStorage prohlížeče (BEZ serveru / bez odeslání kamkoliv) — respektuje hranici,
 // že reálná data klientů neopouštějí prohlížeč, dokud je poradce vědomě nepošle do plánu/AI.

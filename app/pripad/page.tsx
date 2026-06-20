@@ -18,6 +18,7 @@ import {
   Eye,
   UserRound,
   Wallet,
+  ShieldCheck,
 } from 'lucide-react';
 import Link from 'next/link';
 import { generateSolutionAction } from '@/app/actions';
@@ -258,14 +259,16 @@ export default function PripadPage() {
       <div className="print:hidden">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h1 className="text-3xl font-extrabold tracking-tight text-primary flex items-center gap-2">
-            <FileText className="h-7 w-7 text-accent" /> Rychlý návrh z podmínek
+            <ShieldCheck className="h-7 w-7 text-accent" /> Pojištění — analýza z podmínek
           </h1>
           <Link href="/plan" className="text-sm font-bold text-primary hover:text-primary-600 inline-flex items-center gap-1.5 whitespace-nowrap">
-            <Wallet className="h-4 w-4 text-accent" /> Plný finanční plán →
+            <Wallet className="h-4 w-4 text-accent" /> Komplexní finanční plán →
           </Link>
         </div>
         <p className="mt-2 text-slate-600 text-sm max-w-3xl">
-          Zadejte profil klienta a jeho cíle. Systém prohledá všechny nahrané pojistné podmínky a na základě zjištěných faktů (čekací doby, výluky, definice) sestaví strukturovaný podklad a doporučení pojišťoven.
+          Zaměřeno na <strong>pojistnou ochranu</strong>: zadejte profil klienta a jeho cíl, systém prohledá nahrané
+          <strong> pojistné podmínky</strong> a na základě zjištěných faktů (čekací doby, výluky, definice) sestaví
+          analytický podklad a doporučení pojišťoven. Komplexní plán napříč všemi 4 pilíři najdete ve „Finančním plánu".
         </p>
       </div>
 

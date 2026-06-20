@@ -359,3 +359,18 @@ Výstup finančního plánu už není plochý Markdown, ale interaktivní eDO-do
 - Použito na `/plan` i `/plany` (uložené plány); `/pripad` má vlastní render (beze změny).
 Ověřeno e2e: plán = 8 formiček (Shrnutí→Priority) + 6 poučky-calloutů + citace, čísla z kalkulaček.
 64/64 testů, TSC 0, build OK.
+
+## v0.23 — zúžení „Rychlého návrhu" na „Pojištění — analýza z podmínek"
+Vyřešen překryv Plán vs Rychlý návrh (uživatel nevěděl, kdy použít kterou):
+- `/pripad` přejmenováno na **„Pojištění — analýza z podmínek"** (nadpis, sidebar = ikona ShieldCheck,
+  dashboard dlaždice). Cross-link „Komplexní finanční plán →" na `/plan`.
+- `generateSolutionAction`: RAG ZACÍLEN na `filtr_domena='pojisteni'` + `filtr_kategorie='produktove_podminky'`
+  → analýza stojí jen na pojistných podmínkách (ne metodika/postupy firmy). Chybová hláška upřesněna.
+Role je teď jasná: `/pripad` = rychlá analýza pojistné ochrany z podmínek (1 pilíř); `/plan` = komplexní
+plán napříč 4 pilíři. Ověřeno e2e: nadpis OK, analýza bez chyby, zdroje jen pojišťovny (Kooperativa s.8/47,
+NN s.12), žádné eDO metodiky. 64/64 testů, TSC 0, build OK.
+
+### Stav osy „struktura + plán" — KOMPLETNÍ
+✅ Kategorie podkladů (v0.20) · ✅ Orchestrace dle kategorií (v0.21) · ✅ eDO-vizuál plánu (v0.22) ·
+✅ Zúžení Rychlého návrhu (v0.23). Zbývá jen per-tenant (poskytovatelé/produkty/branding na workspace) —
+až s login fází.
