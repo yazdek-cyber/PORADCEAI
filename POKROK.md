@@ -310,3 +310,27 @@ BEZ překročení hranice soukromí (vše v prohlížeči, nic se neodesílá):
   rizicích → tisk/PDF s podpisovými poli. Identita poradce uložena (`poradceai:poradce`).
 Ověřeno e2e (Playwright): jméno→uložení→přepínač, nový klient, předvyplnění záznamu, synchronizace
 karty na dashboardu po přepnutí bez reloadu. 64/64 testů, TSC 0, build 14 rout OK.
+
+## v0.20 — struktura knowledge base: kategorie dokumentů + multitenant rámec
+Zadání uživatele: podklady nejsou jen pojistné podmínky — je potřeba je lépe strukturovat, eDO je
+FIRMA (ne pojišťovna), kde je uživatel vázaný zástupce; oddělit „co dává firma" (postupy) od „dat",
+a celé to musí být multitenant (editovatelné, ne natvrdo eDO). První krok = struktura dokumentů:
+- **3 kategorie** (`lib/kategorie.ts`, nezávislá osa na doméně i poskytovateli): `postup_firmy`
+  (závazný systém práce firmy) · `metodika` (odborná KFP/EFPA/AFP) · `produktove_podminky` (podmínky
+  produktů NAPŘÍČ pilíři — pojistné/úvěrové/investiční/penzijní; pilíř určuje `domena`, poskytovatele `pojistovna`).
+- **DB migrace**: `kategorie` do `dokumenty`+`chunky` (default produktove_podminky) + backfill (23 dok →
+  postup_firmy 11 / metodika 10 / produktove_podminky 2) + `hledej_chunky` rozšířeno o `filtr_kategorie`.
+  POZOR vyřešeno: CREATE OR REPLACE s novým parametrem vytvořil PŘETÍŽENÍ → starou 5-arg verzi nutno DROPnout
+  (jinak PostgREST hlásí nejednoznačnost a RAG spadne). Ověřeno: zůstala 1 funkce, chat RAG OK.
+- **Multitenant rámec**: workspace = tenant = firma; výchozí WS přejmenován na „eDO" (1. tenant). Kód generický.
+- **Insert cesta**: `processPdf`/`processText` + `uploadDocumentAction` přijímají `kategorie`.
+- **Admin**: výběr kategorie při nahrání + seznam SESKUPENÝ po kategoriích + přeřazení 1 klikem
+  (`updateDokumentMetaAction` přepíše dokument i chunky). Poskytovatel místo „pojišťovna".
+Ověřeno e2e (admin 3 skupiny 11/10/2, chat RAG vrací zdroje bez chyby). 64/64 testů, TSC 0, build OK.
+
+### Zbývá v této ose (návazný krok)
+- **Plán/orchestrace používá kategorie RŮZNĚ**: postup firmy = kostra a pravidla pořadí, metodika = jak
+  počítat + poučky, produktové podmínky = doložená fakta. Dnes se v RAG míchají. (4. bod „struktury".)
+- Rozlišit Plán vs Rychlý návrh (zúžit Rychlý návrh na „Pojištění — analýza z podmínek").
+- eDO-vizuál plánu (grafy, formičky, poučky, AI dokresluje).
+- Per-tenant: poskytovatelé/produkty/branding vázané na workspace (až s login fází).

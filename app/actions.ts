@@ -6,6 +6,7 @@ import { supabaseAdmin, checkEnvConfigured } from '@/lib/supabase';
 import { POJISTOVNY } from '@/lib/pojistovny';
 import { objevPodminky } from '@/lib/podminkyScraper';
 import { pripravPodklady, formatujPodklady, type FinPlanProfil } from '@/lib/financniPlan';
+import { jePlatnaKategorie, VYCHOZI_KATEGORIE } from '@/lib/kategorie';
 import { revalidatePath } from 'next/cache';
 
 interface ChatMessage {
@@ -160,6 +161,9 @@ export async function uploadDocumentAction(formData: FormData) {
     const domenaRaw = (formData.get('domena') as string) || 'pojisteni';
     const platneDomeny = ['pojisteni', 'uvery', 'investice', 'penze'];
     const domena = platneDomeny.includes(domenaRaw) ? domenaRaw : 'pojisteni';
+    // Kategorie (role podkladu): postup_firmy | metodika | produktove_podminky.
+    const kategorieRaw = (formData.get('kategorie') as string) || VYCHOZI_KATEGORIE;
+    const kategorie = jePlatnaKategorie(kategorieRaw) ? kategorieRaw : VYCHOZI_KATEGORIE;
 
     if (!file || file.size === 0) {
       throw new Error('Nebyl vybrán žádný soubor.');
@@ -188,7 +192,7 @@ export async function uploadDocumentAction(formData: FormData) {
       throw new Error('Soubor není platné PDF (chybí PDF signatura).');
     }
 
-    const result = await processPdf(buffer, file.name, pojistovna, domena);
+    const result = await processPdf(buffer, file.name, pojistovna, domena, kategorie);
 
     if (!result.success) {
       throw new Error(result.error || 'Neznámá chyba při zpracování PDF.');
@@ -225,6 +229,37 @@ export async function deleteDocumentAction(documentId: string) {
       success: false,
       error: error instanceof Error ? error.message : String(error),
     };
+  }
+}
+
+/**
+ * Přeřadí dokument: změní kategorii / doménu / poskytovatele. Denormalizované hodnoty
+ * jsou i v `chunky` (kvůli RAG filtrům), proto se aktualizují na obou tabulkách.
+ */
+export async function updateDokumentMetaAction(
+  documentId: string,
+  zmeny: { kategorie?: string; domena?: string; pojistovna?: string }
+) {
+  await checkConfig();
+  try {
+    const platneDomeny = ['pojisteni', 'uvery', 'investice', 'penze', 'metodika'];
+    const patch: Record<string, string> = {};
+    if (zmeny.kategorie && jePlatnaKategorie(zmeny.kategorie)) patch.kategorie = zmeny.kategorie;
+    if (zmeny.domena && platneDomeny.includes(zmeny.domena)) patch.domena = zmeny.domena;
+    if (typeof zmeny.pojistovna === 'string' && zmeny.pojistovna.trim()) patch.pojistovna = zmeny.pojistovna.trim();
+    if (Object.keys(patch).length === 0) throw new Error('Žádná platná změna.');
+
+    const { error: e1 } = await supabaseAdmin.from('dokumenty').update(patch).eq('id', documentId);
+    if (e1) throw new Error(`Chyba úpravy dokumentu: ${e1.message}`);
+    // Propaguj do chunků (kategorie/domena/pojistovna se používají při vyhledávání).
+    const { error: e2 } = await supabaseAdmin.from('chunky').update(patch).eq('dokument_id', documentId);
+    if (e2) throw new Error(`Chyba úpravy chunků: ${e2.message}`);
+
+    revalidatePath('/admin');
+    return { success: true };
+  } catch (error) {
+    console.error('Chyba updateDokumentMetaAction:', error);
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
 

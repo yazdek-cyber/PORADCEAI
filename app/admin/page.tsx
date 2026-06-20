@@ -28,12 +28,16 @@ import {
 } from '@/app/actions';
 import { najdiOdkazPodminek, POJISTOVNY } from '@/lib/pojistovny';
 import { DOMENY } from '@/lib/domeny';
+import { KATEGORIE, KATEGORIE_MAP, VYCHOZI_KATEGORIE, nazevKategorie, type KategoriaId } from '@/lib/kategorie';
+import { updateDokumentMetaAction } from '@/app/actions';
 import SpravaProduktu from '@/components/SpravaProduktu';
 
 interface Document {
   id: string;
   nazev: string;
   pojistovna: string;
+  domena?: string;
+  kategorie?: string;
   nahrano_kdy: string;
   pocet_chunku: number;
 }
@@ -57,6 +61,8 @@ export default function AdminPage() {
   // Form states
   const [pojistovna, setPojistovna] = useState('');
   const [domena, setDomena] = useState('pojisteni');
+  const [kategorie, setKategorie] = useState<KategoriaId>(VYCHOZI_KATEGORIE);
+  const [reklasifikujeId, setReklasifikujeId] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
 
@@ -251,6 +257,7 @@ export default function AdminPage() {
     formData.append('file', file);
     formData.append('pojistovna', pojistovna.trim());
     formData.append('domena', domena);
+    formData.append('kategorie', kategorie);
 
     try {
       const result = await uploadDocumentAction(formData);
@@ -297,13 +304,30 @@ export default function AdminPage() {
     }
   };
 
+  // Přeřazení dokumentu do jiné kategorie (přepíše i chunky kvůli RAG filtrům).
+  const handleReklasifikuj = async (id: string, novaKategorie: string) => {
+    setReklasifikujeId(id);
+    setError(null);
+    try {
+      const res = await updateDokumentMetaAction(id, { kategorie: novaKategorie });
+      if (res.success) fetchDocuments();
+      else setError(res.error || 'Přeřazení se nezdařilo.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Chyba při přeřazení.');
+    } finally {
+      setReklasifikujeId(null);
+    }
+  };
+
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Title */}
       <div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-primary">Správa pojistných podmínek</h1>
+        <h1 className="text-3xl font-extrabold tracking-tight text-primary">Správa podkladů (knowledge base)</h1>
         <p className="mt-2 text-slate-600">
-          Nahrajte PDF dokumenty pojistných podmínek. Systém z nich automaticky extrahuje text, rozdělí jej na logické části (chunky) a vytvoří vektorové embeddingy pro RAG vyhledávání.
+          Nahrajte podklady ve třech kategoriích — <strong>postup firmy</strong>, <strong>odborná metodika</strong> a
+          <strong> produktové podmínky</strong> (pojistné/úvěrové/investiční/penzijní). Systém z PDF extrahuje text,
+          rozdělí na chunky a vytvoří embeddingy pro RAG. Vše v kontextu firmy (workspace) — připraveno na multitenant.
         </p>
       </div>
 
@@ -381,6 +405,24 @@ export default function AdminPage() {
             </h2>
 
             <form onSubmit={handleUploadSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="kategorie" className="block text-sm font-semibold text-slate-700 mb-1">
+                  Kategorie (role podkladu) *
+                </label>
+                <select
+                  id="kategorie"
+                  value={kategorie}
+                  onChange={(e) => setKategorie(e.target.value as KategoriaId)}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary focus:outline-none bg-white"
+                  disabled={uploading}
+                >
+                  {KATEGORIE.map((k) => (
+                    <option key={k.id} value={k.id}>{k.ikona} {k.nazev}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-slate-400 mt-1">{KATEGORIE_MAP[kategorie].popis}</p>
+              </div>
+
               <div>
                 <label htmlFor="domena" className="block text-sm font-semibold text-slate-700 mb-1">
                   Pilíř (doména) *
@@ -610,70 +652,95 @@ export default function AdminPage() {
                 <p className="text-xs text-slate-400 mt-1">Nahrajte první PDF soubor pro vyhledávání.</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-200 text-slate-500 font-semibold">
-                      <th className="py-3 px-2">Pojišťovna</th>
-                      <th className="py-3 px-2">Název dokumentu</th>
-                      <th className="py-3 px-2 text-center">Částí (chunky)</th>
-                      <th className="py-3 px-2">Nahráno</th>
-                      <th className="py-3 px-2 text-right">Akce</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {documents.map((doc) => (
-                      <tr key={doc.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                        <td className="py-3 px-2">
-                          <span className="inline-flex items-center rounded-md bg-primary-50 px-2 py-1 text-xs font-bold text-primary border border-primary-100">
-                            {doc.pojistovna}
-                          </span>
-                          {najdiOdkazPodminek(doc.pojistovna) && (
-                            <a
-                              href={najdiOdkazPodminek(doc.pojistovna)!}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="mt-1 flex items-center gap-1 text-xs text-primary hover:underline"
-                              title="Otevřít oficiální stránku s podmínkami ke stažení"
-                            >
-                              <ExternalLink className="h-3 w-3" />
-                              Podmínky ke stažení
-                            </a>
-                          )}
-                        </td>
-                        <td className="py-3 px-2 max-w-[200px] truncate font-medium text-slate-800" title={doc.nazev}>
-                          {doc.nazev}
-                        </td>
-                        <td className="py-3 px-2 text-center text-slate-600">
-                          <span className="flex items-center justify-center gap-1">
-                            <Layers className="h-3 w-3 text-slate-400" />
-                            {doc.pocet_chunku}
-                          </span>
-                        </td>
-                        <td className="py-3 px-2 text-slate-500 text-xs">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="h-3. w-3 text-slate-400" />
-                            {new Date(doc.nahrano_kdy).toLocaleDateString('cs-CZ')}
-                          </span>
-                        </td>
-                        <td className="py-3 px-2 text-right">
-                          <button
-                            onClick={() => handleDelete(doc.id, doc.nazev)}
-                            disabled={deletingId === doc.id}
-                            className="text-slate-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 transition-colors inline-flex items-center justify-center"
-                            title="Smazat dokument"
-                          >
-                            {deletingId === doc.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin text-red-600" />
-                            ) : (
-                              <Trash2 className="h-4 w-4" />
-                            )}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="space-y-6">
+                {KATEGORIE.map((kat) => {
+                  const docsKat = documents.filter((d) => (d.kategorie || VYCHOZI_KATEGORIE) === kat.id);
+                  if (docsKat.length === 0) return null;
+                  return (
+                    <div key={kat.id}>
+                      <h3 className="text-sm font-bold text-primary flex items-center gap-2 mb-2">
+                        <span>{kat.ikona}</span> {kat.nazev}
+                        <span className="text-xs font-semibold text-slate-400">({docsKat.length})</span>
+                        <span className="text-xs font-normal text-slate-400 hidden sm:inline">— {kat.popis}</span>
+                      </h3>
+                      <div className="overflow-x-auto rounded-lg border border-slate-100">
+                        <table className="w-full text-left text-sm border-collapse">
+                          <thead>
+                            <tr className="border-b border-slate-200 text-slate-500 font-semibold bg-slate-50/60">
+                              <th className="py-2.5 px-2">Poskytovatel</th>
+                              <th className="py-2.5 px-2">Název dokumentu</th>
+                              <th className="py-2.5 px-2 text-center">Částí</th>
+                              <th className="py-2.5 px-2">Přeřadit</th>
+                              <th className="py-2.5 px-2 text-right">Akce</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {docsKat.map((doc) => (
+                              <tr key={doc.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
+                                <td className="py-2.5 px-2">
+                                  <span className="inline-flex items-center rounded-md bg-primary-50 px-2 py-1 text-xs font-bold text-primary border border-primary-100">
+                                    {doc.pojistovna}
+                                  </span>
+                                  {najdiOdkazPodminek(doc.pojistovna) && (
+                                    <a
+                                      href={najdiOdkazPodminek(doc.pojistovna)!}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="mt-1 flex items-center gap-1 text-xs text-primary hover:underline"
+                                      title="Otevřít oficiální stránku s podmínkami ke stažení"
+                                    >
+                                      <ExternalLink className="h-3 w-3" />
+                                      Podmínky ke stažení
+                                    </a>
+                                  )}
+                                </td>
+                                <td className="py-2.5 px-2 max-w-[220px] truncate font-medium text-slate-800" title={doc.nazev}>
+                                  {doc.nazev}
+                                </td>
+                                <td className="py-2.5 px-2 text-center text-slate-600">
+                                  <span className="flex items-center justify-center gap-1">
+                                    <Layers className="h-3 w-3 text-slate-400" />
+                                    {doc.pocet_chunku}
+                                  </span>
+                                </td>
+                                <td className="py-2.5 px-2">
+                                  <div className="flex items-center gap-1.5">
+                                    <select
+                                      value={doc.kategorie || VYCHOZI_KATEGORIE}
+                                      onChange={(e) => handleReklasifikuj(doc.id, e.target.value)}
+                                      disabled={reklasifikujeId === doc.id}
+                                      className="rounded-md border border-slate-200 px-1.5 py-1 text-xs text-slate-700 focus:border-primary focus:outline-none bg-white cursor-pointer"
+                                      title="Přeřadit do jiné kategorie"
+                                    >
+                                      {KATEGORIE.map((k) => (
+                                        <option key={k.id} value={k.id}>{k.nazev}</option>
+                                      ))}
+                                    </select>
+                                    {reklasifikujeId === doc.id && <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />}
+                                  </div>
+                                </td>
+                                <td className="py-2.5 px-2 text-right">
+                                  <button
+                                    onClick={() => handleDelete(doc.id, doc.nazev)}
+                                    disabled={deletingId === doc.id}
+                                    className="text-slate-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 transition-colors inline-flex items-center justify-center"
+                                    title="Smazat dokument"
+                                  >
+                                    {deletingId === doc.id ? (
+                                      <Loader2 className="h-4 w-4 animate-spin text-red-600" />
+                                    ) : (
+                                      <Trash2 className="h-4 w-4" />
+                                    )}
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

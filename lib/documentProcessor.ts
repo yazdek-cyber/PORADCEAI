@@ -47,7 +47,8 @@ export async function processPdf(
   fileBuffer: Buffer,
   fileName: string,
   insuranceCompany: string,
-  domena: string = 'pojisteni'
+  domena: string = 'pojisteni',
+  kategorie: string = 'produktove_podminky'
 ): Promise<ProcessResult> {
   try {
     const pages: string[] = [];
@@ -174,6 +175,7 @@ export async function processPdf(
         pojistovna: insuranceCompany,
         pocet_chunku: 0,
         domena,
+        kategorie,
       })
       .select()
       .single();
@@ -185,7 +187,7 @@ export async function processPdf(
     const documentId = docData.id;
 
     // Doplníme vazbu na dokument a hromadně uložíme chunky.
-    const chunkyToInsert = dbChunksToInsert.map((c) => ({ ...c, dokument_id: documentId, domena }));
+    const chunkyToInsert = dbChunksToInsert.map((c) => ({ ...c, dokument_id: documentId, domena, kategorie }));
     const { error: insertError } = await supabaseAdmin.from('chunky').insert(chunkyToInsert);
 
     if (insertError) {
@@ -228,7 +230,8 @@ export async function processText(
   fullText: string,
   fileName: string,
   provider: string,
-  domena: string = 'metodika'
+  domena: string = 'metodika',
+  kategorie: string = 'metodika'
 ): Promise<ProcessResult> {
   try {
     if (!fullText || fullText.trim() === '') throw new Error('Prázdný text.');
@@ -274,11 +277,11 @@ export async function processText(
 
     const { data: doc, error: de } = await supabaseAdmin
       .from('dokumenty')
-      .insert({ nazev: fileName, pojistovna: provider, pocet_chunku: 0, domena })
+      .insert({ nazev: fileName, pojistovna: provider, pocet_chunku: 0, domena, kategorie })
       .select().single();
     if (de || !doc) throw new Error(`Nepodařilo se vytvořit dokument: ${de?.message}`);
 
-    const toInsert = dbChunks.map((c) => ({ ...c, dokument_id: doc.id, domena }));
+    const toInsert = dbChunks.map((c) => ({ ...c, dokument_id: doc.id, domena, kategorie }));
     const { error: ie } = await supabaseAdmin.from('chunky').insert(toInsert);
     if (ie) {
       await supabaseAdmin.from('dokumenty').delete().eq('id', doc.id);

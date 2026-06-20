@@ -8,17 +8,22 @@ CREATE TABLE IF NOT EXISTS workspaces (
   vytvoreno_kdy TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Výchozí workspace = první tenant (firma). Multitenant: každá firma má vlastní postupy,
+-- produkty, klienty a plány přes workspace_id. eDO je první tenant, ne natvrdo v kódu.
 INSERT INTO workspaces (id, nazev)
-VALUES ('00000000-0000-0000-0000-000000000001', 'Výchozí workspace')
+VALUES ('00000000-0000-0000-0000-000000000001', 'eDO')
 ON CONFLICT (id) DO NOTHING;
 
--- Tabulka dokumentů
--- domena = pilíř finančního poradenství: pojisteni | uvery | investice | penze.
+-- Tabulka dokumentů. Tři nezávislé osy:
+--   domena    = pilíř: pojisteni | uvery | investice | penze
+--   pojistovna= POSKYTOVATEL (pojišťovna/banka/investiční či penzijní společnost/fond)
+--   kategorie = ROLE v RAG: postup_firmy | metodika | produktove_podminky
 CREATE TABLE IF NOT EXISTS dokumenty (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   nazev TEXT NOT NULL,
-  pojistovna TEXT,                       -- poskytovatel (pojišťovna/banka/správce)
+  pojistovna TEXT,                       -- poskytovatel (pojišťovna/banka/správce/fond)
   domena TEXT NOT NULL DEFAULT 'pojisteni',
+  kategorie TEXT NOT NULL DEFAULT 'produktove_podminky',
   nahrano_kdy TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   pocet_chunku INTEGER DEFAULT 0,
   workspace_id UUID DEFAULT '00000000-0000-0000-0000-000000000001'
@@ -36,6 +41,7 @@ CREATE TABLE IF NOT EXISTS chunky (
   pojistovna TEXT,
   nazev_dokumentu TEXT,
   domena TEXT NOT NULL DEFAULT 'pojisteni',
+  kategorie TEXT NOT NULL DEFAULT 'produktove_podminky',
   workspace_id UUID DEFAULT '00000000-0000-0000-0000-000000000001'
     REFERENCES workspaces(id) ON DELETE CASCADE
 );
@@ -68,7 +74,8 @@ CREATE OR REPLACE FUNCTION hledej_chunky(
   pocet INTEGER DEFAULT 8,
   filtr_pojistovna TEXT DEFAULT NULL,
   filtr_workspace UUID DEFAULT NULL,
-  filtr_domena TEXT DEFAULT NULL
+  filtr_domena TEXT DEFAULT NULL,
+  filtr_kategorie TEXT DEFAULT NULL
 )
 RETURNS TABLE (
   id UUID,
@@ -77,6 +84,7 @@ RETURNS TABLE (
   nazev_dokumentu TEXT,
   strana INTEGER,
   domena TEXT,
+  kategorie TEXT,
   podobnost FLOAT
 )
 LANGUAGE sql
@@ -88,11 +96,13 @@ AS $$
     chunky.nazev_dokumentu,
     chunky.strana,
     chunky.domena,
+    chunky.kategorie,
     1 - (chunky.embedding <=> dotaz_embedding) AS podobnost
   FROM chunky
   WHERE (filtr_pojistovna IS NULL OR chunky.pojistovna = filtr_pojistovna)
     AND (filtr_workspace IS NULL OR chunky.workspace_id = filtr_workspace)
     AND (filtr_domena IS NULL OR chunky.domena = filtr_domena)
+    AND (filtr_kategorie IS NULL OR chunky.kategorie = filtr_kategorie)
   ORDER BY chunky.embedding <=> dotaz_embedding
   LIMIT pocet;
 $$;

@@ -64,10 +64,17 @@ Logika:
 - `schema.sql` — `dokumenty`, `chunky` (+`domena`), `produkty`, `klienti`, `financni_plany`, `hledej_chunky`.
 
 ## Datový model (Supabase)
-- `workspaces(id, nazev, vytvoreno_kdy)` — příprava na multi-tenant; výchozí WS `00000000-…-0001`.
-- `dokumenty(id, nazev, pojistovna, nahrano_kdy, pocet_chunku, workspace_id)`
-- `chunky(id, dokument_id→dokumenty, obsah, embedding VECTOR(768), strana, poradi, pojistovna, nazev_dokumentu, workspace_id)`
-- `hledej_chunky(dotaz_embedding, pocet=8, filtr_pojistovna=NULL, filtr_workspace=NULL)` — top-N dle cosine, volitelné filtry.
+- `workspaces(id, nazev, vytvoreno_kdy)` — **tenant = firma** (multitenant). 1. tenant `00000000-…-0001` = „eDO".
+  Firmu (postupy, produkty, klienty, plány) drží `workspace_id`. eDO je DATA, ne natvrdo v kódu.
+- **Tři nezávislé osy dokumentu**: `domena` (4 pilíře) × `pojistovna` (= POSKYTOVATEL: pojišťovna/banka/
+  investiční či penzijní spol./fond) × `kategorie` (ROLE v RAG).
+- **`kategorie`** (`lib/kategorie.ts`): `postup_firmy` (závazný systém práce firmy) · `metodika` (odborná —
+  KFP/EFPA/AFP, jak počítat + poučky) · `produktove_podminky` (podmínky produktů napříč pilíři). Default `produktove_podminky`.
+- `dokumenty(id, nazev, pojistovna, domena, kategorie, nahrano_kdy, pocet_chunku, workspace_id)`
+- `chunky(id, dokument_id→dokumenty, obsah, embedding VECTOR(768), strana, poradi, pojistovna, nazev_dokumentu, domena, kategorie, workspace_id)`
+- `hledej_chunky(dotaz_embedding, pocet=8, filtr_pojistovna=NULL, filtr_workspace=NULL, filtr_domena=NULL, filtr_kategorie=NULL)`
+  — top-N dle cosine, volitelné filtry (vč. kategorie). POZOR: měnit přes DROP+CREATE (jinak přetížení).
+- Admin: dokumenty seskupené po kategoriích + přeřazení (`updateDokumentMetaAction` přepíše i `chunky`).
 - `workspace_id` má DB default = výchozí WS (viz `VYCHOZI_WORKSPACE_ID` v `lib/supabase.ts`), takže insert kód se nemění.
 - **RLS zapnuté, zatím permisivní** (service_role ji obchází) — připraveno na Supabase Auth.
 - **HNSW index zrušen** → vyhledávání je přesné (exact KNN). Pro velký objem dat zvážit index + REINDEX.
