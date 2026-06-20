@@ -418,3 +418,14 @@ Klientské výstupy mají hlavičku a patičku s brandingem poradce/sítě → l
 - `jmeno` doplněno do `FinPlanProfil` (ukládá se s plánem) → hlavička zná jméno klienta.
 Ověřeno e2e (emulace print): hlavička „eDO finance · Ing. Jan Poradce, ČNB 123456PZ" + klientská
 analýza. TSC 0, build 15 rout OK, 64/64 testů.
+
+## v0.27 — eDO metodika z Drive nahrána do RAG (bod 3)
+Zpracováno přímo přes konektor (Google Drive MCP → text → `processText`), bez ručního nahrávání:
+- **+4 dokumenty** (poskytovatel eDO): OSVČ v paušálním režimu daně — výpočet bonity (metodika/úvěry) ·
+  Wealth Management metodika (postup_firmy/investice) · Cross-sell eDOc (postup_firmy/metodika) ·
+  ZETEO online sjednávač (postup_firmy/pojištění).
+- Knowledge base nyní: metodika 11 · postup_firmy 14 · produktové podmínky 2 = **27 dokumentů**.
+- Plán přes orchestraci dle kategorií (v0.21) z nich automaticky čerpá (postup firmy = kostra, metodika = jak počítat + poučky).
+- Vynecháno: duplicity (Smluvní dokumentace, Kariérní plán už v DB), čisté UI manuály (Aplikace eDO,
+  HypoKalkulačka, Wealth návod), kontakty/osobní data (do RAG nepatří).
+Embedding ověřen (chunky s embedding v DB). Dočasný ingest skript po doběhnutí smazán.
