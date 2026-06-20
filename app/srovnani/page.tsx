@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Columns3, Loader2, Check, AlertTriangle, Plus, X, BookOpen } from 'lucide-react';
+import { Columns3, Loader2, Check, AlertTriangle, Plus, BookOpen, Copy, Printer, CheckCircle2 } from 'lucide-react';
 import { getPojistovnyAction, srovnejParametryAction } from '@/app/actions';
 
 type Bunka = { hodnota: string; strana: number | null };
@@ -26,6 +26,34 @@ export default function SrovnaniPage() {
   const [matice, setMatice] = useState<Record<string, Record<string, Bunka>> | null>(null);
   const [vyslednePoj, setVyslednePoj] = useState<string[]>([]);
   const [vysledneParam, setVysledneParam] = useState<string[]>([]);
+  const [copied, setCopied] = useState(false);
+  const datumDnes = new Date().toLocaleDateString('cs-CZ');
+
+  // Jsou všechny buňky „Neuvedeno"? (rozlišení „nic nenalezeno" od reálných hodnot)
+  const vsechnoNeuvedeno =
+    !!matice &&
+    vysledneParam.length > 0 &&
+    vysledneParam.every((param) =>
+      vyslednePoj.every((poj) => {
+        const b = matice[poj]?.[param];
+        return !b || b.hodnota === 'Neuvedeno';
+      })
+    );
+
+  const handleCopy = async () => {
+    if (!matice) return;
+    const hlavicka = ['Parametr', ...vyslednePoj].join('\t');
+    const radky = vysledneParam.map((param) =>
+      [param, ...vyslednePoj.map((poj) => matice[poj]?.[param]?.hodnota || 'Neuvedeno')].join('\t')
+    );
+    try {
+      await navigator.clipboard.writeText([hlavicka, ...radky].join('\n'));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setError('Kopírování do schránky se nezdařilo.');
+    }
+  };
 
   useEffect(() => {
     getPojistovnyAction().then((res) => {
@@ -72,7 +100,7 @@ export default function SrovnaniPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
+      <div className="print:hidden">
         <h1 className="text-3xl font-extrabold tracking-tight text-primary flex items-center gap-2">
           <Columns3 className="h-7 w-7 text-accent" />
           Srovnání podmínek
@@ -84,7 +112,7 @@ export default function SrovnaniPage() {
       </div>
 
       {/* Výběr */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 print:hidden">
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="text-sm font-bold text-primary mb-2">Pojišťovny</h2>
           {pojistovny.length === 0 ? (
@@ -148,7 +176,7 @@ export default function SrovnaniPage() {
       <button
         onClick={handleSrovnat}
         disabled={loading || vybranePoj.length === 0 || parametry.length === 0}
-        className={`flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-bold text-white transition-colors ${
+        className={`print:hidden flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-bold text-white transition-colors ${
           loading || vybranePoj.length === 0 || parametry.length === 0
             ? 'bg-slate-300 cursor-not-allowed'
             : 'bg-primary hover:bg-primary-600 cursor-pointer shadow-sm'
@@ -159,15 +187,47 @@ export default function SrovnaniPage() {
       </button>
 
       {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 flex gap-3 items-start">
+        <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 flex gap-3 items-start print:hidden">
           <AlertTriangle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
           <p className="text-sm text-red-700">{error}</p>
         </div>
       )}
 
+      {/* Prázdný stav před prvním srovnáním */}
+      {!loading && !matice && !error && (
+        <div className="rounded-xl border border-dashed border-slate-200 bg-white p-8 text-center text-slate-400 text-sm print:hidden">
+          Vyber pojišťovny a parametry a klikni na „Srovnat". Výsledná matice se zobrazí zde.
+        </div>
+      )}
+
       {/* Matice */}
       {matice && (
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm overflow-x-auto">
+        <div className="space-y-3">
+          {/* Toolbar (skryté při tisku) */}
+          <div className="flex items-center justify-between bg-white border border-slate-200 rounded-xl p-3 px-4 shadow-sm print:hidden">
+            <span className="text-xs font-bold text-slate-500 flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-green-600" />Srovnání sestaveno</span>
+            <div className="flex items-center gap-2">
+              <button onClick={handleCopy} className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-primary bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-3 py-1.5 cursor-pointer">
+                <Copy className="h-3.5 w-3.5" />{copied ? 'Kopírováno!' : 'Kopírovat'}
+              </button>
+              <button onClick={() => window.print()} className="flex items-center gap-1.5 text-xs font-bold text-white bg-primary hover:bg-primary-600 rounded-lg px-3 py-1.5 cursor-pointer shadow-sm">
+                <Printer className="h-3.5 w-3.5 text-accent" />Export PDF
+              </button>
+            </div>
+          </div>
+
+          {vsechnoNeuvedeno && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 flex gap-2 items-start print:hidden">
+              <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+              <p className="text-xs text-amber-800">K vybraným parametrům se v nahraných podmínkách nic nenašlo (vše „Neuvedeno"). Zkus jiné parametry nebo nahraj více dokumentů.</p>
+            </div>
+          )}
+
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm overflow-x-auto print:border-none print:shadow-none">
+          <div className="hidden print:block mb-3">
+            <h1 className="text-lg font-bold">Poradce AI — Srovnání pojistných podmínek</h1>
+            <p className="text-xs text-slate-500">{datumDnes}</p>
+          </div>
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="border-b-2 border-slate-200">
@@ -205,6 +265,7 @@ export default function SrovnaniPage() {
             Podklad pro licencovaného poradce, nikoliv finanční doporučení. Hodnoty vždy ověřte v
             původních pojistných podmínkách (uvedená strana).
           </p>
+        </div>
         </div>
       )}
     </div>
