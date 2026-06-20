@@ -405,3 +405,16 @@ KlientskaAnalyza rozšířena ze 4 na 7 oblastí (řazení dle eDO logiky):
 - (Zachováno: Rezerva, Ochrana příjmů, Růst majetku, Penze a renta.)
 KlientCisla rozšířeno (vydaje, hypotéka, děti, vklady); napojeno na /plan i /plany.
 Ověřeno e2e (uložený plán): 7 bloků s grafy a čísly klienta. TSC 0, build OK, 64/64 testů.
+
+## v0.26 — brandovaný klientský PDF (bod 2)
+Klientské výstupy mají hlavičku a patičku s brandingem poradce/sítě → lze položit klientovi na stůl:
+- `lib/poradceStore.ts` (`usePoradce`): profil poradce v localStorage (jméno, č. osvědčení ČNB,
+  telefon, e-mail, firma/síť, logo jako data URL). BEZ serveru.
+- `app/nastaveni/page.tsx`: formulář brandingu + upload loga (max 400 kB → data URL) + ŽIVÝ náhled
+  hlavičky. Sidebar: položka „Nastavení".
+- `components/Tisk.tsx`: `TiskHlavicka` (logo + firma + poradce/ČNB vlevo, titulek + klient + datum
+  vpravo) a `TiskPaticka` (kontakt + disclaimer) — zobrazí se JEN při tisku (`print:`).
+- `/plan` i `/plany`: brandovaná hlavička na začátku PDF + patička; stará inline hlavička odstraněna.
+- `jmeno` doplněno do `FinPlanProfil` (ukládá se s plánem) → hlavička zná jméno klienta.
+Ověřeno e2e (emulace print): hlavička „eDO finance · Ing. Jan Poradce, ČNB 123456PZ" + klientská
+analýza. TSC 0, build 15 rout OK, 64/64 testů.

@@ -8,6 +8,7 @@ import type { Vypocty } from '@/lib/financniPlan';
 import PlanDokument from '@/components/PlanDokument';
 import PlanPrehled from '@/components/PlanPrehled';
 import KlientskaAnalyza, { type KlientCisla } from '@/components/KlientskaAnalyza';
+import { TiskHlavicka, TiskPaticka } from '@/components/Tisk';
 import { ShieldCheck } from 'lucide-react';
 
 interface PlanMeta {
@@ -75,6 +76,9 @@ export default function PlanyPage() {
           </button>
         </div>
         <p className="text-xs text-slate-400 print:hidden">Vytvořeno {datum(detail.datum)}</p>
+
+        <TiskHlavicka titulek="Finanční plán" podtitulek="4 pilíře: penze · investice · úvěry · pojištění" klient={detail.profil?.jmeno} datum={datum(detail.datum)} />
+
         {detail.vypocty && (
           <div>
             <h3 className="text-sm font-bold text-primary mb-2 print:mt-4 flex items-center gap-1.5"><ShieldCheck className="h-4 w-4 text-accent" />Klientská analýza</h3>
@@ -88,7 +92,9 @@ export default function PlanyPage() {
           </details>
         )}
         <div className="rounded-xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm print:border-none print:shadow-none text-slate-900">
+          <h3 className="hidden print:block text-lg font-bold text-primary mb-3 pb-1 border-b border-slate-200">Finanční plán — odborný rozbor</h3>
           <PlanDokument text={detail.plan} />
+          <TiskPaticka datum={datum(detail.datum)} />
         </div>
       </div>
     );

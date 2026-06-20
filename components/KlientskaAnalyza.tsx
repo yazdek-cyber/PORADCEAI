@@ -15,6 +15,7 @@ const pct = (x: number) => (x * 100).toFixed(0) + ' %';
 
 // hypotekaSazba je DECIMAL (0.059) — shodně s FinPlanProfil.
 export interface KlientCisla {
+  jmeno?: string;
   cistyPrijem?: number;
   vydaje?: number;
   cilovaRentaDuchod?: number;

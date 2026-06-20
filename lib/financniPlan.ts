@@ -14,6 +14,7 @@ import { nactiProduktyVse, type Produkt } from './sazby';
 export type RizikovyProfil = 'konzervativni' | 'vyvazeny' | 'dynamicky';
 
 export interface FinPlanProfil {
+  jmeno?: string; // jméno klienta (pro hlavičku výstupu; nevstupuje do výpočtu)
   vek: number;
   // Cashflow (měsíčně, Kč)
   cistyPrijem: number;

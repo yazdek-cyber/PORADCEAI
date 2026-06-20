@@ -11,6 +11,7 @@ import type { FinPlanProfil, RizikovyProfil, FinCil, Vypocty } from '@/lib/finan
 import PlanDokument from '@/components/PlanDokument';
 import PlanPrehled from '@/components/PlanPrehled';
 import KlientskaAnalyza from '@/components/KlientskaAnalyza';
+import { TiskHlavicka, TiskPaticka } from '@/components/Tisk';
 import { usePripad, jePripadPrazdny, popisPripadu } from '@/lib/pripadStore';
 
 interface SourceChunk {
@@ -189,6 +190,7 @@ export default function PlanPage() {
     setActiveChunk(null);
 
     const profil: FinPlanProfil = {
+      jmeno: jmeno.trim() || pripad.jmeno || undefined,
       vek: num(vek),
       cistyPrijem: num(cistyPrijem),
       vydaje: num(vydaje),
@@ -468,6 +470,9 @@ export default function PlanPage() {
                 </div>
               </div>
 
+              {/* Brandovaná hlavička (jen tisk) — začátek klientského PDF */}
+              <TiskHlavicka titulek="Finanční plán" podtitulek="4 pilíře: penze · investice · úvěry · pojištění" klient={jmeno.trim() || pripad.jmeno} datum={datumDnes} />
+
               {/* Klientská grafická analýza (eDO-styl) — hlavní pohled pro klienta */}
               {vypocty && (
                 <div>
@@ -505,17 +510,7 @@ export default function PlanPage() {
               )}
 
               <div className="rounded-xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm print:border-none print:shadow-none print:p-0 text-slate-900">
-                <div className="hidden print:flex items-center justify-between pb-4 border-b border-slate-300 mb-6">
-                  <div>
-                    <h1 className="text-xl font-bold">Poradce AI — Finanční plán</h1>
-                    <p className="text-xs text-slate-500">4 pilíře: penze · investice · úvěry · pojištění</p>
-                  </div>
-                  <div className="text-right text-xs text-slate-500">
-                    <p className="font-semibold text-slate-700">Věk klienta: {vek} let</p>
-                    <p>{datumDnes}</p>
-                  </div>
-                </div>
-
+                <h3 className="hidden print:block text-lg font-bold text-primary mb-3 pb-1 border-b border-slate-200">Finanční plán — odborný rozbor</h3>
                 <PlanDokument text={plan} />
 
                 {chunks.length > 0 && (
@@ -529,10 +524,7 @@ export default function PlanPage() {
                   </div>
                 )}
 
-                <div className="hidden print:block mt-8 pt-3 border-t border-slate-300 text-[10px] text-slate-500">
-                  <p className="font-semibold">Toto je analytický podklad pro licencovaného poradce, nikoliv finanční doporučení.</p>
-                  <p>Vygenerováno aplikací Poradce AI dne {datumDnes}. Čísla pocházejí z deterministických kalkulaček, tvrzení o produktech z nahraných podmínek.</p>
-                </div>
+                <TiskPaticka datum={datumDnes} />
               </div>
 
               {chunks.length > 0 && (
