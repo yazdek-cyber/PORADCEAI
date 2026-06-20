@@ -236,3 +236,10 @@ ODLOŽENO na login-fázi: plná autentizace adminu a mutujících akcí (Supabas
   ověřen vizuální přehled, alokace, AI plán (sekce), 3 metody pojištění i panel zdrojů. Plán OK, bez chyb
   (zdánlivý „alert" byl jen Next.js dev overlay s prázdným textem). Screenshot potvrdil profesionální výstup.
 64/64 testů, build OK.
+
+## v0.14 — interaktivní kalkulačky (samostatné, bez dat) + UI
+Nová stránka /kalkulacky (jako kalkulačky KFP) — 9 živých kalkulaček ve 4 záložkách, počítají
+v prohlížeči z čistých funkcí lib/kalkulacky (žádné AI/RAG/data, okamžitý přepočet):
+Úvěry (hypotéka, max. úvěr, refinancování), Investice (Monte Carlo projekce + alokace, kolik na cíl),
+Renta & penze (finanční nezávislost ×200, DPS), Pojištění & rezerva (3 metody pojistné potřeby, rezerva 3/6/12×).
+Konzistentní karty, alokační pruhy, položka v Navbaru. Ověřeno e2e (změna vstupu → přepočet). Build OK.
