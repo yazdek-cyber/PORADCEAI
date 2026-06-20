@@ -395,3 +395,13 @@ knowledge base, AI poradce, fakta/podmínky, kalkulačky. Network effect. eDO AP
 Hotové cihly: evidence klientů (v0.19), knowledge base + kategorie + multitenant (v0.20), AI plán dle
 kategorií (v0.21), vizuál plánu (v0.22), klientská analýza (v0.24). Další: perzistence klientů na server
 (dnes localStorage) až s login fází; produktové podmínky napříč pilíři (banky/fondy/penze); reálné sazby.
+
+## v0.25 — klientská analýza dorovnána na celé eDO (7 životních oblastí)
+KlientskaAnalyza rozšířena ze 4 na 7 oblastí (řazení dle eDO logiky):
+- **Příjmy a výdaje** (cashflow): příjem vs výdaje vs volné prostředky + kam volné jde (investice/penze/k rozdělení).
+- **Bydlení a úvěry**: měsíční splátka + přeplatek (z `uvery.splatkovyKalendar`), křivka zůstatku v čase,
+  citlivost splátky na sazbu 3–7 % (sazba klienta zvýrazněna), refinancování (proč). Bez hypotéky → kapacita (max. úvěr).
+- **Cíle a děti**: časová osa životních fází dětí (Narození→Start do života) + karty cílů (kolik měsíčně / jednorázově / akcie %).
+- (Zachováno: Rezerva, Ochrana příjmů, Růst majetku, Penze a renta.)
+KlientCisla rozšířeno (vydaje, hypotéka, děti, vklady); napojeno na /plan i /plany.
+Ověřeno e2e (uložený plán): 7 bloků s grafy a čísly klienta. TSC 0, build OK, 64/64 testů.

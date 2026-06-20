@@ -7,7 +7,7 @@ import { getUlozenePlanyAction, getUlozenyPlanAction, smazUlozenyPlanAction } fr
 import type { Vypocty } from '@/lib/financniPlan';
 import PlanDokument from '@/components/PlanDokument';
 import PlanPrehled from '@/components/PlanPrehled';
-import KlientskaAnalyza from '@/components/KlientskaAnalyza';
+import KlientskaAnalyza, { type KlientCisla } from '@/components/KlientskaAnalyza';
 import { ShieldCheck } from 'lucide-react';
 
 interface PlanMeta {
@@ -20,7 +20,7 @@ export default function PlanyPage() {
   const [plany, setPlany] = useState<PlanMeta[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [detail, setDetail] = useState<{ id: string; plan: string; vypocty: Vypocty | null; datum: string; profil: { cistyPrijem?: number; cilovaRentaDuchod?: number; ocekavanaStatniPenze?: number } | null } | null>(null);
+  const [detail, setDetail] = useState<{ id: string; plan: string; vypocty: Vypocty | null; datum: string; profil: KlientCisla | null } | null>(null);
   const [nacitamDetail, setNacitamDetail] = useState(false);
 
   const nactiSeznam = async () => {
@@ -40,7 +40,7 @@ export default function PlanyPage() {
       // Nedůvěřuj tvaru z DB: prázdný objekt {} (DB default) je truthy → ověř klíče.
       const raw = res.vypocty as Partial<Vypocty> | null | undefined;
       const vypocty = raw && raw.rezerva && raw.investice && raw.penze ? (raw as Vypocty) : null;
-      const profil = (res.profil ?? null) as { cistyPrijem?: number; cilovaRentaDuchod?: number; ocekavanaStatniPenze?: number } | null;
+      const profil = (res.profil ?? null) as KlientCisla | null;
       setDetail({ id, plan: res.plan, vypocty, datum: res.vytvoreno_kdy as string, profil });
     }
     else setError(res.error || 'Plán se nepodařilo otevřít.');
