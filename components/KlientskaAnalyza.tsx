@@ -1,0 +1,154 @@
+'use client';
+
+import type { Vypocty } from '@/lib/financniPlan';
+import { ShieldCheck, Wallet, TrendingUp, PiggyBank, Info } from 'lucide-react';
+import { DonutObecny, Sloupce, AlokaceVizual } from '@/components/Vizualy';
+import { INVALIDITA, STATISTIKY_ZDROJ } from '@/lib/edoStatistiky';
+
+// KLIENTSKÁ GRAFICKÁ ANALÝZA (eDO-styl). Cíl: výstup „pro klienta" — grafy + kontext (PROČ),
+// ne jen poradenský text. Edukační statistiky (invalidita…) vysvětlují kontext; čísla klienta
+// jdou z deterministických kalkulaček (Vypocty). Tiskne se jako podklad pro klienta.
+
+const f = (x: number) => Math.round(x).toLocaleString('cs-CZ');
+const pct = (x: number) => (x * 100).toFixed(0) + ' %';
+
+interface KlientCisla { cistyPrijem?: number; cilovaRentaDuchod?: number; ocekavanaStatniPenze?: number }
+
+function Karta({ ikona, titulek, popis, children }: { ikona: React.ReactNode; titulek: string; popis?: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl border border-slate-200/70 bg-white p-5 shadow-soft break-inside-avoid">
+      <h4 className="text-base font-bold text-primary flex items-center gap-2">{ikona}{titulek}</h4>
+      {popis && <p className="text-xs text-slate-500 mt-0.5 mb-2">{popis}</p>}
+      {children}
+    </div>
+  );
+}
+
+function Proc({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mt-3 flex gap-2 rounded-xl bg-primary-50/60 p-2.5">
+      <Info className="h-4 w-4 text-accent shrink-0 mt-0.5" />
+      <p className="text-[11px] leading-relaxed text-slate-600">{children}</p>
+    </div>
+  );
+}
+
+export default function KlientskaAnalyza({ v, klient }: { v: Vypocty; klient: KlientCisla }) {
+  if (!v || !v.rezerva || !v.investice || !v.penze) return null;
+  const prijem = klient.cistyPrijem ?? 0;
+
+  // — Ochrana —
+  const invalKryti = v.efpaKryti?.invalidita ?? v.edoKryti?.invalidita ?? 0;
+  const inval3 = INVALIDITA[2]; // III. stupeň (nejtěžší)
+  const nahradaInval = prijem > 0 ? inval3.prumernyDuchod / prijem : 0;
+
+  // — Rezerva —
+  const naspureno = Math.max(0, v.rezerva.doporucenaRezerva - v.rezerva.chybiDoRezervy);
+
+  // — Penze —
+  const statni = klient.ocekavanaStatniPenze ?? 0;
+  const mezera = Math.max(0, v.penze.mezera?.mesicniMezera ?? 0);
+  const potrebaRenty = klient.cilovaRentaDuchod && klient.cilovaRentaDuchod > 0
+    ? klient.cilovaRentaDuchod
+    : statni + mezera;
+  const nahradaPenze = prijem > 0 ? statni / prijem : 0;
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* OCHRANA PŘÍJMŮ */}
+      <Karta ikona={<ShieldCheck className="h-4 w-4 text-accent" />} titulek="Ochrana příjmů" popis="Proč na pojistné ochraně záleží — a kolik krýt.">
+        <div className="flex items-center gap-3">
+          <div className="text-center">
+            <DonutObecny segmenty={INVALIDITA.map((i) => ({ podil: i.podil, barva: i.barva }))} velikost={88} />
+            <div className="text-[10px] text-slate-400 mt-1">Stupně invalidity v ČR</div>
+          </div>
+          <div className="flex-1 space-y-0.5 text-[11px] text-slate-600">
+            {INVALIDITA.map((i) => (
+              <span key={i.stupen} className="flex items-center justify-between gap-2">
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full" style={{ background: i.barva }} />{i.stupen}</span>
+                <span className="text-slate-400">{pct(i.podil)} · ⌀ {f(i.prumernyDuchod)} Kč</span>
+              </span>
+            ))}
+          </div>
+        </div>
+        <div className="mt-3">
+          <Sloupce data={[
+            { label: 'Váš čistý příjem', hodnota: prijem, barva: 'var(--color-primary)' },
+            { label: 'Invalidní důchod III. st.', hodnota: INVALIDITA[2].prumernyDuchod, barva: '#cbd5e1' },
+            { label: 'Invalidní důchod II. st.', hodnota: INVALIDITA[1].prumernyDuchod, barva: '#cbd5e1' },
+            { label: 'Invalidní důchod I. st.', hodnota: INVALIDITA[0].prumernyDuchod, barva: '#cbd5e1' },
+          ]} format={(n) => `${f(n)} Kč`} />
+        </div>
+        <div className="mt-3 rounded-xl bg-accent-50 px-3 py-2">
+          <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Doporučené krytí invalidity</div>
+          <div className="text-xl font-extrabold text-accent-700">{f(invalKryti)} Kč</div>
+        </div>
+        <Proc>
+          Státní invalidní důchod při III. stupni (⌀ {f(inval3.prumernyDuchod)} Kč) pokryje jen
+          ~{pct(nahradaInval)} vašeho příjmu. Pojištění má dorovnat zbytek, aby rodina udržela životní úroveň.
+        </Proc>
+      </Karta>
+
+      {/* FINANČNÍ REZERVA */}
+      <Karta ikona={<Wallet className="h-4 w-4 text-accent" />} titulek="Finanční rezerva" popis="Polštář pro nečekané výdaje a výpadek příjmu.">
+        <Sloupce data={[
+          { label: 'Naspořeno', hodnota: naspureno, barva: 'var(--color-positive)' },
+          { label: 'Doporučeno (6× výdaje)', hodnota: v.rezerva.doporucenaRezerva, barva: 'var(--color-primary)' },
+        ]} format={(n) => `${f(n)} Kč`} />
+        <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+          {[['3× krátkodobá', v.rezervaUrovne.kratkodoba], ['6× ztráta práce', v.rezervaUrovne.ztrataPrace], ['12× nemoc', v.rezervaUrovne.dlouhodobaNemoc]].map(([l, val]) => (
+            <div key={l as string} className="rounded-lg bg-slate-50 py-1.5">
+              <div className="text-sm font-bold text-slate-800">{f(val as number)}</div>
+              <div className="text-[10px] text-slate-400">{l as string}</div>
+            </div>
+          ))}
+        </div>
+        <Proc>
+          {v.rezerva.chybiDoRezervy > 0
+            ? `Do doporučené rezervy chybí ${f(v.rezerva.chybiDoRezervy)} Kč. Rezerva je první priorita — bez ní hrozí drahé úvěry při výpadku příjmu.`
+            : 'Rezerva je naplněna — výborný základ. Dál ji držte likvidní (spořicí účet / fond peněžního trhu).'}
+        </Proc>
+      </Karta>
+
+      {/* INVESTICE / RŮST MAJETKU */}
+      <Karta ikona={<TrendingUp className="h-4 w-4 text-accent" />} titulek="Růst majetku" popis={`Investiční horizont ${v.investice.horizontLet} let · oček. reálný výnos ${(v.investice.ocekavanyVynosKFP * 100).toFixed(1)} % p.a.`}>
+        <AlokaceVizual {...v.investice.doporucenaAlokace} />
+        <div className="mt-3">
+          <Sloupce data={[
+            { label: 'Optimistický scénář (p90)', hodnota: v.investice.monteCarlo.p90, barva: 'var(--color-positive)' },
+            { label: 'Očekávaný (medián)', hodnota: v.investice.monteCarlo.median, barva: 'var(--color-primary)' },
+            { label: 'Pesimistický (p10)', hodnota: v.investice.monteCarlo.p10, barva: '#cbd5e1' },
+          ]} format={(n) => `${f(n)} Kč`} />
+        </div>
+        <Proc>
+          Při zvolené alokaci je očekávaná hodnota investice {f(v.investice.monteCarlo.median)} Kč; i pesimistický
+          scénář ({f(v.investice.monteCarlo.p10)} Kč) počítá s výkyvy trhu. Dlouhý horizont = více akcií.
+        </Proc>
+      </Karta>
+
+      {/* PENZE */}
+      <Karta ikona={<PiggyBank className="h-4 w-4 text-accent" />} titulek="Penze a renta" popis="Kolik nahradí stát a kolik si musíte zajistit sami.">
+        <Sloupce data={[
+          { label: 'Potřeba renty (cíl)', hodnota: potrebaRenty, barva: 'var(--color-primary)' },
+          { label: 'Z toho státní penze', hodnota: statni, barva: '#cbd5e1' },
+          { label: 'Měsíční mezera (řešit)', hodnota: mezera, barva: 'var(--color-accent)' },
+        ]} format={(n) => `${f(n)} Kč/měs`} />
+        <div className="mt-3 rounded-xl bg-accent-50 px-3 py-2">
+          <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Potřebný kapitál pro rentu (pravidlo ×200)</div>
+          <div className="text-xl font-extrabold text-accent-700">{f(v.penze.potrebnyKapitalRentaKFP)} Kč</div>
+        </div>
+        <Proc>
+          {prijem > 0 ? `Státní penze nahradí jen ~${pct(nahradaPenze)} dnešního příjmu. ` : ''}
+          {mezera > 0
+            ? `Měsíční mezeru ${f(mezera)} Kč pokryjete vlastní rentou — proto včas tvořte kapitál.`
+            : 'Důchodový cíl je dle projekce pokryt — držte nastavené spoření.'}
+        </Proc>
+      </Karta>
+
+      <div className="lg:col-span-2 text-[10px] text-slate-400 px-1">
+        Statistické grafy (rozložení invalidity, příčiny): {STATISTIKY_ZDROJ}. Částky klienta z deterministických
+        kalkulaček v dnešní hodnotě peněz. Orientační podklad, nikoliv individualizované finanční doporučení.
+      </div>
+    </div>
+  );
+}

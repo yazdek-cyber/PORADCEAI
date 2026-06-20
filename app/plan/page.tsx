@@ -10,6 +10,7 @@ import { generujFinancniPlanAction } from '@/app/actions';
 import type { FinPlanProfil, RizikovyProfil, FinCil, Vypocty } from '@/lib/financniPlan';
 import PlanDokument from '@/components/PlanDokument';
 import PlanPrehled from '@/components/PlanPrehled';
+import KlientskaAnalyza from '@/components/KlientskaAnalyza';
 import { usePripad, jePripadPrazdny, popisPripadu } from '@/lib/pripadStore';
 
 interface SourceChunk {
@@ -467,12 +468,26 @@ export default function PlanPage() {
                 </div>
               </div>
 
-              {/* Vizuální přehled spočítaných podkladů */}
+              {/* Klientská grafická analýza (eDO-styl) — hlavní pohled pro klienta */}
               {vypocty && (
                 <div>
-                  <h3 className="text-sm font-bold text-primary mb-2 print:mt-4">Přehled (spočítaná čísla)</h3>
-                  <PlanPrehled v={vypocty} />
+                  <h3 className="text-sm font-bold text-primary mb-2 print:mt-4 flex items-center gap-1.5"><ShieldCheck className="h-4 w-4 text-accent" />Klientská analýza</h3>
+                  <KlientskaAnalyza v={vypocty} klient={{
+                    cistyPrijem: num(cistyPrijem),
+                    cilovaRentaDuchod: num(cilovaRentaDuchod) || undefined,
+                    ocekavanaStatniPenze: num(ocekavanaStatniPenze) || undefined,
+                  }} />
                 </div>
+              )}
+
+              {/* Detailní čísla pro poradce */}
+              {vypocty && (
+                <details className="group print:hidden">
+                  <summary className="text-sm font-bold text-primary mb-2 cursor-pointer list-none flex items-center gap-1.5">
+                    <Calculator className="h-4 w-4 text-accent" />Detailní čísla (pro poradce) <span className="text-xs font-normal text-slate-400 group-open:hidden">— rozbalit</span>
+                  </summary>
+                  <div className="mt-2"><PlanPrehled v={vypocty} /></div>
+                </details>
               )}
 
               {zobrazPodklady && podklady && (

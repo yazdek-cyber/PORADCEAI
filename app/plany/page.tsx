@@ -7,6 +7,8 @@ import { getUlozenePlanyAction, getUlozenyPlanAction, smazUlozenyPlanAction } fr
 import type { Vypocty } from '@/lib/financniPlan';
 import PlanDokument from '@/components/PlanDokument';
 import PlanPrehled from '@/components/PlanPrehled';
+import KlientskaAnalyza from '@/components/KlientskaAnalyza';
+import { ShieldCheck } from 'lucide-react';
 
 interface PlanMeta {
   id: string;
@@ -18,7 +20,7 @@ export default function PlanyPage() {
   const [plany, setPlany] = useState<PlanMeta[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [detail, setDetail] = useState<{ id: string; plan: string; vypocty: Vypocty | null; datum: string } | null>(null);
+  const [detail, setDetail] = useState<{ id: string; plan: string; vypocty: Vypocty | null; datum: string; profil: { cistyPrijem?: number; cilovaRentaDuchod?: number; ocekavanaStatniPenze?: number } | null } | null>(null);
   const [nacitamDetail, setNacitamDetail] = useState(false);
 
   const nactiSeznam = async () => {
@@ -38,7 +40,8 @@ export default function PlanyPage() {
       // Nedůvěřuj tvaru z DB: prázdný objekt {} (DB default) je truthy → ověř klíče.
       const raw = res.vypocty as Partial<Vypocty> | null | undefined;
       const vypocty = raw && raw.rezerva && raw.investice && raw.penze ? (raw as Vypocty) : null;
-      setDetail({ id, plan: res.plan, vypocty, datum: res.vytvoreno_kdy as string });
+      const profil = (res.profil ?? null) as { cistyPrijem?: number; cilovaRentaDuchod?: number; ocekavanaStatniPenze?: number } | null;
+      setDetail({ id, plan: res.plan, vypocty, datum: res.vytvoreno_kdy as string, profil });
     }
     else setError(res.error || 'Plán se nepodařilo otevřít.');
     setNacitamDetail(false);
@@ -73,7 +76,16 @@ export default function PlanyPage() {
         </div>
         <p className="text-xs text-slate-400 print:hidden">Vytvořeno {datum(detail.datum)}</p>
         {detail.vypocty && (
-          <div><h3 className="text-sm font-bold text-primary mb-2 print:mt-4">Přehled (spočítaná čísla)</h3><PlanPrehled v={detail.vypocty} /></div>
+          <div>
+            <h3 className="text-sm font-bold text-primary mb-2 print:mt-4 flex items-center gap-1.5"><ShieldCheck className="h-4 w-4 text-accent" />Klientská analýza</h3>
+            <KlientskaAnalyza v={detail.vypocty} klient={detail.profil ?? {}} />
+          </div>
+        )}
+        {detail.vypocty && (
+          <details className="group print:hidden">
+            <summary className="text-sm font-bold text-primary mb-2 cursor-pointer list-none">Detailní čísla (pro poradce) <span className="text-xs font-normal text-slate-400 group-open:hidden">— rozbalit</span></summary>
+            <div className="mt-2"><PlanPrehled v={detail.vypocty} /></div>
+          </details>
         )}
         <div className="rounded-xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm print:border-none print:shadow-none text-slate-900">
           <PlanDokument text={detail.plan} />

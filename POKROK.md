@@ -374,3 +374,24 @@ NN s.12), žádné eDO metodiky. 64/64 testů, TSC 0, build OK.
 ✅ Kategorie podkladů (v0.20) · ✅ Orchestrace dle kategorií (v0.21) · ✅ eDO-vizuál plánu (v0.22) ·
 ✅ Zúžení Rychlého návrhu (v0.23). Zbývá jen per-tenant (poskytovatelé/produkty/branding na workspace) —
 až s login fází.
+
+## v0.24 — KLIENTSKÁ GRAFICKÁ ANALÝZA (eDO-styl) — výstup pro klienta
+Severní hvězda (viz paměť): nahradit eDO nástroje, ať poradci nechtějí nic jiného. Výstup plánu
+povýšen z „poradenského textu" na GRAFICKÝ klientský dokument jako eDO Finanční analýza:
+- `components/KlientskaAnalyza.tsx`: 4 životní oblasti — Ochrana příjmů · Finanční rezerva · Růst
+  majetku · Penze a renta — každá GRAF + číslo klienta (z kalkulaček) + box „PROČ" (kontext).
+  Edukační statistiky (rozložení invalidity 42/18/40 % + průměrné invalidní důchody, příčiny úmrtí)
+  vysvětlují klientovi kontext = proč se pojistit / spořit. Zdroj statistik označen.
+- `lib/edoStatistiky.ts`: referenční data ČR (~2020–2021) z metodiky eDO — konstanty, snadno měnitelné.
+- `components/Vizualy.tsx`: + `DonutObecny` (N segmentů) a `Sloupce` (horizontální bar graf).
+- Na `/plan` i `/plany`: „Klientská analýza" jako hlavní pohled; „Detailní čísla (pro poradce)"
+  sbaleno (`<details>`); tiskne se jako podklad pro klienta.
+Ověřeno e2e (uložený plán): 4 bloky s grafy, čísla klienta (krytí 11 mil., mezera 8 118 Kč,
+kapitál ×200 3 mil., scénáře p10/medián/p90), „proč" texty. TSC 0, build OK.
+
+### Roadmapa k plné platformě (vize uživatele — paměť produkt-strategie)
+Cíl: kompletní paralelní platforma pro poradenské sítě (tenant = síť, eDO první) — CRM/správa klientů,
+knowledge base, AI poradce, fakta/podmínky, kalkulačky. Network effect. eDO API nepočítat (scrape později).
+Hotové cihly: evidence klientů (v0.19), knowledge base + kategorie + multitenant (v0.20), AI plán dle
+kategorií (v0.21), vizuál plánu (v0.22), klientská analýza (v0.24). Další: perzistence klientů na server
+(dnes localStorage) až s login fází; produktové podmínky napříč pilíři (banky/fondy/penze); reálné sazby.
