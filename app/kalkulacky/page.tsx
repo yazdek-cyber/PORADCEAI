@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Calculator, Home, TrendingUp, PiggyBank, ShieldCheck, Target, Landmark, Wallet } from 'lucide-react';
+import { Calculator, Home, TrendingUp, PiggyBank, ShieldCheck, Target, Landmark, Wallet, Printer } from 'lucide-react';
 import { uvery, investice, penze, pojisteni } from '@/lib/kalkulacky';
 
 // ── Pomocné ───────────────────────────────────────────────────────────────
@@ -57,16 +57,58 @@ function Radek({ label, hodnota }: { label: string; hodnota: string }) {
   );
 }
 
+/** Alokační koláč (donut) — tři segmenty akcie/dluhopisy/hotovost. */
+function Donut({ a }: { a: investice.Alokace }) {
+  const r = 26;
+  const C = 2 * Math.PI * r;
+  const segs = [
+    { v: a.akcie, c: 'var(--color-primary)' },
+    { v: a.dluhopisy, c: 'var(--color-accent)' },
+    { v: a.hotovost, c: '#cbd5e1' },
+  ];
+  let off = 0;
+  return (
+    <svg viewBox="0 0 64 64" className="h-16 w-16 shrink-0 -rotate-90" aria-hidden="true">
+      <circle cx="32" cy="32" r={r} fill="none" stroke="#f1f5f9" strokeWidth="10" />
+      {segs.map((s, i) => {
+        const len = Math.max(0, s.v) * C;
+        const el = (
+          <circle key={i} cx="32" cy="32" r={r} fill="none" stroke={s.c} strokeWidth="10"
+            strokeDasharray={`${len} ${C - len}`} strokeDashoffset={-off} strokeLinecap="butt" />
+        );
+        off += len;
+        return el;
+      })}
+    </svg>
+  );
+}
+
 function AlokacePruh({ a }: { a: investice.Alokace }) {
   return (
-    <div className="mt-2">
-      <div className="flex h-2.5 w-full overflow-hidden rounded-full">
-        <div style={{ width: `${a.akcie * 100}%` }} className="bg-primary" />
-        <div style={{ width: `${a.dluhopisy * 100}%` }} className="bg-accent" />
-        <div style={{ width: `${a.hotovost * 100}%` }} className="bg-slate-300" />
+    <div className="mt-2 flex items-center gap-3">
+      <Donut a={a} />
+      <div className="flex-1 min-w-0 space-y-0.5 text-[11px] text-slate-600">
+        <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary" />Akcie {pct(a.akcie)}</span>
+        <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-accent" />Dluhopisy {pct(a.dluhopisy)}</span>
+        <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-slate-300" />Hotovost {pct(a.hotovost)}</span>
       </div>
-      <div className="mt-1 text-[10px] text-slate-500">Akcie {pct(a.akcie)} · Dluhopisy {pct(a.dluhopisy)} · Hotovost {pct(a.hotovost)}</div>
     </div>
+  );
+}
+
+/** Mini SVG graf zůstatku úvěru v čase (vzorkováno po letech). */
+function AmortChart({ radky }: { radky: uvery.RadekKalendare[] }) {
+  if (radky.length < 2) return null;
+  const body = radky.filter((_, i) => i % 12 === 0);
+  if (body[body.length - 1] !== radky[radky.length - 1]) body.push(radky[radky.length - 1]);
+  const max = radky[0].zustatek || 1;
+  const w = 300, h = 64;
+  const pts = body.map((r, i) => `${(i / (body.length - 1)) * w},${h - (r.zustatek / max) * h}`).join(' ');
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-16 mt-1" preserveAspectRatio="none" aria-hidden="true">
+      <polyline points={`0,${h} ${pts} ${w},${h}`} fill="var(--color-primary-100)" stroke="none" />
+      <polyline points={pts} fill="none" stroke="var(--color-primary)" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+    </svg>
   );
 }
 
@@ -88,6 +130,8 @@ function HypotekaKalk() {
         <Radek label="Celkem zaplaceno" hodnota={`${f(r.celkemZaplaceno)} Kč`} />
         <Radek label="Z toho úroky (přeplatek)" hodnota={`${f(r.celkemUroky)} Kč`} />
       </div>
+      <div className="text-[10px] text-slate-400 mt-2">Zůstatek úvěru v čase</div>
+      <AmortChart radky={r.radky} />
     </Karta>
   );
 }
@@ -208,6 +252,43 @@ function CilKalk() {
   );
 }
 
+const FORMY_INVESTIC: investice.InvesticniForma[] = [
+  { nazev: 'ETF (pasivní)', ocekavanyVynos: 0.07, ter: 0.002, vstupniPoplatek: 0 },
+  { nazev: 'Aktivní fond', ocekavanyVynos: 0.06, ter: 0.018, vstupniPoplatek: 0.02 },
+  { nazev: 'IŽP (rezervotvorné)', ocekavanyVynos: 0.05, ter: 0.03, vstupniPoplatek: 0.02 },
+];
+
+function SrovnaniForemKalk() {
+  const [pocatecni, setPocatecni] = useState('100000');
+  const [mesicni, setMesicni] = useState('3000');
+  const [roky, setRoky] = useState('20');
+  const r = useMemo(() => investice.srovnejFormy(num(pocatecni), num(mesicni), Math.max(1, num(roky)), FORMY_INVESTIC), [pocatecni, mesicni, roky]);
+  const nej = r[0]?.cistaHodnota || 1;
+  return (
+    <Karta ikona={<TrendingUp className="h-4 w-4 text-accent" />} titulek="Srovnání forem a poplatků" popis="Stejný vklad, různé poplatky → rozdíl ve výsledku.">
+      <div className="grid grid-cols-3 gap-2">
+        <Pole label="Jednorázově" value={pocatecni} set={setPocatecni} suffix="Kč" />
+        <Pole label="Měsíčně" value={mesicni} set={setMesicni} suffix="Kč" />
+        <Pole label="Horizont" value={roky} set={setRoky} suffix="let" />
+      </div>
+      <div className="mt-3 space-y-2">
+        {r.map((s) => (
+          <div key={s.nazev}>
+            <div className="flex justify-between text-xs">
+              <span className="font-semibold text-slate-800">{s.poradi}. {s.nazev} <span className="text-slate-400 font-normal">(TER {pct(s.ter)})</span></span>
+              <span className="font-bold text-slate-800">{f(s.cistaHodnota)} Kč</span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden mt-0.5">
+              <div style={{ width: `${(s.cistaHodnota / nej) * 100}%` }} className={s.poradi === 1 ? 'h-2 bg-green-500' : 'h-2 bg-primary-400'} />
+            </div>
+            <div className="text-[10px] text-slate-400">ztráta na poplatcích: {f(s.ztrataNaPoplatcichVsHrube)} Kč</div>
+          </div>
+        ))}
+      </div>
+    </Karta>
+  );
+}
+
 // ── RENTA & PENZE ────────────────────────────────────────────────────────────
 function RentaKalk() {
   const [renta, setRenta] = useState('30000');
@@ -264,6 +345,36 @@ function PenzeKalk() {
         <Radek label="Z toho státní příspěvek" hodnota={`${f(r.mesicniStatniPrispevek)} Kč`} />
         <Radek label="Z toho výnos" hodnota={`${f(r.vynosCelkem)} Kč`} />
       </div>
+    </Karta>
+  );
+}
+
+function DanovaUsporaKalk() {
+  const [dps, setDps] = useState('1700');
+  const [zp, setZp] = useState('1000');
+  const SAZBA_DANE = 0.15;
+  const LIMIT_ODPOCTU = 48000; // společný roční strop DPS+ŽP+… (orientačně, reforma 2024)
+  const r = useMemo(() => {
+    // U DPS je daňově odpočitatelná část NAD 1 700 Kč/měs (do 1 700 jede státní příspěvek).
+    const dpsRocniOdpocet = Math.max(0, num(dps) - 1700) * 12;
+    const zpRocniOdpocet = num(zp) * 12;
+    const odpocet = Math.min(LIMIT_ODPOCTU, dpsRocniOdpocet + zpRocniOdpocet);
+    const uspora = odpocet * SAZBA_DANE;
+    const statniRocni = penze.statniPrispevekDPS(num(dps)) * 12;
+    return { odpocet, uspora, statniRocni, dpsRocniOdpocet, zpRocniOdpocet };
+  }, [dps, zp]);
+  return (
+    <Karta ikona={<Landmark className="h-4 w-4 text-accent" />} titulek="Daňová úspora (DPS + ŽP)" popis="Roční úspora na dani z příspěvků (orientačně, limity 2024).">
+      <div className="grid grid-cols-2 gap-2">
+        <Pole label="Příspěvek DPS" value={dps} set={setDps} suffix="Kč/měs" />
+        <Pole label="Příspěvek ŽP" value={zp} set={setZp} suffix="Kč/měs" />
+      </div>
+      <Hlavni label="Roční úspora na dani (15 %)" hodnota={`${f(r.uspora)} Kč`} barva="text-green-600" />
+      <div className="mt-2">
+        <Radek label="Odečitatelná částka (ročně)" hodnota={`${f(r.odpocet)} Kč`} />
+        <Radek label="Státní příspěvek DPS (ročně)" hodnota={`${f(r.statniRocni)} Kč`} />
+      </div>
+      <p className="text-[10px] text-slate-400 mt-1">DPS odečet jen z části nad 1 700 Kč/měs; společný strop {f(48000)} Kč/rok. Ověřte aktuální legislativu.</p>
     </Karta>
   );
 }
@@ -337,8 +448,8 @@ function RezervaKalk() {
 // ── Stránka ──────────────────────────────────────────────────────────────────
 const ZALOZKY = [
   { id: 'uvery', nazev: 'Úvěry', ikona: Home, kalk: [HypotekaKalk, MaxUverKalk, RefinancKalk] },
-  { id: 'investice', nazev: 'Investice', ikona: TrendingUp, kalk: [ProjekceKalk, CilKalk] },
-  { id: 'renta', nazev: 'Renta & penze', ikona: PiggyBank, kalk: [RentaKalk, PenzeKalk] },
+  { id: 'investice', nazev: 'Investice', ikona: TrendingUp, kalk: [ProjekceKalk, CilKalk, SrovnaniForemKalk] },
+  { id: 'renta', nazev: 'Renta & penze', ikona: PiggyBank, kalk: [RentaKalk, PenzeKalk, DanovaUsporaKalk] },
   { id: 'pojisteni', nazev: 'Pojištění & rezerva', ikona: ShieldCheck, kalk: [PojistnaKalk, RezervaKalk] },
 ];
 
@@ -357,7 +468,7 @@ export default function KalkulackyPage() {
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap items-center gap-1.5 print:hidden">
         {ZALOZKY.map((z) => {
           const I = z.ikona;
           return (
@@ -372,6 +483,12 @@ export default function KalkulackyPage() {
             </button>
           );
         })}
+        <button
+          onClick={() => window.print()}
+          className="ml-auto flex items-center gap-1.5 text-sm font-bold rounded-lg px-3 py-2 bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100"
+        >
+          <Printer className="h-4 w-4 text-accent" /> Tisk
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
