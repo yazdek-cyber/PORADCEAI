@@ -243,3 +243,11 @@ v prohlížeči z čistých funkcí lib/kalkulacky (žádné AI/RAG/data, okamž
 Úvěry (hypotéka, max. úvěr, refinancování), Investice (Monte Carlo projekce + alokace, kolik na cíl),
 Renta & penze (finanční nezávislost ×200, DPS), Pojištění & rezerva (3 metody pojistné potřeby, rezerva 3/6/12×).
 Konzistentní karty, alokační pruhy, položka v Navbaru. Ověřeno e2e (změna vstupu → přepočet). Build OK.
+
+## v0.15 — rozšíření kalkulaček + vizuál + tisk
+- Hypotéka: SVG graf zůstatku úvěru v čase.
+- Nová kalkulačka „Srovnání forem a poplatků" (ETF/aktivní fond/IŽP — vliv TER na výsledek).
+- Nová kalkulačka „Daňová úspora" (DPS+ŽP: odečet, 15 %, státní příspěvek; orientačně limity 2024).
+- Alokace jako donut (SVG koláč) místo pruhu napříč investičními kalkulačkami.
+- Tlačítko Tisk na /kalkulacky (window.print + print:hidden na ovládání).
+Celkem 11 interaktivních kalkulaček bez nutnosti dat. Ověřeno e2e, build OK.
