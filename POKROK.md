@@ -217,3 +217,14 @@ Spuštěn multi-agent workflow audit (30 agentů, 4 dimenze + adversariální ve
   rezerva default 6×; rokyNahrady vyčištěno; TNÚ komentář upřesněn.
 GDPR (dokumentačně): profil jde do Gemini pro plán → produkčně DPA s Googlem + informovat klienty.
 +3 regresní testy. 64/64 testů, build OK.
+
+## v0.12 — workflow audit UI + orchestrace + opravy
+2. kolo multi-agent auditu (26 agentů, 4 dimenze: React/stav, UX, orchestrace, bezpečnost) → 19 potvrzených.
+Opraveno:
+- UI: tisk PDF skrývá Navbar (globální @media print), reálné výnosy v popiscích, kopírování s ošetřením
+  chyby, stabilní React key u cílů, label↔input (htmlFor), role=alert.
+- Orchestrace: validace věk odchodu, Monte Carlo výnos+volatilita z jedné alokace, zachycení chyby insertu.
+- Bezpečnost: SSRF allowlist domén u importu PDF, autorizace import/cron endpointů + fail-closed na produkci,
+  prompt-injection hardening (kontext=data), upload limit 25 MB + ověření %PDF- signatury, oprava SQL v adminu.
+ODLOŽENO na login-fázi: plná autentizace adminu a mutujících akcí (Supabase Auth).
+64/64 testů, build OK.
