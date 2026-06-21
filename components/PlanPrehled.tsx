@@ -3,18 +3,10 @@
 import type { Vypocty } from '@/lib/financniPlan';
 import { ShieldCheck, TrendingUp, Home, PiggyBank, Target, Wallet } from 'lucide-react';
 import { AlokaceVizual } from '@/components/Vizualy';
+import { Karta } from '@/components/ui';
 
 const f = (x: number) => Math.round(x).toLocaleString('cs-CZ');
 const pct = (x: number) => (x * 100).toFixed(1).replace('.0', '') + ' %';
-
-function Karta({ ikona, titulek, children }: { ikona: React.ReactNode; titulek: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <h4 className="text-sm font-bold text-primary mb-2 flex items-center gap-1.5">{ikona}{titulek}</h4>
-      {children}
-    </div>
-  );
-}
 
 /** Vizuální přehled spočítaných podkladů (deterministická čísla) — nad AI textem plánu. */
 export default function PlanPrehled({ v }: { v: Vypocty }) {

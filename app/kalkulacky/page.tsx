@@ -7,6 +7,7 @@ import { vyhodnotDotaznik, INVESTICNI_DOTAZNIK, type VyhodnoceniDotazniku } from
 import { portfolioProProfil, barvaTridy, EDO_PORTFOLIA_ZDROJ } from '@/lib/edoPortfolia';
 import { AlokaceVizual, MiniGraf } from '@/components/Vizualy';
 import { usePripad, jePripadPrazdny, popisPripadu, type Pripad } from '@/lib/pripadStore';
+import { Field as Pole, Radek, Karta } from '@/components/ui';
 
 // Předvyplnění kalkulaček z aktivního případu klienta. Hodnoty jsou UI-ready řetězce;
 // kalkulačky je čtou v inicializátoru useState (remount přes `key` zajistí přepsání).
@@ -42,33 +43,6 @@ function num(v: string): number {
 const f = (x: number) => Math.round(x).toLocaleString('cs-CZ');
 const pct = (x: number) => (x * 100).toFixed(1).replace('.0', '') + ' %';
 
-function Pole({ label, value, set, suffix }: { label: string; value: string; set: (v: string) => void; suffix?: string }) {
-  return (
-    <label className="block">
-      <span className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">{label}</span>
-      <div className="relative">
-        <input
-          value={value}
-          onChange={(e) => set(e.target.value)}
-          inputMode="decimal"
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-primary focus:outline-none"
-        />
-        {suffix && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">{suffix}</span>}
-      </div>
-    </label>
-  );
-}
-
-function Karta({ ikona, titulek, popis, children }: { ikona: React.ReactNode; titulek: string; popis?: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-      <h3 className="text-base font-bold text-primary flex items-center gap-2">{ikona}{titulek}</h3>
-      {popis && <p className="text-xs text-slate-500 mt-0.5 mb-3">{popis}</p>}
-      {children}
-    </div>
-  );
-}
-
 function Hlavni({ label, hodnota, barva = 'text-primary' }: { label: string; hodnota: string; barva?: string }) {
   return (
     <div className="rounded-lg bg-primary-50/60 px-4 py-3 mt-3">
@@ -78,14 +52,6 @@ function Hlavni({ label, hodnota, barva = 'text-primary' }: { label: string; hod
   );
 }
 
-function Radek({ label, hodnota }: { label: string; hodnota: string }) {
-  return (
-    <div className="flex justify-between text-sm py-1 border-b border-slate-50 last:border-0">
-      <span className="text-slate-500">{label}</span>
-      <span className="font-semibold text-slate-800">{hodnota}</span>
-    </div>
-  );
-}
 
 // Vizuály (donut, mini graf) jsou ve sdílené komponentě components/Vizualy.tsx.
 

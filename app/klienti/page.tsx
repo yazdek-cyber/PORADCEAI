@@ -7,7 +7,7 @@ import {
   ClipboardCheck, FolderClock, FileText, Loader2, Lightbulb, ChevronRight,
 } from 'lucide-react';
 import { getUlozenePlanyAction } from '@/app/actions';
-import { PageHeader, Card, Badge, Button } from '@/components/ui';
+import { PageHeader, Card, Badge, Button, Radek } from '@/components/ui';
 import { usePripad, popisPripadu, jmenoKlienta, jePripadPrazdny, type Pripad } from '@/lib/pripadStore';
 import { najdiPrilezitosti, type PrioritaPrilezitosti } from '@/lib/prilezitosti';
 
@@ -30,14 +30,6 @@ interface PlanMeta {
 
 const f = (x?: number) => (x === undefined || x === null ? '—' : Math.round(x).toLocaleString('cs-CZ'));
 
-function Radek({ label, hodnota }: { label: string; hodnota: string }) {
-  return (
-    <div className="flex justify-between gap-3 text-sm py-1 border-b border-slate-50 last:border-0">
-      <span className="text-slate-500">{label}</span>
-      <span className="font-semibold text-slate-800 text-right">{hodnota}</span>
-    </div>
-  );
-}
 
 export default function KlientiPage() {
   const { pripad, klienti, aktivniId, nacteno, novyKlient, prepniKlienta, prejmenujKlienta, smazKlienta, ulozPripad } = usePripad();

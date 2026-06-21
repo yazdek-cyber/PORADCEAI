@@ -16,8 +16,9 @@ Legenda: ⬜ čeká · 🔄 probíhá · ✅ hotovo
 ## B. Odstranit překryvy / dedupe
 - ✅ B1. KB: zrušeny 2 stub duplicity (Produktové dotazníky, Modelová portfolia) ve prospěch plných verzí.
   Smazáno z produkční Supabase po výslovném OK uživatele. KB nyní: metodika 11 · postup firmy 14 · podmínky 2 = 27 dok.
-- ⬜ B2. UI dedup: PlanPrehled vs KlientskaAnalyza (poradenský detail) — vyjasnit/zredukovat redundanci.
-- ⬜ B3. Konsolidovat duplikované `Pole`/`Karta` napříč stránkami do `components/ui`.
+- ⏭️ B2. PlanPrehled vs KlientskaAnalyza — rozhodnutí uživatele: NECHAT OBA (jiný účel: poradce vs klient).
+- ✅ B3. Konsolidace do `components/ui`: sdílené `Karta` (nově) + `Field`(=Pole) + `Radek`; odstraněno 9
+  lokálních definic v 6 souborech. Field má `useId()` (unikátní id, žádné kolize labelů). — v0.41
 - ✅ B4. Sjednotit markdown (/pripad má vlastní renderer → sdílený `Markdown`). — v0.32
 
 ## C. Kvalita — multi-agent audit (Workflow)

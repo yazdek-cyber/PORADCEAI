@@ -1,7 +1,8 @@
+'use client';
 // Sdílené UI primitivy (design systém v0.18). Cíl: jeden vizuální jazyk napříč všemi
 // stránkami — místo duplikovaných Karta/Pole/hlaviček na každé stránce. Vše čistě
 // prezentační, bez stavu (kromě drobností), aby se daly bezpečně sdílet i v 'use client'.
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 
 // ── Hlavička stránky ────────────────────────────────────────────────────────
 export function PageHeader({
@@ -52,6 +53,21 @@ export function CardHeader({
   );
 }
 
+// ── Karta s hlavičkou (ikona + titulek + popis) ─────────────────────────────
+// Sjednocuje dříve duplikované „Karta" z kalkulaček, KlientskaAnalyza a PlanPrehled.
+// `break-inside-avoid` drží kartu pohromadě při tisku.
+export function Karta({
+  ikona, titulek, popis, children, className = '',
+}: { ikona?: ReactNode; titulek: string; popis?: string; children: ReactNode; className?: string }) {
+  return (
+    <div className={`rounded-2xl border border-slate-200/70 bg-white p-5 shadow-soft break-inside-avoid ${className}`}>
+      <h4 className="text-base font-bold text-primary flex items-center gap-2">{ikona}{titulek}</h4>
+      {popis && <p className="text-xs text-slate-500 mt-0.5 mb-2">{popis}</p>}
+      {children}
+    </div>
+  );
+}
+
 // ── Pole (vstup s popiskem) ─────────────────────────────────────────────────
 // DŮLEŽITÉ: definováno na úrovni modulu, aby input neztrácel fokus po každém znaku
 // (kdyby byl uvnitř renderu rodiče, React by ho remountoval).
@@ -62,7 +78,7 @@ export function Field({
   placeholder?: string; suffix?: string; type?: string;
   inputMode?: 'text' | 'decimal' | 'numeric';
 }) {
-  const id = 'pole-' + label.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-');
+  const id = useId(); // unikátní id na instanci → správné label↔input spojení i při shodných popiscích
   return (
     <div>
       <label htmlFor={id} className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">

@@ -13,6 +13,7 @@ import PlanPrehled from '@/components/PlanPrehled';
 import KlientskaAnalyza from '@/components/KlientskaAnalyza';
 import { TiskHlavicka, TiskPaticka } from '@/components/Tisk';
 import { usePripad, jePripadPrazdny, popisPripadu, type Pripad } from '@/lib/pripadStore';
+import { Field as Pole } from '@/components/ui';
 
 interface SourceChunk {
   id: string;
@@ -30,29 +31,6 @@ function num(v: string): number {
   return isNaN(n) ? 0 : n;
 }
 
-/** Krátké číselné/textové pole. Na úrovni modulu (NE uvnitř renderu), aby input
- *  neztrácel fokus po každém znaku. Zákaz během načítání řeší <fieldset disabled>. */
-function Pole({ label, value, set, placeholder, suffix }: {
-  label: string; value: string; set: (v: string) => void; placeholder?: string; suffix?: string;
-}) {
-  const id = 'pole-' + label.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-');
-  return (
-    <div>
-      <label htmlFor={id} className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">{label}</label>
-      <div className="relative">
-        <input
-          id={id}
-          type="text"
-          value={value}
-          onChange={(e) => set(e.target.value)}
-          placeholder={placeholder}
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-primary focus:outline-none"
-        />
-        {suffix && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">{suffix}</span>}
-      </div>
-    </div>
-  );
-}
 
 export default function PlanPage() {
   // — Profil (4 pilíře) —
@@ -344,7 +322,7 @@ export default function PlanPage() {
             <div>
               <h3 className="text-sm font-bold text-primary mb-2 flex items-center gap-1.5"><Calculator className="h-4 w-4 text-accent" />Základ</h3>
               <div className="mb-2">
-                <Pole label="Jméno klienta" value={jmeno} set={setJmeno} placeholder="např. Jan Novák" />
+                <Pole label="Jméno klienta" value={jmeno} set={setJmeno} placeholder="např. Jan Novák" inputMode="text" />
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <Pole label="Věk" value={vek} set={setVek} />
@@ -440,8 +418,8 @@ export default function PlanPage() {
 
             {/* Ostatní */}
             <div className="space-y-2">
-              <Pole label="Povolání / riziková skupina" value={povolani} set={setPovolani} placeholder="Např. IT, automechanik" />
-              <Pole label="Zdravotní stav" value={zdravotniStav} set={setZdravotniStav} placeholder="Např. bez komplikací" />
+              <Pole label="Povolání / riziková skupina" value={povolani} set={setPovolani} placeholder="Např. IT, automechanik" inputMode="text" />
+              <Pole label="Zdravotní stav" value={zdravotniStav} set={setZdravotniStav} placeholder="Např. bez komplikací" inputMode="text" />
               <div>
                 <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Poznámka k cílům / situaci</label>
                 <textarea

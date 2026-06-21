@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { ClipboardCheck, Printer, UserRound, AlertTriangle, UserPlus } from 'lucide-react';
-import { PageHeader, Card, Button } from '@/components/ui';
+import { PageHeader, Card, Button, Field as Pole, Radek } from '@/components/ui';
 import { usePripad, jePripadPrazdny, jmenoKlienta, type Pripad } from '@/lib/pripadStore';
 
 // ZÁZNAM Z JEDNÁNÍ (record of advice) — v ČR povinný dle zákona o distribuci pojištění/investic.
@@ -32,20 +32,6 @@ const VYCHOZI_UPOZORNENI =
   'Uvedené hodnoty a projekce jsou orientační, počítané v reálné hodnotě (nad inflaci), a nejsou garancí ' +
   'budoucích výnosů. Klient byl poučen o souvisejících rizicích a o tom, že konečné podmínky určuje smluvní ' +
   'dokumentace zvolených produktů.';
-
-function Pole({ label, value, set, placeholder }: { label: string; value: string; set: (v: string) => void; placeholder?: string }) {
-  return (
-    <label className="block">
-      <span className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">{label}</span>
-      <input
-        value={value}
-        onChange={(e) => set(e.target.value)}
-        placeholder={placeholder}
-        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-primary focus:ring-2 focus:ring-primary-100 focus:outline-none placeholder-slate-400"
-      />
-    </label>
-  );
-}
 
 function Sekce({ cislo, titulek, value, set, rows = 4 }: { cislo: number; titulek: string; value: string; set: (v: string) => void; rows?: number }) {
   return (
@@ -133,10 +119,10 @@ export default function ZaznamPage() {
       <Card className="mb-5 print:hidden">
         <h3 className="text-sm font-bold text-primary mb-3 flex items-center gap-2"><UserRound className="h-4 w-4 text-accent" /> Poradce</h3>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <Pole label="Jméno a příjmení" value={poradce.jmeno || ''} set={(v) => upravPoradce('jmeno', v)} placeholder="Jan Poradce" />
-          <Pole label="Č. osvědčení ČNB" value={poradce.osvedceni || ''} set={(v) => upravPoradce('osvedceni', v)} placeholder="123456PZ" />
-          <Pole label="Telefon" value={poradce.telefon || ''} set={(v) => upravPoradce('telefon', v)} placeholder="+420 …" />
-          <Pole label="E-mail" value={poradce.email || ''} set={(v) => upravPoradce('email', v)} placeholder="jan@…" />
+          <Pole label="Jméno a příjmení" value={poradce.jmeno || ''} set={(v) => upravPoradce('jmeno', v)} placeholder="Jan Poradce" inputMode="text" />
+          <Pole label="Č. osvědčení ČNB" value={poradce.osvedceni || ''} set={(v) => upravPoradce('osvedceni', v)} placeholder="123456PZ" inputMode="text" />
+          <Pole label="Telefon" value={poradce.telefon || ''} set={(v) => upravPoradce('telefon', v)} placeholder="+420 …" inputMode="text" />
+          <Pole label="E-mail" value={poradce.email || ''} set={(v) => upravPoradce('email', v)} placeholder="jan@…" inputMode="text" />
         </div>
       </Card>
 
@@ -196,11 +182,3 @@ export default function ZaznamPage() {
   );
 }
 
-function Radek({ label, hodnota }: { label: string; hodnota: string }) {
-  return (
-    <div className="flex justify-between gap-3 py-0.5 border-b border-slate-50">
-      <span className="text-slate-500">{label}</span>
-      <span className="font-semibold text-slate-800 text-right">{hodnota}</span>
-    </div>
-  );
-}

@@ -26,8 +26,9 @@ Aplikace se rozšířila z „AI nad pojistnými podmínkami" na **komplexní fi
 UI shell & design systém (v0.18):
 - `components/AppShell.tsx` — **levý sidebar** se sekcemi (Domů/Poradna · Případ klienta · Znalosti & data)
   + mobilní zásuvka; nahradil horní `Navbar`. Použit v `app/layout.tsx`.
-- `components/ui.tsx` — **sdílené primitivy** (PageHeader, Card/CardHeader, Field, Stat, Radek, Badge, Button,
-  SectionLabel) — jeden vizuální jazyk. Tokeny v `app/globals.css` (shadow-soft/card/pop, sémantická zeleň).
+- `components/ui.tsx` — **sdílené primitivy** (`'use client'`: PageHeader, Card/CardHeader, **Karta**, Field(=Pole,
+  `useId`), Stat, Radek, Badge, Button, SectionLabel) — jeden vizuální jazyk; stránky/komponenty NEmají vlastní
+  duplikáty Pole/Karta/Radek. Tokeny v `app/globals.css` (shadow-soft/card/pop, sémantická zeleň).
 - `lib/pripadStore.ts` — **evidence klientů + sdílený „případ"** (`usePripad()`, localStorage, BEZ serveru).
   VÍCE pojmenovaných klientů s aktivním klientem; modul-level store + `useSyncExternalStore` (všechny instance
   se synchronizují — přepínač v sidebaru ihned promítne i obsah stránky). Migrace ze single-case v0.18.

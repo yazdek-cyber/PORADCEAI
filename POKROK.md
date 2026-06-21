@@ -528,3 +528,15 @@ a „Modelová portfolia a investiční principy". KB nyní: metodika 11 · post
 - Domů (`app/page.tsx`): nový teaser **Příležitosti** — top 3 z cross-sell radaru napříč klienty,
   klik nastaví klienta aktivním a vede na akci. Zviditelňuje funkci z v0.37.
 TSC 0, build OK, 80/80 testů.
+
+## v0.41 — konsolidace UI primitiv (B3)
+Odstranění duplikovaných lokálních komponent do `components/ui` (jeden vizuální jazyk):
+- Nová sdílená **`Karta`** (ikona+titulek+popis, DS styl, `className`); nahradila 3 lokální definice
+  (`kalkulacky`, `KlientskaAnalyza` — `sirka`→`className`, `PlanPrehled`).
+- **`Field`** (alias `Pole`) nahradil 3 lokální `Pole` (`plan`, `kalkulacky`, `zaznam`); textová pole
+  dostala `inputMode="text"` (číselná zůstávají na `decimal`). Field nově používá **`useId()`** →
+  unikátní `id`, žádné kolize `label↔input` při shodných popiscích napříč kartami.
+- **`Radek`** nahradil 3 lokální (`kalkulacky`, `zaznam`, `klienti`).
+- `components/ui.tsx` má nově `'use client'` (kvůli `useId`); všechny konzumenty jsou klientské.
+Celkem −9 duplicitních definic v 6 souborech. B2: dle rozhodnutí necháváme oba pohledy (poradce vs klient).
+TSC 0, build OK, 80/80 testů.
