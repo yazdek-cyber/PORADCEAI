@@ -12,6 +12,8 @@ import PlanDokument from '@/components/PlanDokument';
 import PlanPrehled from '@/components/PlanPrehled';
 import KlientskaAnalyza, { type KlientCisla } from '@/components/KlientskaAnalyza';
 import PotencialMezery from '@/components/PotencialMezery';
+import { usePoradce } from '@/lib/poradceStore';
+import { stupenDleNazvu } from '@/lib/provize';
 import { TiskHlavicka, TiskPaticka } from '@/components/Tisk';
 import { usePripad, jePripadPrazdny, popisPripadu, type Pripad } from '@/lib/pripadStore';
 import { Field as Pole } from '@/components/ui';
@@ -107,6 +109,8 @@ export default function PlanPage() {
 
   // — Sdílený případ klienta (propojení s kalkulačkami / Domů / Rychlým návrhem) —
   const { pripad, nacteno, aktivniId, ulozPripad } = usePripad();
+  const { poradce } = usePoradce();
+  const stupen = stupenDleNazvu(poradce.karierniStupen);
   const maPripad = nacteno && !jePripadPrazdny(pripad);
   const poslIdRef = useRef<string | null | undefined>(undefined);
 
@@ -530,7 +534,7 @@ export default function PlanPage() {
               {vypocty && (
                 <div>
                   <h3 className="text-sm font-bold text-primary mb-2 print:hidden flex items-center gap-1.5"><TrendingUp className="h-4 w-4 text-accent" />Mezery &amp; potenciál (pro poradce)</h3>
-                  <PotencialMezery v={vypocty} klient={klientCisla} />
+                  <PotencialMezery v={vypocty} klient={klientCisla} stupen={stupen} />
                 </div>
               )}
 

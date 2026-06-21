@@ -6,7 +6,8 @@
 // každý řádek je obhajitelný daty (drží princip nestrannosti a povinnost jednat v zájmu klienta).
 import type { Vypocty } from '@/lib/financniPlan';
 import type { KlientCisla } from '@/components/KlientskaAnalyza';
-import { TrendingUp, AlertTriangle, Info } from 'lucide-react';
+import { TrendingUp, Info, Coins } from 'lucide-react';
+import { type KarierniStupen, odhadProvize } from '@/lib/provize';
 
 const f = (x: number) => Math.round(x).toLocaleString('cs-CZ');
 
@@ -20,7 +21,7 @@ interface Radek {
   jednotka: 'měs' | 'Kč';
 }
 
-export default function PotencialMezery({ v, klient }: { v: Vypocty; klient: KlientCisla }) {
+export default function PotencialMezery({ v, klient, stupen }: { v: Vypocty; klient: KlientCisla; stupen?: KarierniStupen | null }) {
   if (!v || !v.rezerva || !v.penze) return null;
 
   const prijem = klient.cistyPrijem ?? 0;
@@ -128,11 +129,35 @@ export default function PotencialMezery({ v, klient }: { v: Vypocty; klient: Kli
         </table>
       </div>
 
+      {/* SEKUNDÁRNÍ: orientační provizní přehled (jen pro poradce, nikdy ne klientovi). */}
+      <div className="mt-3 rounded-xl border border-slate-200 bg-white/70 p-3">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs font-bold text-slate-600 flex items-center gap-1.5"><Coins className="h-4 w-4 text-slate-400" />Potenciál &amp; provize (interní přehled)</span>
+          {stupen
+            ? <span className="text-[10px] font-semibold text-slate-400">{stupen.nazev}</span>
+            : <a href="/nastaveni" className="text-[10px] font-bold text-primary hover:underline">nastavit kariérní stupeň →</a>}
+        </div>
+        <div className="mt-2 grid grid-cols-2 gap-2 text-center">
+          <div className="rounded-lg bg-slate-50 py-1.5">
+            <div className="text-sm font-bold text-slate-800">{f(volnyCashflow)} Kč/měs</div>
+            <div className="text-[10px] text-slate-400">objem do tvorby majetku</div>
+          </div>
+          <div className="rounded-lg bg-slate-50 py-1.5">
+            <div className="text-sm font-bold text-accent-700">{stupen ? `≈ ${f(odhadProvize(volnyCashflow * 12, 'investice', stupen))} Kč` : '—'}</div>
+            <div className="text-[10px] text-slate-400">orientační roční provize</div>
+          </div>
+        </div>
+        <p className="text-[10px] text-slate-400 mt-2">
+          Orientačně (sazby se mění dle provizních listin). Provize <strong>neřídí doporučení</strong> — to vychází z potřeb klienta;
+          tohle je jen přehled potenciálu. Pojištění/úvěry závisí na konkrétním produktu.
+        </p>
+      </div>
+
       <div className="mt-3 flex gap-2 rounded-xl bg-white/70 border border-accent-100 p-2.5">
         <Info className="h-4 w-4 text-accent shrink-0 mt-0.5" />
         <p className="text-[11px] leading-relaxed text-slate-600">
-          Mezery jsou <strong>potřeby klienta podložené jeho čísly</strong> — řešte je v jeho zájmu (a jsou zároveň vaší
-          příležitostí). Pro přesné „co smlouva kryje a co ne" doplňte <strong>současné krytí klienta</strong> (zatím nezadáno).
+          Mezery jsou <strong>potřeby klienta podložené jeho čísly</strong> — řešte je v jeho zájmu (komplexní zajištění klienta).
+          Pro přesné „co smlouva kryje a co ne" doplňte <strong>současné krytí klienta</strong> (zatím nezadáno).
         </p>
       </div>
     </div>

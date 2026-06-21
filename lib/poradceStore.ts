@@ -13,6 +13,7 @@ export interface Poradce {
   email?: string;
   firma?: string;
   logo?: string; // data URL (PNG/SVG/JPG)
+  karierniStupen?: string; // pro INTERNÍ orientační přehled provize (lib/provize.ts); ne na klientském výstupu
 }
 
 const KLIC = 'poradceai:poradce';

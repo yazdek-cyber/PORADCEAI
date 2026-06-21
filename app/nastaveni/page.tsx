@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Settings, UploadCloud, Trash2, CheckCircle2 } from 'lucide-react';
 import { PageHeader, Card, Button, Field } from '@/components/ui';
 import { usePoradce, type Poradce } from '@/lib/poradceStore';
+import { KARIERNI_STUPNE } from '@/lib/provize';
 
 const MAX_LOGO = 400 * 1024; // 400 KB — logo do localStorage
 
@@ -56,6 +57,19 @@ export default function NastaveniPage() {
             <div className="grid grid-cols-2 gap-3">
               <Field label="Telefon" value={stav.telefon || ''} set={(v) => uprav('telefon', v)} placeholder="+420 …" type="text" inputMode="text" />
               <Field label="E-mail" value={stav.email || ''} set={(v) => uprav('email', v)} placeholder="jan@…" type="text" inputMode="text" />
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Kariérní stupeň <span className="normal-case text-slate-400">(interní — jen pro orientační přehled provize, ne na klientském výstupu)</span></label>
+              <select
+                value={stav.karierniStupen || ''}
+                onChange={(e) => uprav('karierniStupen', e.target.value)}
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-primary focus:ring-2 focus:ring-primary-100 focus:outline-none"
+              >
+                <option value="">— nezvoleno —</option>
+                {KARIERNI_STUPNE.map((s) => (
+                  <option key={s.nazev} value={s.nazev}>{s.nazev} (poj. {s.pojisteni} % · inv. {s.investice} % · úvěry {s.uvery} %)</option>
+                ))}
+              </select>
             </div>
           </div>
 
