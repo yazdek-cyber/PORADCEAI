@@ -38,6 +38,7 @@ export interface Pripad {
   povolani?: string;
   zdravotniStav?: string;
   cile?: string;
+  poznamky?: string; // volné poznámky poradce ke klientovi (CRM)
   aktualizovano?: string;
 }
 

@@ -1,0 +1,228 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import {
+  Users, UserRound, ArrowLeft, Plus, Pencil, Trash2, Check, Wallet, ShieldCheck,
+  ClipboardCheck, FolderClock, FileText, Loader2,
+} from 'lucide-react';
+import { getUlozenePlanyAction } from '@/app/actions';
+import { PageHeader, Card, Badge, Button } from '@/components/ui';
+import { usePripad, popisPripadu, jmenoKlienta, jePripadPrazdny, type Pripad } from '@/lib/pripadStore';
+
+interface PlanMeta {
+  id: string;
+  vytvoreno_kdy: string;
+  profil: { jmeno?: string; vek?: number; cistyPrijem?: number; cileSeznam?: { nazev: string }[]; cile?: string } | null;
+}
+
+const f = (x?: number) => (x === undefined || x === null ? '—' : Math.round(x).toLocaleString('cs-CZ'));
+
+function Radek({ label, hodnota }: { label: string; hodnota: string }) {
+  return (
+    <div className="flex justify-between gap-3 text-sm py-1 border-b border-slate-50 last:border-0">
+      <span className="text-slate-500">{label}</span>
+      <span className="font-semibold text-slate-800 text-right">{hodnota}</span>
+    </div>
+  );
+}
+
+export default function KlientiPage() {
+  const { pripad, klienti, aktivniId, nacteno, novyKlient, prepniKlienta, prejmenujKlienta, smazKlienta, ulozPripad } = usePripad();
+  const [vybranyId, setVybranyId] = useState<string | null>(null);
+  const [plany, setPlany] = useState<PlanMeta[]>([]);
+  const [nactamPlany, setNactamPlany] = useState(true);
+  const [poznamky, setPoznamky] = useState('');
+  const [ulozenoPozn, setUlozenoPozn] = useState(false);
+
+  useEffect(() => {
+    getUlozenePlanyAction()
+      .then((res) => { if (res.success) setPlany(res.plany as PlanMeta[]); })
+      .catch(() => {})
+      .finally(() => setNactamPlany(false));
+  }, []);
+
+  const vybrany = klienti.find((k) => k.id === vybranyId) ?? null;
+
+  // Při otevření detailu nastav klienta jako aktivního a načti jeho poznámky.
+  const otevri = (id: string) => {
+    prepniKlienta(id);
+    setVybranyId(id);
+    const k = klienti.find((x) => x.id === id);
+    setPoznamky(k?.profil.poznamky ?? '');
+  };
+
+  const planyKlienta = (p: Pripad): PlanMeta[] => {
+    const jm = p.jmeno?.trim().toLowerCase();
+    if (!jm) return [];
+    return plany.filter((pl) => pl.profil?.jmeno?.trim().toLowerCase() === jm);
+  };
+
+  const ulozPoznamky = () => {
+    // Poznámky se ukládají do AKTIVNÍHO klienta (detail ho aktivním nastavil).
+    ulozPripad({ ...pripad, poznamky: poznamky.trim() || undefined });
+    setUlozenoPozn(true);
+    setTimeout(() => setUlozenoPozn(false), 2000);
+  };
+
+  const pridej = () => {
+    const jmeno = window.prompt('Jméno nového klienta:');
+    if (jmeno !== null) novyKlient(jmeno);
+  };
+  const prejmenuj = (id: string, soucasne: string) => {
+    const jmeno = window.prompt('Nové jméno klienta:', soucasne);
+    if (jmeno !== null && jmeno.trim()) prejmenujKlienta(id, jmeno);
+  };
+  const smaz = (id: string, jmeno: string) => {
+    if (window.confirm(`Smazat klienta „${jmeno}"? Profil zůstane jen v tomto prohlížeči.`)) {
+      smazKlienta(id);
+      if (vybranyId === id) setVybranyId(null);
+    }
+  };
+
+  // ── DETAIL ────────────────────────────────────────────────────────────────
+  if (vybrany) {
+    const p = vybrany.profil;
+    const planyK = planyKlienta(p);
+    return (
+      <div className="animate-fade-in">
+        <button onClick={() => setVybranyId(null)} className="flex items-center gap-1.5 text-sm font-bold text-primary hover:text-primary-600 mb-4">
+          <ArrowLeft className="h-4 w-4" /> Zpět na klienty
+        </button>
+
+        <PageHeader
+          ikona={<UserRound className="h-5 w-5 text-accent" />}
+          titulek={jmenoKlienta(p)}
+          popis={popisPripadu(p)}
+          akce={
+            <>
+              <Button variant="ghost" onClick={() => prejmenuj(vybrany.id, p.jmeno || '')}><Pencil className="h-4 w-4" /> Přejmenovat</Button>
+              <Button variant="ghost" onClick={() => smaz(vybrany.id, jmenoKlienta(p))}><Trash2 className="h-4 w-4" /> Smazat</Button>
+            </>
+          }
+        />
+
+        <div className="grid lg:grid-cols-2 gap-5">
+          {/* Profil */}
+          <Card>
+            <h3 className="text-sm font-bold text-primary mb-2">Profil klienta</h3>
+            <Radek label="Věk" hodnota={p.vek ? `${p.vek} let` : '—'} />
+            <Radek label="Čistý příjem" hodnota={p.cistyPrijem ? `${f(p.cistyPrijem)} Kč/měs` : '—'} />
+            <Radek label="Výdaje" hodnota={p.vydaje ? `${f(p.vydaje)} Kč/měs` : '—'} />
+            <Radek label="Rodina" hodnota={[p.partner ? 'partner/ka' : null, typeof p.pocetDeti === 'number' && p.pocetDeti > 0 ? `${p.pocetDeti} děti` : null].filter(Boolean).join(', ') || '—'} />
+            <Radek label="Hypotéka" hodnota={p.hypotekaZustatek ? `${f(p.hypotekaZustatek)} Kč` : '—'} />
+            <Radek label="Rizikový profil" hodnota={p.rizikovyProfil || '—'} />
+            <Radek label="Povolání" hodnota={p.povolani || '—'} />
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Link href="/plan"><Button variant="primary"><Wallet className="h-4 w-4 text-accent" /> Finanční plán</Button></Link>
+              <Link href="/pripad"><Button variant="ghost"><ShieldCheck className="h-4 w-4" /> Pojištění</Button></Link>
+              <Link href="/zaznam"><Button variant="ghost"><ClipboardCheck className="h-4 w-4" /> Záznam</Button></Link>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-2">Rychlé akce pracují s tímto klientem (je nastaven jako aktivní).</p>
+          </Card>
+
+          {/* Poznámky */}
+          <Card>
+            <h3 className="text-sm font-bold text-primary mb-2">Poznámky</h3>
+            <textarea
+              value={poznamky}
+              onChange={(e) => setPoznamky(e.target.value)}
+              rows={6}
+              placeholder="Poznámky ke klientovi — co řešíme, na co navázat, preference…"
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm leading-relaxed focus:border-primary focus:ring-2 focus:ring-primary-100 focus:outline-none"
+            />
+            <div className="mt-2 flex items-center gap-3">
+              <Button variant="primary" onClick={ulozPoznamky}>Uložit poznámky</Button>
+              {ulozenoPozn && <span className="inline-flex items-center gap-1 text-sm font-semibold text-positive"><Check className="h-4 w-4" /> Uloženo</span>}
+            </div>
+          </Card>
+
+          {/* Plány klienta */}
+          <Card className="lg:col-span-2">
+            <h3 className="text-sm font-bold text-primary mb-2 flex items-center gap-1.5"><FolderClock className="h-4 w-4 text-accent" />Uložené plány klienta ({planyK.length})</h3>
+            {nactamPlany ? (
+              <div className="flex items-center gap-2 text-sm text-slate-400 py-2"><Loader2 className="h-4 w-4 animate-spin" /> Načítám…</div>
+            ) : planyK.length === 0 ? (
+              <p className="text-sm text-slate-500">
+                Zatím žádné uložené plány pro tohoto klienta.{' '}
+                <Link href="/plan" className="font-bold text-primary hover:underline">Vytvořit plán →</Link>
+                <span className="block text-[11px] text-slate-400 mt-1">Plány se ke klientovi párují podle jména — vyplňte jméno klienta ve formuláři plánu.</span>
+              </p>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {planyK.map((pl) => (
+                  <Link key={pl.id} href="/plany" className="flex items-center justify-between gap-3 py-2.5 group">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary"><Wallet className="h-4 w-4" /></div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-slate-800 group-hover:text-primary">Finanční plán</div>
+                        <div className="text-xs text-slate-400">{new Date(pl.vytvoreno_kdy).toLocaleString('cs-CZ')}</div>
+                      </div>
+                    </div>
+                    <Badge tone="primary">Otevřít</Badge>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // ── SEZNAM ────────────────────────────────────────────────────────────────
+  return (
+    <div className="animate-fade-in">
+      <PageHeader
+        ikona={<Users className="h-5 w-5 text-accent" />}
+        titulek="Klienti"
+        popis="Databáze vašich klientů — profil, uložené plány a poznámky. Vše jen ve vašem prohlížeči."
+        akce={<Button variant="primary" onClick={pridej}><Plus className="h-4 w-4" /> Nový klient</Button>}
+      />
+
+      {!nacteno ? (
+        <div className="flex items-center justify-center py-12 text-slate-400"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+      ) : klienti.length === 0 ? (
+        <Card className="text-center py-12">
+          <Users className="h-10 w-10 text-slate-300 mx-auto mb-3" />
+          <h3 className="font-bold text-slate-700">Zatím žádní klienti</h3>
+          <p className="text-sm text-slate-500 mt-1">Založte prvního klienta nebo vyplňte profil ve Finančním plánu.</p>
+          <div className="mt-3"><Button variant="primary" onClick={pridej}><Plus className="h-4 w-4" /> Nový klient</Button></div>
+        </Card>
+      ) : (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {klienti.map((k) => {
+            const aktivni = k.id === aktivniId;
+            const pocetPlanu = planyKlienta(k.profil).length;
+            return (
+              <Card key={k.id} className={`group ${aktivni ? 'border-primary-200' : ''}`}>
+                <button onClick={() => otevri(k.id)} className="w-full text-left">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary">
+                      <UserRound className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <h3 className="font-bold text-primary truncate">{jmenoKlienta(k.profil)}</h3>
+                        {aktivni && <Badge tone="primary">Aktivní</Badge>}
+                      </div>
+                      <p className="text-xs text-slate-500 truncate mt-0.5">{popisPripadu(k.profil)}</p>
+                      <div className="flex items-center gap-3 mt-1.5 text-[11px] text-slate-400">
+                        <span className="inline-flex items-center gap-1"><FolderClock className="h-3 w-3" />{pocetPlanu} plánů</span>
+                        {k.profil.poznamky && <span className="inline-flex items-center gap-1"><FileText className="h-3 w-3" />poznámky</span>}
+                      </div>
+                    </div>
+                  </div>
+                </button>
+                <div className="mt-3 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button onClick={() => prejmenuj(k.id, k.profil.jmeno || '')} className="p-1.5 text-slate-400 hover:text-primary" title="Přejmenovat"><Pencil className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => smaz(k.id, jmenoKlienta(k.profil))} className="p-1.5 text-slate-400 hover:text-red-600" title="Smazat"><Trash2 className="h-3.5 w-3.5" /></button>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}

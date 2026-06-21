@@ -6,7 +6,7 @@ import { useState, useEffect, useRef, type ReactNode } from 'react';
 import {
   Home, MessageSquare, Wallet, Calculator, FolderClock,
   Columns3, FolderOpen, Shield, ShieldCheck, AlertTriangle, Menu, X,
-  UserRound, ChevronDown, Plus, Trash2, Pencil, Check, ClipboardCheck, Settings,
+  UserRound, ChevronDown, Plus, Trash2, Pencil, Check, ClipboardCheck, Settings, Users,
 } from 'lucide-react';
 import { usePripad, jmenoKlienta, popisPripadu } from '@/lib/pripadStore';
 
@@ -25,6 +25,7 @@ const NAV: NavGroup[] = [
   {
     label: 'Případ klienta',
     items: [
+      { name: 'Klienti', href: '/klienti', icon: Users },
       { name: 'Finanční plán', href: '/plan', icon: Wallet },
       { name: 'Pojištění — analýza', href: '/pripad', icon: ShieldCheck },
       { name: 'Kalkulačky', href: '/kalkulacky', icon: Calculator },
