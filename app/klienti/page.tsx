@@ -62,6 +62,16 @@ export default function KlientiPage() {
     setPoznamky(k?.profil.poznamky ?? '');
   };
 
+  // Deep-link z Domů: /klienti?id=<klientId> rovnou otevře kokpit daného klienta.
+  useEffect(() => {
+    if (!nacteno || vybranyId) return;
+    try {
+      const id = new URLSearchParams(window.location.search).get('id');
+      if (id && klienti.some((k) => k.id === id)) otevri(id);
+    } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nacteno, klienti.length]);
+
   // Plány klienta: primárně dle klientId (spolehlivé, přežije přejmenování), pro starší plány
   // bez klientId fallback na shodu jména. Plán s klientId patřící jinému klientovi nikdy nepropadne.
   const planyKlienta = (id: string, p: Pripad): PlanMeta[] => {

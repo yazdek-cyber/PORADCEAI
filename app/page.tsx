@@ -11,6 +11,7 @@ import { getUlozenePlanyAction } from '@/app/actions';
 import { PageHeader, Card, Badge } from '@/components/ui';
 import { usePripad, jePripadPrazdny, popisPripadu } from '@/lib/pripadStore';
 import { najdiPrilezitosti, type PrioritaPrilezitosti } from '@/lib/prilezitosti';
+import { skorePokryti } from '@/lib/pokryti';
 
 const PRIORITA_TONE: Record<PrioritaPrilezitosti, { tridy: string; label: string }> = {
   vysoka: { tridy: 'bg-red-100 text-red-700', label: 'Vysoká' },
@@ -61,8 +62,9 @@ function Dlazdice({ name, href, icon: Icon, desc }: { name: string; href: string
 export default function DashboardPage() {
   const [plany, setPlany] = useState<PlanMeta[]>([]);
   const [loading, setLoading] = useState(true);
-  const { pripad, klienti, nacteno, prepniKlienta } = usePripad();
+  const { pripad, klienti, aktivniId, nacteno, prepniKlienta } = usePripad();
   const maPripad = nacteno && !jePripadPrazdny(pripad);
+  const pokryti = skorePokryti(pripad);
   const prilezitosti = useMemo(() => najdiPrilezitosti(klienti), [klienti]);
 
   useEffect(() => {
@@ -87,9 +89,9 @@ export default function DashboardPage() {
         popis="Asistent finančního poradce: postavte klientovi finanční plán, ověřte detaily v pojistných podmínkách a doložte vše čísly i zdroji."
       />
 
-      {/* Aktivní případ klienta — zobrazí se, jen když je vyplněný */}
+      {/* Aktivní případ klienta — vede do kokpitu případu (provázaný postup) */}
       {maPripad && (
-        <Link href="/plan" className="group block mb-8">
+        <Link href={`/klienti${aktivniId ? `?id=${aktivniId}` : ''}`} className="group block mb-8">
           <Card className="border-primary-200 bg-gradient-to-r from-primary-50/80 to-white hover:shadow-card transition-all">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
@@ -99,9 +101,10 @@ export default function DashboardPage() {
                 <div className="min-w-0">
                   <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Aktivní případ klienta</div>
                   <div className="font-bold text-primary truncate">{popisPripadu(pripad)}</div>
+                  <div className="text-[11px] text-slate-500">Zajištění: {pokryti.kryto}/{pokryti.celkem} oblastí</div>
                 </div>
               </div>
-              <Badge tone="primary">Pokračovat v plánu →</Badge>
+              <Badge tone="primary">Otevřít případ →</Badge>
             </div>
           </Card>
         </Link>
