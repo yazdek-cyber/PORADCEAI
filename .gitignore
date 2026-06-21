@@ -49,3 +49,5 @@ next-env.d.ts
 EDO/
 # Drop-folder pro hromadný import metodických PDF (lokální, mimo git)
 metodika/
+
+.vercel

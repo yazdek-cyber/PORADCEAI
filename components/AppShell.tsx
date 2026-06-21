@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { usePripad, jmenoKlienta, popisPripadu, resetPripadStore } from '@/lib/pripadStore';
 import { createClient } from '@/lib/supabase/client';
+import ModalNovyKlient from '@/components/ModalNovyKlient';
 
 // Odhlášení: vyčistí session i modul-level stav klientů a tvrdě přejde na /login (hard reload),
 // aby na sdíleném zařízení nezůstala data předchozího poradce v paměti tabu.
@@ -59,8 +60,9 @@ function jeAktivni(pathname: string, href: string): boolean {
 
 // Přepínač klientů — vždy viditelný v sidebaru. Tady „žije" aktivní případ.
 function KlientSwitcher() {
-  const { pripad, klienti, aktivniId, nacteno, novyKlient, prepniKlienta, prejmenujKlienta, smazKlienta } = usePripad();
+  const { pripad, klienti, aktivniId, nacteno, prepniKlienta, prejmenujKlienta, smazKlienta } = usePripad();
   const [open, setOpen] = useState(false);
+  const [modalNovy, setModalNovy] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -71,10 +73,7 @@ function KlientSwitcher() {
     return () => document.removeEventListener('mousedown', onClick);
   }, []);
 
-  const pridej = () => {
-    const jmeno = window.prompt('Jméno nového klienta:');
-    if (jmeno !== null) { novyKlient(jmeno); setOpen(false); }
-  };
+  const pridej = () => { setModalNovy(true); setOpen(false); };
   const prejmenuj = (id: string, soucasne: string) => {
     const jmeno = window.prompt('Nové jméno klienta:', soucasne);
     if (jmeno !== null && jmeno.trim()) prejmenujKlienta(id, jmeno);
@@ -141,6 +140,7 @@ function KlientSwitcher() {
           </button>
         </div>
       )}
+      <ModalNovyKlient open={modalNovy} onClose={() => setModalNovy(false)} />
     </div>
   );
 }

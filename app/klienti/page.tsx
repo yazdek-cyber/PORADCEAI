@@ -10,6 +10,7 @@ import { getUlozenePlanyAction } from '@/app/actions';
 import { PageHeader, Card, Badge, Button, Radek } from '@/components/ui';
 import { usePripad, popisPripadu, jmenoKlienta, jePripadPrazdny, type Pripad } from '@/lib/pripadStore';
 import { najdiPrilezitosti, type PrioritaPrilezitosti } from '@/lib/prilezitosti';
+import ModalNovyKlient from '@/components/ModalNovyKlient';
 
 const PRIORITA_STYL: Record<PrioritaPrilezitosti, { tone: 'red' | 'amber' | 'slate'; label: string }> = {
   vysoka: { tone: 'red', label: 'Vysoká' },
@@ -32,7 +33,8 @@ const f = (x?: number) => (x === undefined || x === null ? '—' : Math.round(x)
 
 
 export default function KlientiPage() {
-  const { pripad, klienti, aktivniId, nacteno, novyKlient, prepniKlienta, prejmenujKlienta, smazKlienta, ulozPripad } = usePripad();
+  const { pripad, klienti, aktivniId, nacteno, prepniKlienta, prejmenujKlienta, smazKlienta, ulozPripad } = usePripad();
+  const [modalNovy, setModalNovy] = useState(false);
   const [vybranyId, setVybranyId] = useState<string | null>(null);
   const [plany, setPlany] = useState<PlanMeta[]>([]);
   const [nactamPlany, setNactamPlany] = useState(true);
@@ -75,10 +77,7 @@ export default function KlientiPage() {
     setTimeout(() => setUlozenoPozn(false), 2000);
   };
 
-  const pridej = () => {
-    const jmeno = window.prompt('Jméno nového klienta:');
-    if (jmeno !== null) novyKlient(jmeno);
-  };
+  const pridej = () => setModalNovy(true);
   const prejmenuj = (id: string, soucasne: string) => {
     const jmeno = window.prompt('Nové jméno klienta:', soucasne);
     if (jmeno !== null && jmeno.trim()) prejmenujKlienta(id, jmeno);
@@ -183,10 +182,11 @@ export default function KlientiPage() {
   // ── SEZNAM ────────────────────────────────────────────────────────────────
   return (
     <div className="animate-fade-in">
+      <ModalNovyKlient open={modalNovy} onClose={() => setModalNovy(false)} onCreated={(id) => setVybranyId(id)} />
       <PageHeader
         ikona={<Users className="h-5 w-5 text-accent" />}
         titulek="Klienti"
-        popis="Databáze vašich klientů — profil, uložené plány a poznámky. Vše jen ve vašem prohlížeči."
+        popis="Databáze vašich klientů — profil, uložené plány a poznámky (uložené na serveru, izolované jen pro vás)."
         akce={<Button variant="primary" onClick={pridej}><Plus className="h-4 w-4" /> Nový klient</Button>}
       />
 

@@ -250,6 +250,20 @@ export function usePripad() {
     void ulozKlientaAction(id, profil).then(hlasChybu('novyKlient'));
   }, []);
 
+  /**
+   * Serverem POTVRZENÉ založení klienta: nejdřív uloží na server a teprve PŘI ÚSPĚCHU přidá lokálně
+   * a nastaví aktivním. Tím klient nikdy „nezmizí" po reloadu kvůli tiše selhanému zápisu.
+   */
+  const novyKlientServer = useCallback(async (jmeno?: string): Promise<{ ok: boolean; error?: string; id?: string }> => {
+    const now = new Date().toISOString();
+    const id = novyId();
+    const profil: Pripad = jmeno?.trim() ? { jmeno: jmeno.trim() } : {};
+    const r = await ulozKlientaAction(id, profil);
+    if (!r.ok) return { ok: false, error: r.error };
+    commit({ klienti: [...stav.klienti, { id, profil, vytvoreno: now, aktualizovano: now }], aktivniId: id });
+    return { ok: true, id };
+  }, []);
+
   const prepniKlienta = useCallback((id: string) => {
     commit({ ...stav, aktivniId: id });
   }, []);
@@ -288,6 +302,6 @@ export function usePripad() {
 
   return {
     pripad, aktivni, klienti: stavLoc.klienti, aktivniId: stavLoc.aktivniId, nacteno,
-    ulozPripad, novyKlient, prepniKlienta, prejmenujKlienta, smazKlienta, aktualizujKlienta,
+    ulozPripad, novyKlient, novyKlientServer, prepniKlienta, prejmenujKlienta, smazKlienta, aktualizujKlienta,
   };
 }
