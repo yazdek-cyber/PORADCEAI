@@ -334,17 +334,17 @@ console.log('— PŘÍLEŽITOSTI (cross-sell radar) —');
 
 console.log('— POKRYTÍ KLIENTA (co má vs. nemá) —');
 {
-  // Prázdný klient → pokryto jen „úvěry ošetřeny" (žádné dluhy), zbytek ne.
+  // Prázdný klient → pokryto jen „úvěry ošetřeny" (žádné dluhy), zbytek ne. Celkem 9 odvětví.
   const prazdny = skorePokryti({});
-  ok(prazdny.kryto === 1 && prazdny.celkem === 6, 'prázdný klient: 1/6 (jen bez dluhů)');
+  ok(prazdny.kryto === 1 && prazdny.celkem === 9, 'prázdný klient: 1/9 (jen bez dluhů)');
 
-  // Klient s rezervou (6×), investicí, penzí, bez drahých dluhů + zaškrtnuté ŽP a majetek → vše.
+  // Plně zajištěný klient: rezerva 6×, investice, penze, bez drahých dluhů + všechna pojištění/spoření.
   const plny = {
-    vydaje: 30_000, rezervaNasporeno: 200_000, mesicniVkladInvestice: 3000,
-    penzeMesicniVklad: 1000, maZivotni: true, maMajetek: true,
+    vydaje: 30_000, rezervaNasporeno: 200_000, mesicniVkladInvestice: 3000, penzeMesicniVklad: 1000,
+    maZivotni: true, maAuto: true, maMajetek: true, maOdpovednost: true, maStavebni: true,
   };
   const sp = skorePokryti(plny);
-  ok(sp.kryto === 6, 'plně zajištěný klient: 6/6');
+  ok(sp.kryto === 9, 'plně zajištěný klient: 9/9');
 
   // Odvozená oblast rezerva: pod 3× výdaje → nepokryto.
   const malaRez = pokrytiKlienta({ vydaje: 30_000, rezervaNasporeno: 50_000 });

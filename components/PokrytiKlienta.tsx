@@ -1,14 +1,18 @@
 'use client';
 
-// Checklist „co klient má vs. nemá" — jádro služby (klient má zajištěno vše). Odvozené oblasti se
-// počítají z čísel; pojistné krytí (ŽP, majetek) zaškrtne poradce. Nepokryté oblasti = co řešit (potenciál).
-import { CheckCircle2, Circle, ShieldCheck } from 'lucide-react';
-import { pokrytiKlienta } from '@/lib/pokryti';
+// Checklist „co klient má vs. nemá" napříč VŠEMI odvětvími — jádro služby (klient má zajištěno vše).
+// Odvozené oblasti se počítají z čísel; pojistné/spořicí produkty zaškrtne poradce. Každá nepokrytá
+// oblast má odkaz „Řešit →" na příslušný nástroj (provázanost).
+import Link from 'next/link';
+import { CheckCircle2, Circle, ShieldCheck, ArrowRight } from 'lucide-react';
+import { pokrytiKlienta, type PoleKryti } from '@/lib/pokryti';
 import type { Pripad } from '@/lib/pripadStore';
 
-export default function PokrytiKlienta({ profil, onToggle }: {
+export default function PokrytiKlienta({ profil, naAktivni, onToggle }: {
   profil: Pripad;
-  onToggle: (pole: 'maZivotni' | 'maMajetek', hodnota: boolean) => void;
+  /** nastav klienta aktivním před přechodem na nástroj */
+  naAktivni?: () => void;
+  onToggle: (pole: PoleKryti, hodnota: boolean) => void;
 }) {
   const oblasti = pokrytiKlienta(profil);
   const kryto = oblasti.filter((o) => o.kryto).length;
@@ -25,38 +29,41 @@ export default function PokrytiKlienta({ profil, onToggle }: {
       <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden mb-3">
         <div className="h-1.5 rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
       </div>
-      <p className="text-xs text-slate-500 mb-3">Komplexní pohled „co klient má vs. nemá". Nepokryté oblasti = co s ním řešit.</p>
+      <p className="text-xs text-slate-500 mb-3">Komplexní pohled „co klient má vs. nemá" napříč odvětvími. Nepokryté = co s ním řešit (klik vede na nástroj).</p>
 
-      <div className="grid sm:grid-cols-2 gap-1.5">
+      <div className="space-y-1.5">
         {oblasti.map((o) => {
           const klikatelne = !o.odvozeno && o.pole;
-          const obsah = (
-            <>
-              {o.kryto
-                ? <CheckCircle2 className="h-4.5 w-4.5 text-green-600 shrink-0" />
-                : <Circle className="h-4.5 w-4.5 text-slate-300 shrink-0" />}
-              <div className="min-w-0">
-                <div className={`text-sm font-semibold ${o.kryto ? 'text-slate-800' : 'text-slate-500'}`}>{o.nazev}</div>
-                <div className="text-[10px] text-slate-400 truncate">{o.popis}{!o.odvozeno ? ' · klikni pro označení' : ''}</div>
-              </div>
-            </>
-          );
-          if (klikatelne) {
-            return (
-              <button
-                key={o.id}
-                onClick={() => onToggle(o.pole!, !o.kryto)}
-                className={`flex items-center gap-2.5 rounded-xl border p-2.5 text-left transition-colors ${
-                  o.kryto ? 'border-green-200 bg-green-50/40' : 'border-slate-200 hover:border-primary-200 hover:bg-slate-50'
-                }`}
-              >
-                {obsah}
-              </button>
-            );
-          }
           return (
-            <div key={o.id} className={`flex items-center gap-2.5 rounded-xl border border-slate-100 p-2.5 ${o.kryto ? 'bg-green-50/30' : 'bg-slate-50/40'}`}>
-              {obsah}
+            <div
+              key={o.id}
+              className={`flex items-center gap-2.5 rounded-xl border p-2.5 ${
+                o.kryto ? 'border-green-200 bg-green-50/40' : 'border-slate-200 bg-slate-50/40'
+              }`}
+            >
+              <button
+                type="button"
+                onClick={klikatelne ? () => onToggle(o.pole!, !o.kryto) : undefined}
+                className={`flex items-center gap-2.5 min-w-0 flex-1 text-left ${klikatelne ? '' : 'cursor-default'}`}
+                title={klikatelne ? 'Klikni pro označení, zda klient produkt má' : undefined}
+              >
+                {o.kryto
+                  ? <CheckCircle2 className="h-4.5 w-4.5 text-green-600 shrink-0" />
+                  : <Circle className="h-4.5 w-4.5 text-slate-300 shrink-0" />}
+                <div className="min-w-0">
+                  <div className={`text-sm font-semibold ${o.kryto ? 'text-slate-800' : 'text-slate-500'}`}>{o.nazev}</div>
+                  <div className="text-[10px] text-slate-400 truncate">{o.popis}{klikatelne ? ' · klik = má/nemá' : ''}</div>
+                </div>
+              </button>
+              {!o.kryto && (
+                <Link
+                  href={o.href}
+                  onClick={naAktivni}
+                  className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-white border border-slate-200 px-2.5 py-1 text-[11px] font-bold text-primary hover:bg-primary-50 hover:border-primary-200"
+                >
+                  Řešit <ArrowRight className="h-3 w-3" />
+                </Link>
+              )}
             </div>
           );
         })}

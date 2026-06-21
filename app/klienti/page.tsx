@@ -133,7 +133,7 @@ export default function KlientiPage() {
         {/* Kokpit případu + zajištění klienta — provázaná procesní linka a „co má vs. nemá" */}
         <div className="grid lg:grid-cols-2 gap-5 mb-5">
           <ProcesPripadu profil={p} pocetPlanu={planyK.length} naAktivni={() => prepniKlienta(vybrany.id)} />
-          <PokrytiKlienta profil={p} onToggle={(pole, hodnota) => aktualizujKlienta(vybrany.id, { [pole]: hodnota })} />
+          <PokrytiKlienta profil={p} naAktivni={() => prepniKlienta(vybrany.id)} onToggle={(pole, hodnota) => aktualizujKlienta(vybrany.id, { [pole]: hodnota })} />
         </div>
 
         <div className="grid lg:grid-cols-2 gap-5">
