@@ -6,6 +6,7 @@ import * as investice from './investice';
 import * as penze from './penze';
 import * as pojisteni from './pojisteni';
 import { vyhodnotDotaznik, INVESTICNI_DOTAZNIK, DOTAZNIK_MAX_SKORE } from './dotaznik';
+import { najdiPrilezitosti } from '../prilezitosti';
 
 let prosly = 0;
 let selhaly = 0;
@@ -287,6 +288,33 @@ console.log('— INVESTIČNÍ DOTAZNÍK → rizikový profil —');
 
   // Profil je vždy jeden ze tří platných.
   ok(['konzervativni', 'vyvazeny', 'dynamicky'].includes(min.profil), 'profil je platná hodnota');
+}
+
+console.log('— PŘÍLEŽITOSTI (cross-sell radar) —');
+{
+  const now = '2026-01-01T00:00:00.000Z';
+  // Klient s nízkou rezervou, drahou hypotékou a dětmi → vysoké priority napřed.
+  const klienti = [
+    { id: 'a', vytvoreno: now, aktualizovano: now, profil: {
+      jmeno: 'Novák', vek: 40, vekOdchodu: 65, cistyPrijem: 50_000, vydaje: 30_000,
+      rezervaNasporeno: 10_000, hypotekaZustatek: 2_000_000, hypotekaSazba: 6.5, pocetDeti: 2,
+      mesicniVkladInvestice: 0,
+    } },
+    { id: 'b', vytvoreno: now, aktualizovano: now, profil: {
+      jmeno: 'Stabilní', vek: 35, vekOdchodu: 65, cistyPrijem: 60_000, vydaje: 25_000,
+      rezervaNasporeno: 200_000, mesicniVkladInvestice: 5000, rizikovyProfil: 'vyvazeny' as const,
+    } },
+  ];
+  const pr = najdiPrilezitosti(klienti);
+  ok(pr.length > 0, 'radar najde příležitosti');
+  ok(pr.some((x) => x.typ === 'rezerva' && x.klientId === 'a'), 'detekuje nízkou rezervu');
+  ok(pr.some((x) => x.typ === 'refinancovani' && x.klientId === 'a'), 'detekuje drahou hypotéku (refi)');
+  ok(pr.some((x) => x.typ === 'investice' && x.klientId === 'a'), 'detekuje nevyužitý cashflow');
+  ok(pr.some((x) => x.typ === 'deti' && x.klientId === 'a'), 'detekuje děti → vzdělání');
+  // Klient B je „zdravý" → minimum/žádné vysoké priority.
+  ok(!pr.some((x) => x.klientId === 'b' && x.priorita === 'vysoka'), 'zdravý klient nemá vysoké priority');
+  // Řazení: první má vysokou prioritu.
+  ok(pr[0].priorita === 'vysoka', 'řazeno dle priority (vysoká první)');
 }
 
 console.log('');

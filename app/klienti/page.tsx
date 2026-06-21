@@ -1,14 +1,26 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import {
   Users, UserRound, ArrowLeft, Plus, Pencil, Trash2, Check, Wallet, ShieldCheck,
-  ClipboardCheck, FolderClock, FileText, Loader2,
+  ClipboardCheck, FolderClock, FileText, Loader2, Lightbulb, ChevronRight,
 } from 'lucide-react';
 import { getUlozenePlanyAction } from '@/app/actions';
 import { PageHeader, Card, Badge, Button } from '@/components/ui';
 import { usePripad, popisPripadu, jmenoKlienta, jePripadPrazdny, type Pripad } from '@/lib/pripadStore';
+import { najdiPrilezitosti, type PrioritaPrilezitosti } from '@/lib/prilezitosti';
+
+const PRIORITA_STYL: Record<PrioritaPrilezitosti, { tone: 'red' | 'amber' | 'slate'; label: string }> = {
+  vysoka: { tone: 'red', label: 'Vysoká' },
+  stredni: { tone: 'amber', label: 'Střední' },
+  nizka: { tone: 'slate', label: 'Nízká' },
+};
+const TONE_TRIDA: Record<'red' | 'amber' | 'slate', string> = {
+  red: 'bg-red-100 text-red-700',
+  amber: 'bg-amber-100 text-amber-700',
+  slate: 'bg-slate-100 text-slate-600',
+};
 
 interface PlanMeta {
   id: string;
@@ -43,6 +55,8 @@ export default function KlientiPage() {
   }, []);
 
   const vybrany = klienti.find((k) => k.id === vybranyId) ?? null;
+  const prilezitosti = useMemo(() => najdiPrilezitosti(klienti), [klienti]);
+  const [vsePrilezitosti, setVsePrilezitosti] = useState(false);
 
   // Při otevření detailu nastav klienta jako aktivního a načti jeho poznámky.
   const otevri = (id: string) => {
@@ -183,6 +197,47 @@ export default function KlientiPage() {
         popis="Databáze vašich klientů — profil, uložené plány a poznámky. Vše jen ve vašem prohlížeči."
         akce={<Button variant="primary" onClick={pridej}><Plus className="h-4 w-4" /> Nový klient</Button>}
       />
+
+      {/* Příležitosti / cross-sell radar — odvozené z profilů klientů */}
+      {nacteno && prilezitosti.length > 0 && (
+        <Card className="mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-bold text-primary flex items-center gap-1.5">
+              <Lightbulb className="h-4 w-4 text-accent" /> Příležitosti ({prilezitosti.length})
+            </h3>
+            {prilezitosti.length > 4 && (
+              <button onClick={() => setVsePrilezitosti((v) => !v)} className="text-[11px] font-bold text-primary hover:underline">
+                {vsePrilezitosti ? 'Zobrazit méně' : `Zobrazit vše (${prilezitosti.length})`}
+              </button>
+            )}
+          </div>
+          <p className="text-[11px] text-slate-400 mb-3">Návrhy odvozené z profilů klientů — nejde o automatické doporučení, posuďte vždy individuálně.</p>
+          <div className="space-y-1.5">
+            {(vsePrilezitosti ? prilezitosti : prilezitosti.slice(0, 4)).map((p, i) => {
+              const styl = PRIORITA_STYL[p.priorita];
+              return (
+                <div key={`${p.klientId}-${p.typ}-${i}`} className="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50/60 p-2.5">
+                  <span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${TONE_TRIDA[styl.tone]}`}>{styl.label}</span>
+                  <button onClick={() => otevri(p.klientId)} className="shrink-0 text-sm font-bold text-primary hover:underline truncate max-w-[120px]" title={p.klientJmeno}>
+                    {p.klientJmeno}
+                  </button>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-semibold text-slate-800">{p.nadpis}</div>
+                    <div className="text-[11px] text-slate-500 truncate" title={p.duvod}>{p.duvod}</div>
+                  </div>
+                  <Link
+                    href={p.akce.href}
+                    onClick={() => prepniKlienta(p.klientId)}
+                    className="shrink-0 inline-flex items-center gap-1 text-[11px] font-bold text-primary bg-primary-50 hover:bg-primary-100 rounded-md px-2.5 py-1.5"
+                  >
+                    {p.akce.label} <ChevronRight className="h-3 w-3" />
+                  </Link>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
 
       {!nacteno ? (
         <div className="flex items-center justify-center py-12 text-slate-400"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>

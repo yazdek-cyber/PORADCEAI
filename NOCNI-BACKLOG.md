@@ -10,7 +10,8 @@ Legenda: ⬜ čeká · 🔄 probíhá · ✅ hotovo
 - ✅ A1. `/klienti` stránka: seznam klientů + detail (profil, jejich uložené plány, záznamy, poznámky). — v0.30
 - ✅ A2. Propojit uložené plány s klientem (klientId k plánu; v detailu filtrovat). — v0.33 (klientId stamp + /plany + /klienti párují přes klientId)
 - ✅ A3. Poznámky ke klientovi (localStorage) + rychlé akce (otevřít plán, nový záznam). — v0.30
-- ⬜ A4. (volitelné) Příležitosti výročí/fixace/konec à la eDO Cross-sell — lehký připomínkovač.
+- ✅ A4. Příležitosti / cross-sell radar à la eDO — panel na /klienti, odvozeno z profilů (rezerva,
+  refi, fixace, cashflow, penze, konsolidace, děti). — v0.37 (výročí/narozeniny vyžadují data → příště)
 
 ## B. Odstranit překryvy / dedupe
 - ⬜ B1. KB: zrušit 1-chunk stub duplicity (Produktové dotazníky, Modelová portfolia) ve prospěch plných verzí. (ověřit stav v DB)
