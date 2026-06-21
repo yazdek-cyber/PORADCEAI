@@ -525,9 +525,13 @@ export default function PlanPage() {
                     hypotekaZustatek: num(hypotekaZustatek) || undefined,
                     hypotekaSazba: num(hypotekaSazba) > 0 ? num(hypotekaSazba) / 100 : undefined,
                     hypotekaZbyvaMesicu: num(hypotekaZbyvaMesicu) || undefined,
+                    jineDluhy: num(jineDluhy) || undefined,
                     pocetDeti: num(pocetDeti) || undefined,
                     mesicniVkladInvestice: num(mesicniVkladInvestice) || undefined,
                     penzeMesicniVklad: num(penzeMesicniVklad) || undefined,
+                    rezervaNasporeno: num(rezervaNasporeno) || undefined,
+                    existujiciInvestice: num(existujiciInvestice) || undefined,
+                    penzeNasporeno: num(penzeNasporeno) || undefined,
                   }} />
                 </div>
               )}

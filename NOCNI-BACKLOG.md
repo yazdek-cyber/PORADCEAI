@@ -14,7 +14,9 @@ Legenda: ⬜ čeká · 🔄 probíhá · ✅ hotovo
   refi, fixace, cashflow, penze, konsolidace, děti). — v0.37 (výročí/narozeniny vyžadují data → příště)
 
 ## B. Odstranit překryvy / dedupe
-- ⬜ B1. KB: zrušit 1-chunk stub duplicity (Produktové dotazníky, Modelová portfolia) ve prospěch plných verzí. (ověřit stav v DB)
+- 🔄 B1. KB: zrušit 1-chunk stub duplicity. OVĚŘENO — 2 stuby k smazání (id 6ea3ad51 Produktové dotazníky,
+  f77c1ab2 Modelová portfolia; plné verze je pokrývají). Smazání z produkční Supabase ČEKÁ na výslovné OK uživatele
+  (blokoval bezpečnostní klasifikátor — destruktivní zásah do sdílené DB).
 - ⬜ B2. UI dedup: PlanPrehled vs KlientskaAnalyza (poradenský detail) — vyjasnit/zredukovat redundanci.
 - ⬜ B3. Konsolidovat duplikované `Pole`/`Karta` napříč stránkami do `components/ui`.
 - ✅ B4. Sjednotit markdown (/pripad má vlastní renderer → sdílený `Markdown`). — v0.32
@@ -30,7 +32,8 @@ Legenda: ⬜ čeká · 🔄 probíhá · ✅ hotovo
 - ✅ D2. Investiční dotazník → rizikový profil (mapuje na eDO portfolio). — v0.36
 
 ## E. Klientská analýza kompletní
-- ⬜ E1. Cashflow rozpad (příjmy/výdaje detail) + Aktuální portfolio klienta.
+- ✅ E1. Aktuální majetek (rozvaha: aktiva − závazky = čisté jmění) v klientské analýze. — v0.38
+  (cashflow rozpad už existoval v kartě „Příjmy a výdaje")
 
 ## F. Polish
 - ⬜ F1. Konzistence, prázdné stavy, mobil, přístupnost; chat fill-height na /poradna; drobnosti.

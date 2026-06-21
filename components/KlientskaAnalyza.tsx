@@ -25,9 +25,14 @@ export interface KlientCisla {
   hypotekaZustatek?: number;
   hypotekaSazba?: number;
   hypotekaZbyvaMesicu?: number;
+  jineDluhy?: number;
   pocetDeti?: number;
   mesicniVkladInvestice?: number;
   penzeMesicniVklad?: number;
+  // Aktuální majetek (stav) — pro rozvahu čistého jmění.
+  rezervaNasporeno?: number;
+  existujiciInvestice?: number;
+  penzeNasporeno?: number;
 }
 
 function Karta({ ikona, titulek, popis, children, sirka = '' }: { ikona: React.ReactNode; titulek: string; popis?: string; children: React.ReactNode; sirka?: string }) {
@@ -61,6 +66,15 @@ export default function KlientskaAnalyza({ v, klient }: { v: Vypocty; klient: Kl
   const investVklad = klient.mesicniVkladInvestice ?? 0;
   const penzeVklad = klient.penzeMesicniVklad ?? 0;
   const zbytekVolne = Math.max(0, volne - investVklad - penzeVklad);
+
+  // — Aktuální majetek (rozvaha) —
+  const majRezerva = klient.rezervaNasporeno ?? 0;
+  const majInvestice = klient.existujiciInvestice ?? 0;
+  const majPenze = klient.penzeNasporeno ?? 0;
+  const aktivaCelkem = majRezerva + majInvestice + majPenze;
+  const dluhyCelkem = (klient.hypotekaZustatek ?? 0) + (klient.jineDluhy ?? 0);
+  const cisteJmeni = aktivaCelkem - dluhyCelkem;
+  const maMajetek = aktivaCelkem > 0 || dluhyCelkem > 0;
 
   // — Ochrana —
   const invalKryti = v.efpaKryti?.invalidita ?? v.edoKryti?.invalidita ?? 0;
@@ -117,6 +131,51 @@ export default function KlientskaAnalyza({ v, klient }: { v: Vypocty; klient: Kl
             : 'Výdaje aktuálně vyčerpávají celý příjem — prvním krokem je najít prostor v rozpočtu na rezervu a zajištění.'}
         </Proc>
       </Karta>
+
+      {/* AKTUÁLNÍ MAJETEK (rozvaha) */}
+      {maMajetek && (
+        <Karta ikona={<Scale className="h-4 w-4 text-accent" />} titulek="Aktuální majetek" popis="Co klient dnes má a dluží — čisté jmění jako výchozí bod plánu.">
+          <div className="flex items-center gap-3">
+            {aktivaCelkem > 0 && (
+              <div className="text-center shrink-0">
+                <DonutObecny segmenty={[
+                  { podil: majRezerva / aktivaCelkem, barva: '#94a3b8' },
+                  { podil: majInvestice / aktivaCelkem, barva: 'var(--color-primary)' },
+                  { podil: majPenze / aktivaCelkem, barva: 'var(--color-accent)' },
+                ]} velikost={88} />
+                <div className="text-[10px] text-slate-400 mt-1">Složení aktiv</div>
+              </div>
+            )}
+            <div className="flex-1 space-y-1 text-[12px]">
+              {([['Rezerva', majRezerva, '#94a3b8'], ['Investice', majInvestice, 'var(--color-primary)'], ['Penze (naspořeno)', majPenze, 'var(--color-accent)']] as [string, number, string][]).map(([l, val, c]) => (
+                <div key={l} className="flex items-center justify-between gap-2">
+                  <span className="flex items-center gap-1.5 text-slate-600"><span className="h-2 w-2 rounded-full" style={{ background: c }} />{l}</span>
+                  <span className="font-semibold text-slate-800">{f(val)} Kč</span>
+                </div>
+              ))}
+              <div className="flex items-center justify-between gap-2 border-t border-slate-100 pt-1 mt-1">
+                <span className="text-slate-600">Aktiva celkem</span>
+                <span className="font-bold text-slate-800">{f(aktivaCelkem)} Kč</span>
+              </div>
+              {dluhyCelkem > 0 && (
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-slate-600">Závazky (hypotéka + dluhy)</span>
+                  <span className="font-semibold text-red-600">− {f(dluhyCelkem)} Kč</span>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className={`mt-3 rounded-xl px-3 py-2 ${cisteJmeni >= 0 ? 'bg-primary-50/60' : 'bg-red-50'}`}>
+            <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Čisté jmění (aktiva − závazky)</div>
+            <div className={`text-xl font-extrabold ${cisteJmeni >= 0 ? 'text-primary' : 'text-red-600'}`}>{f(cisteJmeni)} Kč</div>
+          </div>
+          <Proc>
+            {cisteJmeni >= 0
+              ? `Čisté jmění ${f(cisteJmeni)} Kč je odrazový můstek plánu. Cílem je nechat aktiva pracovat (investice, penze) a postupně snižovat drahé závazky.`
+              : `Závazky zatím převyšují aktiva o ${f(-cisteJmeni)} Kč — priorita je rezerva a řízené splácení dluhů před budováním investic.`}
+          </Proc>
+        </Karta>
+      )}
 
       {/* FINANČNÍ REZERVA */}
       <Karta ikona={<Wallet className="h-4 w-4 text-accent" />} titulek="Finanční rezerva" popis="Polštář pro nečekané výdaje a výpadek příjmu.">

@@ -500,3 +500,9 @@ Deterministický radar příležitostí napříč klienty (à la eDO Cross-sell)
 - `/klienti`: panel „Příležitosti" — priorita, klient (klik otevře případ), důvod a akce (Link nastaví
   klienta jako aktivního). Disclaimer (nejde o automatické doporučení).
 TSC 0, build OK, 78/78 testů (+7).
+
+## v0.38 — aktuální majetek / rozvaha v klientské analýze (E1)
+`KlientskaAnalyza` má novou kartu **Aktuální majetek**: složení aktiv (rezerva/investice/penze naspořeno,
+donut) − závazky (hypotéka + jiné dluhy) = **čisté jmění** jako výchozí bod plánu, vč. vysvětlení.
+`KlientCisla` rozšířeno (rezervaNasporeno, existujiciInvestice, penzeNasporeno, jineDluhy); napojeno z `/plan`
+i `/plany` (z uloženého profilu). TSC 0, build OK, 78/78 testů.
