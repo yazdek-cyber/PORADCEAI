@@ -41,7 +41,7 @@ export default function ProcesPripadu({
     { id: 'profil', nazev: 'Profil & data', popis: 'Sběr vstupů: příjmy, závazky, cíle a rodina.', href: '/plan', cta: maProfil ? 'Upravit profil' : 'Vyplnit profil', ikona: UserRound, hotovo: maProfil },
     { id: 'analyza', nazev: 'Finanční analýza', popis: 'Rozbor současné situace, potřeb a mezer — východisko PŘED plánem.', href: '/plan', cta: 'Otevřít analýzu', ikona: LineChart, hotovo: maProfil },
     { id: 'plan', nazev: 'Finanční plán', popis: 'Doporučení a řešení — východisko pro klienta (na základě analýzy).', href: '/plan', cta: maPlan ? 'Otevřít plán' : 'Vytvořit plán', ikona: Wallet, hotovo: maPlan },
-    { id: 'pojisteni', nazev: 'Pojištění z podmínek', popis: 'Ověřit krytí, výluky a čekací doby z podmínek.', href: '/pripad', cta: 'Analýza pojištění', ikona: ShieldCheck, hotovo: false },
+    { id: 'pojisteni', nazev: 'Pojištění z podmínek', popis: 'Ověřit krytí, výluky a čekací doby z podmínek.', href: '/pripad', cta: profil.maZivotni ? 'Pojištění' : 'Analýza pojištění', ikona: ShieldCheck, hotovo: !!profil.maZivotni },
     { id: 'zaznam', nazev: 'Záznam z jednání', popis: 'Doporučení a zdůvodnění (compliance) k tisku.', href: '/zaznam', cta: 'Vyplnit záznam', ikona: ClipboardCheck, hotovo: false },
     { id: 'uzavreni', nazev: 'Uzavření případu', popis: 'Shrnutí a předání klientovi.', href: '/zaznam', cta: 'Uzavřít', ikona: Flag, hotovo: false },
   ];

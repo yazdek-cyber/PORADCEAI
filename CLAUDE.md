@@ -61,6 +61,11 @@ Logika:
 - `lib/kalkulacky/` — **čisté deterministické kalkulačky** (uvery, investice, penze, pojisteni) — zdroj všech
   čísel; testy `kalkulacky.test.ts` (`npm test`). Dle metodiky KFP (Morningstar alokace, výnosy, ×200, EFPA).
 - `lib/financniPlan.ts` — `pripravPodklady` (předpočet kalkulaček z profilu) + `formatujPodklady`.
+- **Procesní linka / poradenství (v0.47+):** `lib/pokryti.ts` (co klient má vs. nemá, 6 oblastí),
+  `lib/prilezitosti.ts` (cross-sell radar), `lib/provize.ts` (kariérní stupně → %, INTERNÍ orientační
+  provize — needs-driven, NIKDY v klientském výstupu). Komponenty: `ProcesPripadu` (kokpit případu),
+  `PokrytiKlienta` (checklist zajištění), `PotencialMezery` (mezery & potenciál pro poradce, `print:hidden`),
+  `ModalNovyKlient` (zakládání klienta se serverovým potvrzením).
 - `lib/sazby/` — `SazbyProvider` (ruční/scraping/api) pro parametry produktů.
 - `lib/gemini.ts` — embeddingy (retry), `generateChatResponse/ClientSolution/FinancniPlan` (čísla nepočítá,
   bere z podkladů), OCR, url_context. Prompty zpevněné proti injection (kontext=data).
