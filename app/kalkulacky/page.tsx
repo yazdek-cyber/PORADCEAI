@@ -474,9 +474,38 @@ function RezervaKalk() {
   );
 }
 
+// ── ÚVĚRY: OSVČ v paušálním režimu daně (odhad příjmu pro bonitu) ────────────
+function OsvcKalk() {
+  const [obrat, setObrat] = useState('900000');
+  const [druh, setDruh] = useState<uvery.DruhCinnosti>('volna');
+  const r = useMemo(() => uvery.osvcPrijemPausal(num(obrat), druh), [obrat, druh]);
+  return (
+    <Karta ikona={<Landmark className="h-4 w-4 text-accent" />} titulek="OSVČ příjem (paušální daň)" popis="Odhad příjmu pro bonitu z ročního obratu (metodika eDO).">
+      <div className="grid grid-cols-2 gap-2">
+        <Pole label="Roční obrat (ř. 101)" value={obrat} set={setObrat} suffix="Kč" />
+        <label className="block">
+          <span className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Druh činnosti</span>
+          <select value={druh} onChange={(e) => setDruh(e.target.value as uvery.DruhCinnosti)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-primary focus:outline-none bg-white">
+            <option value="remeslna">Řemeslná / zemědělská (80 %)</option>
+            <option value="volna">Volná / vázaná / koncesovaná (60 %)</option>
+            <option value="svobodna">Svobodné povolání / jiné (40 %)</option>
+          </select>
+        </label>
+      </div>
+      <Hlavni label="Měsíční příjem pro banku" hodnota={`${f(r.mesicniPrijem)} Kč`} />
+      <div className="mt-2">
+        <Radek label="Roční příjem" hodnota={`${f(r.rocniPrijem)} Kč`} />
+        <Radek label="Použitý obrat" hodnota={`${f(r.pouzityObrat)} Kč (${pct(r.procento)})`} />
+      </div>
+      {r.nadLimit && <p className="text-[11px] text-amber-700 mt-2">Obrat nad 1 mil. Kč — pro paušální režim se počítá strop 1 mil. Kč.</p>}
+      <p className="text-[10px] text-slate-400 mt-2">Orientační (přístup typu Hypoteční banka). Jednotlivé banky se v metodice liší — viz dokument OSVČ v knowledge base.</p>
+    </Karta>
+  );
+}
+
 // ── Stránka ──────────────────────────────────────────────────────────────────
 const ZALOZKY = [
-  { id: 'uvery', nazev: 'Úvěry', ikona: Home, kalk: [HypotekaKalk, MaxUverKalk, RefinancKalk] },
+  { id: 'uvery', nazev: 'Úvěry', ikona: Home, kalk: [HypotekaKalk, MaxUverKalk, RefinancKalk, OsvcKalk] },
   { id: 'investice', nazev: 'Investice', ikona: TrendingUp, kalk: [ProjekceKalk, CilKalk, SrovnaniForemKalk] },
   { id: 'renta', nazev: 'Renta & penze', ikona: PiggyBank, kalk: [RentaKalk, PenzeKalk, DanovaUsporaKalk] },
   { id: 'pojisteni', nazev: 'Pojištění & rezerva', ikona: ShieldCheck, kalk: [PojistnaKalk, RezervaKalk] },

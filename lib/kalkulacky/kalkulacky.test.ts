@@ -75,6 +75,13 @@ console.log('— ÚVĚRY —');
   ok(blizko(r0, 0.05116, 0.01), `RPSN bez poplatků ≈ 5,12 % efektivní (=${(r0 * 100).toFixed(2)} %)`);
   const r1 = uvery.rpsn(1_000_000, 0.05, 120, 20_000, 200);
   ok(r1 > r0, 'RPSN s poplatky > RPSN bez poplatků');
+
+  // OSVČ paušál: obrat 900k, volná živnost (60 %) → roční 540k, měsíční 45k.
+  const osvc = uvery.osvcPrijemPausal(900_000, 'volna');
+  ok(osvc.rocniPrijem === 540_000 && blizko(osvc.mesicniPrijem, 45_000, 0.0001), 'OSVČ 900k×60% = 45k/měs');
+  // Strop obratu 1 mil.: obrat 1,5M se ořízne na 1M.
+  const osvcLimit = uvery.osvcPrijemPausal(1_500_000, 'remeslna');
+  ok(osvcLimit.pouzityObrat === 1_000_000 && osvcLimit.nadLimit === true, 'OSVČ obrat nad 1M ořezán na 1M + nadLimit');
 }
 
 console.log('— INVESTICE —');

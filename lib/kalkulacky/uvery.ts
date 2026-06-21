@@ -232,3 +232,26 @@ export function rpsn(
   const mesicniIRR = (lo + hi) / 2;
   return Math.pow(1 + mesicniIRR, 12) - 1;
 }
+
+// ── OSVČ v paušálním režimu daně — odhad příjmu pro bonitu ───────────────────
+// Dle metodiky eDO: u OSVČ bez daňového přiznání banky odhadují příjem z ročního obratu
+// (řádek 101, omezeno hranicí 1 mil. Kč pro paušální režim) a % dle druhu hlavní činnosti.
+export type DruhCinnosti = 'remeslna' | 'volna' | 'svobodna';
+
+export const PROCENTO_CINNOSTI: Record<DruhCinnosti, number> = {
+  remeslna: 0.8, // řemeslná živnost, zemědělská výroba, lesní a vodní hospodářství
+  volna: 0.6,    // volná, vázaná, koncesovaná živnost
+  svobodna: 0.4, // svobodná povolání / jiné (daňoví poradci, advokáti, autoři…)
+};
+
+export const OSVC_LIMIT_OBRATU = 1_000_000; // hranice paušálního režimu
+
+export function osvcPrijemPausal(rocniObrat: number, druh: DruhCinnosti): {
+  pouzityObrat: number; procento: number; rocniPrijem: number; mesicniPrijem: number; nadLimit: boolean;
+} {
+  const procento = PROCENTO_CINNOSTI[druh];
+  const nadLimit = rocniObrat > OSVC_LIMIT_OBRATU;
+  const pouzityObrat = Math.max(0, Math.min(rocniObrat, OSVC_LIMIT_OBRATU));
+  const rocniPrijem = pouzityObrat * procento;
+  return { pouzityObrat, procento, rocniPrijem, mesicniPrijem: rocniPrijem / 12, nadLimit };
+}
