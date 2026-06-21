@@ -7,7 +7,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
-const AUTH_GATING = false; // ⬅️ přepnout na true po externím setupu Auth (login gating)
+const AUTH_GATING = true; // Auth zapnutý (Supabase email/heslo) → nepřihlášení jdou na /login
 const VEREJNE = ['/login']; // routy dostupné bez přihlášení
 
 export async function proxy(request: NextRequest) {

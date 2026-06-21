@@ -6,9 +6,11 @@ import { useState, useEffect, useRef, type ReactNode } from 'react';
 import {
   Home, MessageSquare, Wallet, Calculator, FolderClock,
   Columns3, FolderOpen, Shield, ShieldCheck, AlertTriangle, Menu, X,
-  UserRound, ChevronDown, Plus, Trash2, Pencil, Check, ClipboardCheck, Settings, Users,
+  UserRound, ChevronDown, Plus, Trash2, Pencil, Check, ClipboardCheck, Settings, Users, LogOut,
 } from 'lucide-react';
 import { usePripad, jmenoKlienta, popisPripadu } from '@/lib/pripadStore';
+import { odhlasAction } from '@/app/login/actions';
+import { createClient } from '@/lib/supabase/client';
 
 // Navigace seskupená podle logiky práce poradce: rozcestník → poradna (znalosti) →
 // PŘÍPAD klienta (profil/plán/kalkulačky/uložené) → srovnání → dokumenty.
@@ -140,6 +142,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [isConfigured, setIsConfigured] = useState<boolean | null>(null);
   const [mobilOtevreno, setMobilOtevreno] = useState(false);
+  const [email, setEmail] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/check-config')
@@ -148,8 +151,31 @@ export default function AppShell({ children }: { children: ReactNode }) {
       .catch(() => setIsConfigured(false));
   }, []);
 
+  // Zjisti přihlášeného poradce (pro patičku + logout).
+  useEffect(() => {
+    createClient().auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null)).catch(() => {});
+  }, [pathname]);
+
   // Zavři mobilní zásuvku při přechodu na jinou stránku.
   useEffect(() => { setMobilOtevreno(false); }, [pathname]);
+
+  // Přihlašovací stránka nemá mít sidebar ani přepínač klientů (a nesmí volat usePripad → server).
+  if (pathname === '/login') {
+    return <main className="min-h-screen">{children}</main>;
+  }
+
+  // Patička sidebaru: přihlášený poradce + odhlášení.
+  const Paticka = (
+    <div className="mt-auto pt-6 px-1">
+      {email && <div className="px-2 mb-2 text-[11px] text-slate-500 truncate" title={email}>{email}</div>}
+      <form action={odhlasAction}>
+        <button type="submit" className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-primary transition-colors">
+          <LogOut className="h-4.5 w-4.5 shrink-0 text-slate-400" /> Odhlásit se
+        </button>
+      </form>
+      <div className="px-3 pt-3 text-[10px] text-slate-400">v0.44 · alfa</div>
+    </div>
+  );
 
   const Znacka = (
     <Link href="/" className="flex items-center gap-2.5">
@@ -204,7 +230,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
       <aside className="hidden lg:flex flex-col w-64 shrink-0 border-r border-slate-200/70 bg-white/70 backdrop-blur-sm px-4 py-5 print:hidden">
         <div className="px-2 mb-7">{Znacka}</div>
         {Navigace}
-        <div className="mt-auto pt-6 px-3 text-[10px] text-slate-400">v0.18 · alfa</div>
+        {Paticka}
       </aside>
 
       {/* Mobilní horní lišta */}
@@ -223,8 +249,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
       {mobilOtevreno && (
         <div className="lg:hidden fixed inset-0 z-30 print:hidden">
           <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm" onClick={() => setMobilOtevreno(false)} />
-          <div className="absolute top-14 left-0 bottom-0 w-72 max-w-[85%] bg-white shadow-pop px-4 py-5 overflow-y-auto animate-fade-in">
+          <div className="absolute top-14 left-0 bottom-0 w-72 max-w-[85%] bg-white shadow-pop px-4 py-5 overflow-y-auto flex flex-col animate-fade-in">
             {Navigace}
+            {Paticka}
           </div>
         </div>
       )}

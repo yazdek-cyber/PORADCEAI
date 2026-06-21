@@ -3,6 +3,8 @@
 import { processPdf } from '@/lib/documentProcessor';
 import { getEmbedding, generateChatResponse, generateClientSolution, extrahujSrovnani, generateFinancniPlan, ClientProfile } from '@/lib/gemini';
 import { supabaseAdmin, checkEnvConfigured } from '@/lib/supabase';
+import { createClient as createServerSupabase } from '@/lib/supabase/server';
+import { verifySession } from '@/lib/supabase/dal';
 import { POJISTOVNY } from '@/lib/pojistovny';
 import { objevPodminky } from '@/lib/podminkyScraper';
 import { pripravPodklady, formatujPodklady, type FinPlanProfil } from '@/lib/financniPlan';
@@ -399,12 +401,17 @@ export async function generujFinancniPlanAction(profil: FinPlanProfil) {
     // a hláva tiskového PDF i seznam plánů ho doplní klientsky z evidence přes neosobní klientId.
     // klientId (náhodné UUID, ne PII) ponecháváme kvůli spolehlivému párování plán↔klient.
     try {
+      const user = await verifySession();
+      const supabase = await createServerSupabase();
       const profilBezJmena = { ...profil };
       delete profilBezJmena.jmeno;
-      const { error: insErr } = await supabaseAdmin.from('financni_plany').insert({
+      // Párování plán↔klient drží `profil.klientId` (JSONB); FK sloupec klient_id necháváme prázdný,
+      // ať insert nezávisí na tom, jestli klient už dorazil na server (optimistické ukládání).
+      const { error: insErr } = await supabase.from('financni_plany').insert({
         profil: profilBezJmena as unknown as Record<string, unknown>,
         plan_md: plan,
         vypocty: vypocty as unknown as Record<string, unknown>,
+        poradce_id: user.id,
       });
       if (insErr) console.error('Uložení finančního plánu selhalo (nekritické):', insErr.message);
     } catch (e) {
@@ -444,7 +451,9 @@ export async function generujFinancniPlanAction(profil: FinPlanProfil) {
 export async function getUlozenePlanyAction() {
   await checkConfig();
   try {
-    const { data, error } = await supabaseAdmin
+    await verifySession();
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase
       .from('financni_plany')
       .select('id, vytvoreno_kdy, profil')
       .order('vytvoreno_kdy', { ascending: false })
@@ -461,7 +470,9 @@ export async function getUlozenePlanyAction() {
 export async function getUlozenyPlanAction(id: string) {
   await checkConfig();
   try {
-    const { data, error } = await supabaseAdmin
+    await verifySession();
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase
       .from('financni_plany')
       .select('plan_md, vypocty, profil, vytvoreno_kdy')
       .eq('id', id)
@@ -478,7 +489,9 @@ export async function getUlozenyPlanAction(id: string) {
 export async function smazUlozenyPlanAction(id: string) {
   await checkConfig();
   try {
-    const { error } = await supabaseAdmin.from('financni_plany').delete().eq('id', id);
+    await verifySession();
+    const supabase = await createServerSupabase();
+    const { error } = await supabase.from('financni_plany').delete().eq('id', id);
     if (error) throw new Error(`Smazání selhalo: ${error.message}`);
     return { success: true };
   } catch (error) {

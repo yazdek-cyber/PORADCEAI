@@ -29,7 +29,11 @@ UI shell & design systém (v0.18):
 - `components/ui.tsx` — **sdílené primitivy** (`'use client'`: PageHeader, Card/CardHeader, **Karta**, Field(=Pole,
   `useId`), Stat, Radek, Badge, Button, SectionLabel) — jeden vizuální jazyk; stránky/komponenty NEmají vlastní
   duplikáty Pole/Karta/Radek. Tokeny v `app/globals.css` (shadow-soft/card/pop, sémantická zeleň).
-- `lib/pripadStore.ts` — **evidence klientů + sdílený „případ"** (`usePripad()`, localStorage, BEZ serveru).
+- **AUTH (v0.44):** login poradce (Supabase Auth e-mail/heslo). `lib/supabase/{client,server,dal}.ts`
+  (browser/server klient přes `@supabase/ssr`, `verifySession`), `proxy.ts` (Next 16 — dříve middleware;
+  obnova session + gating na `/login`), `app/login`. Server Actions si session ověřují SAMY (`verifySession`).
+- `lib/pripadStore.ts` — **evidence klientů + sdílený „případ"** (`usePripad()`). Od v0.44 SERVEROVÁ
+  (Supabase `klienti`, per poradce přes RLS); API beze změny, zápisy optimistické, `aktivniId` v localStorage.
   VÍCE pojmenovaných klientů s aktivním klientem; modul-level store + `useSyncExternalStore` (všechny instance
   se synchronizují — přepínač v sidebaru ihned promítne i obsah stránky). Migrace ze single-case v0.18.
   Profil se zadá jednou v plánu a propíše se do kalkulaček (předvyplnění), Rychlého návrhu, záznamu i Domů.
@@ -78,7 +82,8 @@ Logika:
   — top-N dle cosine, volitelné filtry (vč. kategorie). POZOR: měnit přes DROP+CREATE (jinak přetížení).
 - Admin: dokumenty seskupené po kategoriích + přeřazení (`updateDokumentMetaAction` přepíše i `chunky`).
 - `workspace_id` má DB default = výchozí WS (viz `VYCHOZI_WORKSPACE_ID` v `lib/supabase.ts`), takže insert kód se nemění.
-- **RLS zapnuté, zatím permisivní** (service_role ji obchází) — připraveno na Supabase Auth.
+- **RLS: `klienti` a `financni_plany` izolované per poradce** (`poradce_id = auth.uid()`, v0.44).
+  Sdílená KB/config (`dokumenty`/`chunky`/`produkty`/`workspaces`) zatím permisivní (jen přes service_role).
 - **HNSW index zrušen** → vyhledávání je přesné (exact KNN). Pro velký objem dat zvážit index + REINDEX.
 
 ## Konvence

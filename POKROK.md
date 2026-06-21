@@ -507,6 +507,24 @@ donut) − závazky (hypotéka + jiné dluhy) = **čisté jmění** jako výchoz
 `KlientCisla` rozšířeno (rezervaNasporeno, existujiciInvestice, penzeNasporeno, jineDluhy); napojeno z `/plan`
 i `/plany` (z uloženého profilu). TSC 0, build OK, 78/78 testů.
 
+## v0.42–v0.44 — AUTH + SERVEROVÁ DATA (login poradce, izolace per poradce)
+Zásadní architektonický krok: klienti i plány nově NA SERVERU (Supabase) s reálným RLS, místo localStorage.
+- **v0.42** základ: `@supabase/ssr`, `lib/supabase/{client,server,dal}.ts` (browser/server klient, `verifySession`).
+- **v0.43** login: `app/login` (e-mail/heslo, `useActionState`), `proxy.ts` (Next 16 — obnova session).
+- **v0.44** zapnutí:
+  - DB migrace: `poradce_id` (FK `auth.users`) na `klienti` + `financni_plany`, indexy; reálné **RLS
+    per poradce** (`poradce_id = auth.uid()`) místo permisivních politik. Existujících 12 plánů přiřazeno účtu.
+  - `app/dataActions.ts` — serverové akce pro klienty (přes session client, RLS).
+  - `app/actions.ts` — `financni_plany` (insert/get/smaz) přes session client + `verifySession` + `poradce_id`.
+  - `lib/pripadStore.ts` — PŘEPSÁN na server-backed (veřejné API beze změny; optimistické zápisy,
+    `aktivniId` v localStorage, JEDNORÁZOVÁ migrace starých localStorage klientů na server).
+  - `proxy.ts` `AUTH_GATING=true` (nepřihlášení → /login); `AppShell` bypass /login + logout + e-mail.
+- Ověřeno: izolace RLS (dominik vidí 12 plánů, cizí uid 0), TSC 0, build OK, 80/80 testů.
+- Účet poradce vytvořen přes admin API (`dominik@highlife.cz`).
+- ZÁMĚRNĚ ponecháno permisivní: sdílená KB/config (`chunky`/`dokumenty`/`produkty`/`workspaces`) — přístup jen
+  přes server service-role; zúžení (authenticated-read/service-write) je follow-up. `poradceStore` (branding)
+  zatím localStorage — follow-up na `poradci_profil`.
+
 ## v0.39 — opravy z review nového kódu (C2)
 Adversariální review v0.35–v0.38 (4 dimenze) → 4 potvrzeno / 5 zamítnuto. Opraveno:
 - `prilezitosti.ts`: příležitost „nevyužitý cashflow" se spouštěla i bez vyplněných výdajů (smyšlené číslo

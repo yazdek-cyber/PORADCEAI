@@ -1,12 +1,12 @@
 'use client';
 
-// SDÍLENÝ „PŘÍPAD KLIENTA" + EVIDENCE KLIENTŮ (v0.19).
-// Profil klienta se zadá jednou a propíše se do plánu, kalkulaček, analýzy pojištění, záznamu
-// z jednání i na Domů. Nově: VÍCE pojmenovaných klientů s přepínačem (aktivní klient).
-// Úložiště: localStorage prohlížeče (BEZ serveru / bez odeslání kamkoliv) — respektuje hranici,
-// že reálná data klientů neopouštějí prohlížeč, dokud je poradce vědomě nepošle do plánu/AI.
+// EVIDENCE KLIENTŮ — od v0.44 SERVEROVÁ (Supabase, per poradce přes RLS), dříve localStorage.
+// Veřejné API `usePripad()` zůstává STEJNÉ (8 konzumentů beze změny). Vnitřek: data ze serveru,
+// optimistické zápisy (UI reaguje hned, na pozadí se uloží na server), `aktivniId` v localStorage
+// (UI preference, ne data klienta) a JEDNORÁZOVÁ migrace starých localStorage klientů na server.
 
-import { useState, useEffect, useCallback, useSyncExternalStore } from 'react';
+import { useCallback, useSyncExternalStore } from 'react';
+import { nactiKlientyAction, ulozKlientaAction, smazKlientaServerAction } from '@/app/dataActions';
 
 export interface Pripad {
   jmeno?: string;
@@ -54,8 +54,9 @@ interface Ulozeno {
   aktivniId: string | null;
 }
 
-const KLIC = 'poradceai:klienti';
-const STARY_KLIC = 'poradceai:pripad'; // single-case verze v0.18 (migrace)
+const AKTIVNI_KLIC = 'poradceai:aktivniKlient'; // jen UI preference (které id je aktivní)
+const STARY_KLIC = 'poradceai:klienti';         // localStorage evidence (v0.19) — pro jednorázovou migraci
+const STARY_SINGLE = 'poradceai:pripad';        // single-case (v0.18)
 const PRAZDNO: Ulozeno = { klienti: [], aktivniId: null };
 
 function novyId(): string {
@@ -89,150 +90,172 @@ export function jmenoKlienta(p: Pripad): string {
   return p.jmeno?.trim() || (jePripadPrazdny(p) ? 'Nový klient' : 'Klient bez jména');
 }
 
-function nacti(): Ulozeno {
-  if (typeof window === 'undefined') return PRAZDNO;
+// ── Modul-level store (sdílený pro všechny instance usePripad v dokumentu) ────
+let stav: Ulozeno = PRAZDNO;
+let nactenoFlag = false; // true = data ze serveru načtena (po loginu)
+let nacitaSe = false;
+const listeners = new Set<() => void>();
+
+function emit(): void { listeners.forEach((l) => l()); }
+
+function ulozAktivni(id: string | null): void {
   try {
-    const s = window.localStorage.getItem(KLIC);
+    if (id) window.localStorage.setItem(AKTIVNI_KLIC, id);
+    else window.localStorage.removeItem(AKTIVNI_KLIC);
+  } catch { /* kvóta/soukromý režim — UI preference, neblokuje */ }
+}
+
+/** Aplikuje nový stav: paměť + perzistence aktivního id + notifikace. */
+function commit(next: Ulozeno): void { stav = next; ulozAktivni(next.aktivniId); emit(); }
+
+/** Jednorázové načtení STARÝCH localStorage klientů (pro migraci na server). */
+function nactiStareLokalni(): KlientZaznam[] {
+  try {
+    const s = window.localStorage.getItem(STARY_KLIC);
     if (s) {
-      // Validace tvaru za běhu (cast nestačí): poškozená/cizí data → fallback na PRAZDNO,
-      // jinak by `stav.klienti.find(...)` mohlo spadnout (a protože usePripad volá i sidebar,
-      // shodil by se celý layout, ne jen jedna stránka). Validujeme i JEDNOTLIVÉ záznamy —
-      // klienti: [null] nebo prvky bez id by jinak prošly a spadly až při renderu.
       const parsed = JSON.parse(s);
-      if (parsed && typeof parsed === 'object' && Array.isArray(parsed.klienti)) {
-        const klienti: KlientZaznam[] = parsed.klienti.filter(
+      if (parsed && Array.isArray(parsed.klienti)) {
+        return parsed.klienti.filter(
           (k: unknown): k is KlientZaznam =>
             !!k && typeof k === 'object'
             && typeof (k as KlientZaznam).id === 'string'
             && !!(k as KlientZaznam).profil && typeof (k as KlientZaznam).profil === 'object',
         );
-        // aktivniId přijmi jen pokud ukazuje na existující záznam, jinak na první (či null).
-        const aktivniId = klienti.some((k) => k.id === parsed.aktivniId)
-          ? parsed.aktivniId : (klienti[0]?.id ?? null);
-        return { klienti, aktivniId };
       }
-      return PRAZDNO;
     }
-    // Migrace ze single-case verze (v0.18): jeden uložený případ → jeden klient.
-    const stary = window.localStorage.getItem(STARY_KLIC);
-    if (stary) {
-      const profil = JSON.parse(stary) as Pripad;
+    const single = window.localStorage.getItem(STARY_SINGLE);
+    if (single) {
+      const profil = JSON.parse(single) as Pripad;
       if (!jePripadPrazdny(profil)) {
         const kdy = profil.aktualizovano || new Date().toISOString();
-        const z: KlientZaznam = { id: novyId(), profil, vytvoreno: kdy, aktualizovano: kdy };
-        return { klienti: [z], aktivniId: z.id };
+        return [{ id: novyId(), profil, vytvoreno: kdy, aktualizovano: kdy }];
       }
     }
-  } catch { /* poškozený JSON → prázdno */ }
-  return PRAZDNO;
+  } catch { /* poškozený JSON → nic k migraci */ }
+  return [];
 }
 
-function zapis(u: Ulozeno): void {
-  try { window.localStorage.setItem(KLIC, JSON.stringify(u)); } catch { /* kvóta */ }
-}
+async function nactiZeServeru(): Promise<void> {
+  if (nacitaSe || nactenoFlag) return;
+  nacitaSe = true;
+  try {
+    let aktivni: string | null = null;
+    try { aktivni = window.localStorage.getItem(AKTIVNI_KLIC); } catch { /* ignore */ }
 
-// ── Modul-level store ───────────────────────────────────────────────────────
-// Jeden sdílený stav pro VŠECHNY instance usePripad ve stejném dokumentu (přepínač
-// v sidebaru i obsah stránky). `storage` event řeší jen jiné taby — uvnitř jednoho
-// dokumentu se nespouští, proto vlastní pub/sub + useSyncExternalStore.
-let stav: Ulozeno = PRAZDNO;
-let inicializovano = false;
-const listeners = new Set<() => void>();
+    let klienti = await nactiKlientyAction();
 
-function zajistiInit(): void {
-  if (!inicializovano && typeof window !== 'undefined') {
-    stav = nacti();
-    inicializovano = true;
+    // Jednorázová migrace: server prázdný + lokálně existují klienti → nahraj je na server.
+    if (klienti.length === 0) {
+      const stari = nactiStareLokalni();
+      if (stari.length) {
+        await Promise.allSettled(stari.map((k) => ulozKlientaAction(k.id, k.profil)));
+        klienti = stari;
+        try { window.localStorage.removeItem(STARY_KLIC); window.localStorage.removeItem(STARY_SINGLE); } catch { /* ignore */ }
+      }
+    }
+
+    const aktivniId = klienti.some((k) => k.id === aktivni) ? aktivni : (klienti[0]?.id ?? null);
+    stav = { klienti, aktivniId };
+  } catch {
+    // Nepřihlášený / chyba — necháme prázdno. Datové akce sami přesměrují na /login (verifySession).
+    stav = PRAZDNO;
+  } finally {
+    nactenoFlag = true;
+    nacitaSe = false;
+    emit();
   }
-}
-function emit(): void { listeners.forEach((l) => l()); }
-function commit(next: Ulozeno): void { stav = next; zapis(next); emit(); }
-
-if (typeof window !== 'undefined') {
-  window.addEventListener('storage', (e) => {
-    if (e.key === KLIC) { stav = nacti(); inicializovano = true; emit(); }
-  });
 }
 
 function subscribe(cb: () => void): () => void {
-  zajistiInit();
   listeners.add(cb);
+  if (typeof window !== 'undefined' && !nactenoFlag && !nacitaSe) void nactiZeServeru();
   return () => { listeners.delete(cb); };
 }
-function getSnapshot(): Ulozeno { zajistiInit(); return stav; }
+function getSnapshot(): Ulozeno { return stav; }
 function getServerSnapshot(): Ulozeno { return PRAZDNO; }
+function getNacteno(): boolean { return nactenoFlag; }
+function getNactenoServer(): boolean { return false; }
+
+/** Pomocná: nahlas chybu serverového uložení (optimistický zápis už proběhl v UI). */
+function hlasChybu(akce: string) {
+  return (r: { ok: boolean; error?: string }) => {
+    if (!r.ok) console.error(`Serverové uložení selhalo (${akce}):`, r.error);
+  };
+}
 
 /**
- * React hook nad evidencí klientů (sdílený store). `nacteno` = po hydrataci na klientu.
- * `pripad` = profil aktivního klienta (nebo {}), aby stávající stránky fungovaly beze změny.
- * Všechny instance se synchronizují (přepnutí klienta v sidebaru ihned promítne i obsah stránky).
+ * React hook nad evidencí klientů. `nacteno` = po načtení ze serveru (po loginu).
+ * `pripad` = profil aktivního klienta (nebo {}). Zápisy jsou OPTIMISTICKÉ: UI se aktualizuje
+ * hned, na pozadí se uloží na server. Tvar API je shodný s předchozí localStorage verzí.
  */
 export function usePripad() {
   const stavLoc = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-  const [nacteno, setNacteno] = useState(false);
-  useEffect(() => { setNacteno(true); }, []);
+  const nacteno = useSyncExternalStore(subscribe, getNacteno, getNactenoServer);
 
   const aktivni = stavLoc.klienti.find((k) => k.id === stavLoc.aktivniId) ?? null;
   const pripad: Pripad = aktivni?.profil ?? {};
 
-  /** Uloží profil do AKTIVNÍHO klienta (když žádný není, založí ho). Vrací id klienta,
-   *  na který se zapsalo (existující i nově založený) — pro spolehlivé párování plán↔klient. */
+  /** Uloží profil do AKTIVNÍHO klienta (když žádný není, založí ho). Vrací id (synchronně). */
   const ulozPripad = useCallback((data: Pripad): string => {
-    zajistiInit();
     const now = new Date().toISOString();
     const profil: Pripad = { ...data, aktualizovano: now };
     let klienti = stav.klienti;
     let aktivniId = stav.aktivniId;
+    let id = aktivniId;
     if (aktivniId && klienti.some((k) => k.id === aktivniId)) {
       klienti = klienti.map((k) => (k.id === aktivniId ? { ...k, profil, aktualizovano: now } : k));
     } else {
-      const id = novyId();
+      id = novyId();
       klienti = [...klienti, { id, profil, vytvoreno: now, aktualizovano: now }];
       aktivniId = id;
     }
     commit({ klienti, aktivniId });
-    return aktivniId;
+    void ulozKlientaAction(id as string, profil).then(hlasChybu('ulozPripad'));
+    return id as string;
   }, []);
 
   const novyKlient = useCallback((jmeno?: string) => {
-    zajistiInit();
     const now = new Date().toISOString();
     const id = novyId();
     const profil: Pripad = jmeno?.trim() ? { jmeno: jmeno.trim() } : {};
     commit({ klienti: [...stav.klienti, { id, profil, vytvoreno: now, aktualizovano: now }], aktivniId: id });
+    void ulozKlientaAction(id, profil).then(hlasChybu('novyKlient'));
   }, []);
 
   const prepniKlienta = useCallback((id: string) => {
-    zajistiInit();
     commit({ ...stav, aktivniId: id });
   }, []);
 
   const prejmenujKlienta = useCallback((id: string, jmeno: string) => {
-    zajistiInit();
     const now = new Date().toISOString();
-    commit({
-      ...stav,
-      klienti: stav.klienti.map((k) =>
-        k.id === id ? { ...k, profil: { ...k.profil, jmeno: jmeno.trim() }, aktualizovano: now } : k),
+    let profilNovy: Pripad | null = null;
+    const klienti = stav.klienti.map((k) => {
+      if (k.id !== id) return k;
+      profilNovy = { ...k.profil, jmeno: jmeno.trim(), aktualizovano: now };
+      return { ...k, profil: profilNovy, aktualizovano: now };
     });
+    commit({ ...stav, klienti });
+    if (profilNovy) void ulozKlientaAction(id, profilNovy).then(hlasChybu('prejmenujKlienta'));
   }, []);
 
   const smazKlienta = useCallback((id: string) => {
-    zajistiInit();
     const klienti = stav.klienti.filter((k) => k.id !== id);
     const aktivniId = stav.aktivniId === id ? (klienti[0]?.id ?? null) : stav.aktivniId;
     commit({ klienti, aktivniId });
+    void smazKlientaServerAction(id).then(hlasChybu('smazKlienta'));
   }, []);
 
   /** Sloučí změny do profilu KONKRÉTNÍHO klienta (dle id), nezávisle na aktivním. */
   const aktualizujKlienta = useCallback((id: string, zmeny: Partial<Pripad>) => {
-    zajistiInit();
     const now = new Date().toISOString();
-    commit({
-      ...stav,
-      klienti: stav.klienti.map((k) =>
-        k.id === id ? { ...k, profil: { ...k.profil, ...zmeny, aktualizovano: now }, aktualizovano: now } : k),
+    let profilNovy: Pripad | null = null;
+    const klienti = stav.klienti.map((k) => {
+      if (k.id !== id) return k;
+      profilNovy = { ...k.profil, ...zmeny, aktualizovano: now };
+      return { ...k, profil: profilNovy, aktualizovano: now };
     });
+    commit({ ...stav, klienti });
+    if (profilNovy) void ulozKlientaAction(id, profilNovy).then(hlasChybu('aktualizujKlienta'));
   }, []);
 
   return {
