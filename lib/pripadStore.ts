@@ -37,6 +37,11 @@ export interface Pripad {
   maZivotni?: boolean;   // životní pojištění (ochrana příjmů)
   maMajetek?: boolean;   // pojištění majetku/domácnosti
   maOdpovednost?: boolean; // pojištění odpovědnosti
+  // Současné KRYTÍ z existujících smluv (Kč) — pro přesnou mezeru „co smlouva kryje vs. potřeba".
+  soucasneKrytiSmrt?: number;
+  soucasneKrytiInvalidita?: number;
+  soucasneKrytiZO?: number; // závažná onemocnění
+  soucasneKrytiTN?: number; // trvalé následky úrazu
   // Ostatní
   rizikovyProfil?: 'konzervativni' | 'vyvazeny' | 'dynamicky';
   povolani?: string;

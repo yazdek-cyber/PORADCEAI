@@ -57,6 +57,12 @@ export default function PlanPage() {
   const [partner, setPartner] = useState(true);
   const [pocetDeti, setPocetDeti] = useState('2');
 
+  // Současné krytí z existujících smluv (Kč) — pro mezeru „co smlouva kryje vs. potřeba".
+  const [krytiSmrt, setKrytiSmrt] = useState('');
+  const [krytiInvalidita, setKrytiInvalidita] = useState('');
+  const [krytiZO, setKrytiZO] = useState('');
+  const [krytiTN, setKrytiTN] = useState('');
+
   const [penzeNasporeno, setPenzeNasporeno] = useState('150000');
   const [penzeMesicniVklad, setPenzeMesicniVklad] = useState('1000');
   const [cilovaRentaDuchod, setCilovaRentaDuchod] = useState('');
@@ -105,6 +111,10 @@ export default function PlanPage() {
     rezervaNasporeno: num(rezervaNasporeno) || undefined,
     existujiciInvestice: num(existujiciInvestice) || undefined,
     penzeNasporeno: num(penzeNasporeno) || undefined,
+    soucasneKrytiSmrt: num(krytiSmrt) || undefined,
+    soucasneKrytiInvalidita: num(krytiInvalidita) || undefined,
+    soucasneKrytiZO: num(krytiZO) || undefined,
+    soucasneKrytiTN: num(krytiTN) || undefined,
   };
 
   // — Sdílený případ klienta (propojení s kalkulačkami / Domů / Rychlým návrhem) —
@@ -133,6 +143,10 @@ export default function PlanPage() {
     if (p.mesicniSplatkyDluhu !== undefined) setMesicniSplatkyDluhu(String(p.mesicniSplatkyDluhu));
     if (p.partner !== undefined) setPartner(p.partner);
     if (p.pocetDeti !== undefined) setPocetDeti(String(p.pocetDeti));
+    if (p.soucasneKrytiSmrt !== undefined) setKrytiSmrt(String(p.soucasneKrytiSmrt));
+    if (p.soucasneKrytiInvalidita !== undefined) setKrytiInvalidita(String(p.soucasneKrytiInvalidita));
+    if (p.soucasneKrytiZO !== undefined) setKrytiZO(String(p.soucasneKrytiZO));
+    if (p.soucasneKrytiTN !== undefined) setKrytiTN(String(p.soucasneKrytiTN));
     if (p.penzeNasporeno !== undefined) setPenzeNasporeno(String(p.penzeNasporeno));
     if (p.penzeMesicniVklad !== undefined) setPenzeMesicniVklad(String(p.penzeMesicniVklad));
     if (p.cilovaRentaDuchod !== undefined) setCilovaRentaDuchod(String(p.cilovaRentaDuchod));
@@ -163,6 +177,10 @@ export default function PlanPage() {
     setMesicniSplatkyDluhu(s(p.mesicniSplatkyDluhu));
     setPartner(p.partner ?? false);
     setPocetDeti(s(p.pocetDeti));
+    setKrytiSmrt(s(p.soucasneKrytiSmrt));
+    setKrytiInvalidita(s(p.soucasneKrytiInvalidita));
+    setKrytiZO(s(p.soucasneKrytiZO));
+    setKrytiTN(s(p.soucasneKrytiTN));
     setPenzeNasporeno(s(p.penzeNasporeno));
     setPenzeMesicniVklad(s(p.penzeMesicniVklad));
     setCilovaRentaDuchod(s(p.cilovaRentaDuchod));
@@ -196,6 +214,10 @@ export default function PlanPage() {
       penzeMesicniVklad: num(penzeMesicniVklad) || undefined,
       cilovaRentaDuchod: num(cilovaRentaDuchod) || undefined,
       ocekavanaStatniPenze: num(ocekavanaStatniPenze) || undefined,
+      soucasneKrytiSmrt: num(krytiSmrt) || undefined,
+      soucasneKrytiInvalidita: num(krytiInvalidita) || undefined,
+      soucasneKrytiZO: num(krytiZO) || undefined,
+      soucasneKrytiTN: num(krytiTN) || undefined,
       rizikovyProfil,
       povolani: povolani.trim() || undefined,
       zdravotniStav: zdravotniStav.trim() || undefined,
@@ -252,6 +274,10 @@ export default function PlanPage() {
       penzeMesicniVklad: num(penzeMesicniVklad),
       cilovaRentaDuchod: num(cilovaRentaDuchod) || undefined,
       ocekavanaStatniPenze: num(ocekavanaStatniPenze) || undefined,
+      soucasneKrytiSmrt: num(krytiSmrt) || undefined,
+      soucasneKrytiInvalidita: num(krytiInvalidita) || undefined,
+      soucasneKrytiZO: num(krytiZO) || undefined,
+      soucasneKrytiTN: num(krytiTN) || undefined,
       povolani: povolani.trim() || undefined,
       zdravotniStav: zdravotniStav.trim() || undefined,
       cile: cile.trim() || undefined,
@@ -400,6 +426,15 @@ export default function PlanPage() {
                   <input type="checkbox" checked={partner} onChange={(e) => setPartner(e.target.checked)} disabled={loading} className="h-4 w-4" />
                   Partner/ka
                 </label>
+              </div>
+              <div className="mt-2">
+                <div className="text-[11px] font-semibold text-slate-500 mb-1">Současné krytí ze smluv <span className="font-normal text-slate-400">(pro mezeru „co kryje vs. potřeba")</span></div>
+                <div className="grid grid-cols-2 gap-2">
+                  <Pole label="Krytí smrt" value={krytiSmrt} set={setKrytiSmrt} placeholder="0" suffix="Kč" />
+                  <Pole label="Krytí invalidita" value={krytiInvalidita} set={setKrytiInvalidita} placeholder="0" suffix="Kč" />
+                  <Pole label="Krytí záv. onem." value={krytiZO} set={setKrytiZO} placeholder="0" suffix="Kč" />
+                  <Pole label="Krytí trv. následky" value={krytiTN} set={setKrytiTN} placeholder="0" suffix="Kč" />
+                </div>
               </div>
             </div>
 

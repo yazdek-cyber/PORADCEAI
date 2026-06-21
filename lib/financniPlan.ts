@@ -41,6 +41,11 @@ export interface FinPlanProfil {
   ocekavanaStatniPenze?: number; // měsíčně
   // Cíle klienta (KFP finanční mapa): bydlení, vzdělání dětí, auto, finanční nezávislost…
   cileSeznam?: FinCil[];
+  // Současné krytí z existujících smluv (Kč) — pro mezeru „co smlouva kryje vs. potřeba".
+  soucasneKrytiSmrt?: number;
+  soucasneKrytiInvalidita?: number;
+  soucasneKrytiZO?: number;
+  soucasneKrytiTN?: number;
   // Ostatní
   rizikovyProfil?: RizikovyProfil;
   povolani?: string;

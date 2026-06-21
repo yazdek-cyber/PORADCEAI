@@ -33,11 +33,32 @@ export default function PotencialMezery({ v, klient, stupen }: { v: Vypocty; kli
   const volnyCashflow = Math.max(0, prijem - vydaje - investVklad - penzeVklad);
 
   const rezervaMa = Math.max(0, v.rezerva.doporucenaRezerva - v.rezerva.chybiDoRezervy);
-  const ochranaPotreba = v.efpaKryti?.invalidita ?? v.edoKryti?.invalidita ?? 0;
   const penzeMezeraMes = Math.max(0, v.penze.mezera?.mesicniMezera ?? 0);
   const penzeKapitalPotreba = v.penze.potrebnyKapitalRentaKFP ?? 0;
   const refi = v.uvery?.refinancovani;
   const refiUspora = refi && refi.vyplati ? refi.mesicniUspora : 0;
+
+  // Pojistná rizika: POTŘEBA (z kalkulačky eDO/EFPA) vs. SOUČASNÉ KRYTÍ (z existujících smluv) → MEZERA.
+  const rizika: { nazev: string; potreba: number; ma: number; akce: string }[] = [
+    { nazev: 'Smrt', potreba: v.edoKryti?.smrt ?? v.efpaKryti?.smrt ?? 0, ma: klient.soucasneKrytiSmrt ?? 0, akce: 'Sjednat/navýšit krytí smrti (ŽP)' },
+    { nazev: 'Invalidita', potreba: v.edoKryti?.invalidita ?? v.efpaKryti?.invalidita ?? 0, ma: klient.soucasneKrytiInvalidita ?? 0, akce: 'Sjednat/navýšit invaliditu (ŽP)' },
+    { nazev: 'Závažná onemocnění', potreba: v.edoKryti?.zavazneOnemocneni ?? 0, ma: klient.soucasneKrytiZO ?? 0, akce: 'Sjednat/navýšit závažná onemocnění' },
+    { nazev: 'Trvalé následky úrazu', potreba: v.edoKryti?.trvaleNasledkyUrazu ?? v.efpaKryti?.trvaleNasledkyUrazu ?? 0, ma: klient.soucasneKrytiTN ?? 0, akce: 'Sjednat/navýšit TN úrazu' },
+  ];
+  const pojistneRadky: Radek[] = rizika
+    .filter((r) => r.potreba > 0)
+    .map((r) => {
+      const mezera = Math.max(0, r.potreba - r.ma);
+      return {
+        oblast: `Pojištění — ${r.nazev}`,
+        ma: `${f(r.ma)} Kč`,
+        potreba: `${f(r.potreba)} Kč`,
+        mezera,
+        mezeraText: mezera > 0 ? `${f(mezera)} Kč` : 'pokryto ✓',
+        akce: r.akce,
+        jednotka: 'Kč' as const,
+      };
+    });
 
   const radky: Radek[] = [
     {
@@ -49,15 +70,7 @@ export default function PotencialMezery({ v, klient, stupen }: { v: Vypocty; kli
       akce: 'Doplnit rezervu (spořicí účet / fond peněžního trhu)',
       jednotka: 'Kč',
     },
-    {
-      oblast: 'Ochrana příjmů (invalidita)',
-      ma: 'zadat současné krytí',
-      potreba: `${f(ochranaPotreba)} Kč`,
-      mezera: ochranaPotreba,
-      mezeraText: ochranaPotreba > 0 ? `až ${f(ochranaPotreba)} Kč` : '—',
-      akce: 'Sjednat/navýšit životní pojištění (invalidita, smrt, PN/TN)',
-      jednotka: 'Kč',
-    },
+    ...pojistneRadky,
     {
       oblast: 'Penze a renta',
       ma: `${f(klient.penzeMesicniVklad ?? 0)} Kč/měs`,
@@ -157,7 +170,7 @@ export default function PotencialMezery({ v, klient, stupen }: { v: Vypocty; kli
         <Info className="h-4 w-4 text-accent shrink-0 mt-0.5" />
         <p className="text-[11px] leading-relaxed text-slate-600">
           Mezery jsou <strong>potřeby klienta podložené jeho čísly</strong> — řešte je v jeho zájmu (komplexní zajištění klienta).
-          Pro přesné „co smlouva kryje a co ne" doplňte <strong>současné krytí klienta</strong> (zatím nezadáno).
+          U pojištění je mezera = <strong>potřeba − současné krytí</strong> ze smluv (zadejte je v profilu plánu).
         </p>
       </div>
     </div>

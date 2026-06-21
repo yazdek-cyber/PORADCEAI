@@ -34,6 +34,11 @@ export interface KlientCisla {
   rezervaNasporeno?: number;
   existujiciInvestice?: number;
   penzeNasporeno?: number;
+  // Současné krytí z existujících smluv (Kč) — pro mezeru „co smlouva kryje vs. potřeba".
+  soucasneKrytiSmrt?: number;
+  soucasneKrytiInvalidita?: number;
+  soucasneKrytiZO?: number;
+  soucasneKrytiTN?: number;
 }
 
 function Proc({ children }: { children: React.ReactNode }) {

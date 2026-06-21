@@ -411,6 +411,9 @@ export async function generujFinancniPlanAction(profil: FinPlanProfil) {
       `Rezerva naspořeno: ${profil.rezervaNasporeno ?? 0} Kč · Investice: ${profil.existujiciInvestice ?? 0} Kč (měs. vklad ${profil.mesicniVkladInvestice ?? 0} Kč)`,
       `Hypotéka: ${profil.hypotekaZustatek ?? 0} Kč${profil.hypotekaSazba ? `, sazba ${(profil.hypotekaSazba * 100).toFixed(2)} %, zbývá ${profil.hypotekaZbyvaMesicu ?? '?'} měs.` : ''} · Jiné dluhy: ${profil.jineDluhy ?? 0} Kč`,
       `Penze: naspořeno ${profil.penzeNasporeno ?? 0} Kč, měs. vklad ${profil.penzeMesicniVklad ?? 0} Kč, věk odchodu ${profil.vekOdchodu ?? 65}`,
+      (profil.soucasneKrytiSmrt || profil.soucasneKrytiInvalidita || profil.soucasneKrytiZO || profil.soucasneKrytiTN)
+        ? `Současné krytí ze smluv (Kč): smrt ${profil.soucasneKrytiSmrt ?? 0}, invalidita ${profil.soucasneKrytiInvalidita ?? 0}, závažná onemocnění ${profil.soucasneKrytiZO ?? 0}, trvalé následky ${profil.soucasneKrytiTN ?? 0}. Doporučení uveď jako MEZERU (potřeba − současné krytí), ne celé znovu.`
+        : 'Současné pojistné krytí klienta: nezadáno (uveď doporučenou potřebu).',
       `Rizikový profil: ${profil.rizikovyProfil ?? 'vyvazeny'} · Zdravotní stav: ${profil.zdravotniStav ?? '–'}`,
       profil.cileSeznam && profil.cileSeznam.length > 0
         ? `Cíle (CO/KDY/KOLIK): ${profil.cileSeznam.map((c) => `${c.nazev} ${c.castka} Kč za ${c.roky} let`).join('; ')}`
