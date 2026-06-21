@@ -517,3 +517,14 @@ Adversariální review v0.35–v0.38 (4 dimenze) → 4 potvrzeno / 5 zamítnuto.
 - `DotaznikKalk`: „Uložit profil do případu" bez aktivního klienta zakládalo prázdného „fantomového"
   klienta → tlačítko se ukáže jen s vybraným klientem, jinak hláška.
 TSC 0, build OK, 80/80 testů (+2).
+
+## B1 — úklid knowledge base (mimo kód, po OK uživatele)
+Smazány 2 stub duplicity ze Supabase (staré 1-chunk verze nahrazené plnými): „Produktové dotazníky"
+a „Modelová portfolia a investiční principy". KB nyní: metodika 11 · postup firmy 14 · podmínky 2 = 27 dok.
+
+## v0.40 — polish (F1)
+- `/poradna`: přístupnost — `aria-label` na tlačítku Odeslat a na vstupu dotazu (ikonová tlačítka jinde
+  už mají `title`). Chat má fill-height (bylo).
+- Domů (`app/page.tsx`): nový teaser **Příležitosti** — top 3 z cross-sell radaru napříč klienty,
+  klik nastaví klienta aktivním a vede na akci. Zviditelňuje funkci z v0.37.
+TSC 0, build OK, 80/80 testů.

@@ -14,9 +14,8 @@ Legenda: ⬜ čeká · 🔄 probíhá · ✅ hotovo
   refi, fixace, cashflow, penze, konsolidace, děti). — v0.37 (výročí/narozeniny vyžadují data → příště)
 
 ## B. Odstranit překryvy / dedupe
-- 🔄 B1. KB: zrušit 1-chunk stub duplicity. OVĚŘENO — 2 stuby k smazání (id 6ea3ad51 Produktové dotazníky,
-  f77c1ab2 Modelová portfolia; plné verze je pokrývají). Smazání z produkční Supabase ČEKÁ na výslovné OK uživatele
-  (blokoval bezpečnostní klasifikátor — destruktivní zásah do sdílené DB).
+- ✅ B1. KB: zrušeny 2 stub duplicity (Produktové dotazníky, Modelová portfolia) ve prospěch plných verzí.
+  Smazáno z produkční Supabase po výslovném OK uživatele. KB nyní: metodika 11 · postup firmy 14 · podmínky 2 = 27 dok.
 - ⬜ B2. UI dedup: PlanPrehled vs KlientskaAnalyza (poradenský detail) — vyjasnit/zredukovat redundanci.
 - ⬜ B3. Konsolidovat duplikované `Pole`/`Karta` napříč stránkami do `components/ui`.
 - ✅ B4. Sjednotit markdown (/pripad má vlastní renderer → sdílený `Markdown`). — v0.32
@@ -39,7 +38,9 @@ Legenda: ⬜ čeká · 🔄 probíhá · ✅ hotovo
   (cashflow rozpad už existoval v kartě „Příjmy a výdaje")
 
 ## F. Polish
-- ⬜ F1. Konzistence, prázdné stavy, mobil, přístupnost; chat fill-height na /poradna; drobnosti.
+- ✅ F1. Polish: chat /poradna už má fill-height; přístupnost (aria-label Send + input v /poradna; ostatní
+  ikonová tlačítka mají title); Domů nově ukazuje teaser „Příležitosti" (top 3 z radaru). — v0.40
+  (prázdné stavy už OK napříč; další drobnosti průběžně)
 
 ## Hotovo tuto noc (+ ráno po pádu)
 - ✅ v0.29 eDO modelová portfolia → plán doporučí konkrétní fondy dle rizikového profilu.

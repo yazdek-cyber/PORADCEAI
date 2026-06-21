@@ -405,12 +405,15 @@ export default function ChatPage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Zeptejte se na pojistné podmínky (např. invalidita Generali)..."
+              aria-label="Dotaz na pojistné podmínky"
               className="flex-1 rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-primary focus:outline-none placeholder-slate-400"
               disabled={loading}
             />
           <button
             type="submit"
             disabled={loading || !input.trim()}
+            aria-label="Odeslat dotaz"
+            title="Odeslat dotaz"
             className={`flex items-center justify-center rounded-lg px-4 text-white transition-all duration-200 ${
               loading || !input.trim()
                 ? 'bg-slate-300 cursor-not-allowed'

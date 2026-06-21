@@ -1,14 +1,22 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import {
   MessageSquare, Wallet, Calculator, Columns3, FolderOpen, FileText,
   FolderClock, ArrowRight, Sparkles, ShieldCheck, TrendingUp, Loader2, UserRound,
+  Lightbulb, ChevronRight,
 } from 'lucide-react';
 import { getUlozenePlanyAction } from '@/app/actions';
 import { PageHeader, Card, Badge } from '@/components/ui';
 import { usePripad, jePripadPrazdny, popisPripadu } from '@/lib/pripadStore';
+import { najdiPrilezitosti, type PrioritaPrilezitosti } from '@/lib/prilezitosti';
+
+const PRIORITA_TONE: Record<PrioritaPrilezitosti, { tridy: string; label: string }> = {
+  vysoka: { tridy: 'bg-red-100 text-red-700', label: 'Vysoká' },
+  stredni: { tridy: 'bg-amber-100 text-amber-700', label: 'Střední' },
+  nizka: { tridy: 'bg-slate-100 text-slate-600', label: 'Nízká' },
+};
 
 interface PlanMeta {
   id: string;
@@ -53,8 +61,9 @@ function Dlazdice({ name, href, icon: Icon, desc }: { name: string; href: string
 export default function DashboardPage() {
   const [plany, setPlany] = useState<PlanMeta[]>([]);
   const [loading, setLoading] = useState(true);
-  const { pripad, nacteno } = usePripad();
+  const { pripad, klienti, nacteno, prepniKlienta } = usePripad();
   const maPripad = nacteno && !jePripadPrazdny(pripad);
+  const prilezitosti = useMemo(() => najdiPrilezitosti(klienti), [klienti]);
 
   useEffect(() => {
     getUlozenePlanyAction()
@@ -96,6 +105,41 @@ export default function DashboardPage() {
             </div>
           </Card>
         </Link>
+      )}
+
+      {/* Příležitosti (cross-sell radar) — top 3 napříč klienty */}
+      {nacteno && prilezitosti.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+              <Lightbulb className="h-4 w-4 text-accent" /> Příležitosti
+            </h2>
+            <Link href="/klienti" className="text-sm font-bold text-primary hover:text-primary-600">Všechny ({prilezitosti.length}) →</Link>
+          </div>
+          <Card>
+            <div className="divide-y divide-slate-100">
+              {prilezitosti.slice(0, 3).map((p, i) => {
+                const tone = PRIORITA_TONE[p.priorita];
+                return (
+                  <Link
+                    key={`${p.klientId}-${p.typ}-${i}`}
+                    href={p.akce.href}
+                    onClick={() => prepniKlienta(p.klientId)}
+                    className="flex items-center gap-3 py-2.5 group"
+                  >
+                    <span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${tone.tridy}`}>{tone.label}</span>
+                    <span className="shrink-0 text-sm font-bold text-primary truncate max-w-[120px]" title={p.klientJmeno}>{p.klientJmeno}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-semibold text-slate-800 group-hover:text-primary truncate">{p.nadpis}</div>
+                      <div className="text-[11px] text-slate-400 truncate">{p.duvod}</div>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-accent shrink-0" />
+                  </Link>
+                );
+              })}
+            </div>
+          </Card>
+        </div>
       )}
 
       {/* Princip produktu — krátká připomínka hodnoty */}
