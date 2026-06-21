@@ -548,6 +548,22 @@ Deploy přes Vercel CLI (`vercel --prod`); 5 env proměnných v Production (vč.
 Smoke test prod OK: `/`→`/login` (gating), `/login` 200, `/api/check-config` 200 (mimo gating).
 Login: `dominik.klimek@edofinance.cz`. Follow-up: doména do Supabase Auth URL, příp. GitHub auto-deploy.
 
+## v0.47–v0.52 — PROVÁZANÁ PROCESNÍ LINKA + provize + pokrytí (autonomní dávka)
+Vize uživatele: komplexní poradenství jako PROVÁZANÝ proces „od založení po uzavření", služba = klient má
+zajištěno VŠE, provize jen jako interní orientační přehled (needs-driven, ne hnací motor).
+- **v0.47** zakládání klienta: modal místo `window.prompt` + SERVEROVÉ potvrzení (klient se přidá až po
+  úspěšném uložení → konec „klient se nezaloží napořád"). `novyKlientServer`, `ModalNovyKlient`.
+- **v0.48** kokpit případu (`ProcesPripadu`): postup Profil → **ANALÝZA** (rozbor, PŘED plánem) → **PLÁN**
+  (východisko pro klienta) → Pojištění → Záznam → Uzavření, se stavem + CTA „další krok". Cross-link na /plan.
+- **v0.49** poradenský panel „Mezery & potenciál" (`PotencialMezery`, jen pro poradce, `print:hidden`):
+  co klient má vs. potřebuje z reálných podkladů.
+- **v0.50** provize: `lib/provize.ts` (kariérní stupně → %, BJ=250, orientační odhad, sazby jako data),
+  kariérní stupeň v /nastaveni, sekundární provizní přehled v panelu. NESTRANNOST: provize neřídí doporučení.
+- **v0.51** pokrytí klienta „co má vs. nemá" (`lib/pokryti.ts`, `PokrytiKlienta`): 6 oblastí, část odvozená,
+  pojistné krytí zadá poradce (`maZivotni`/`maMajetek`). Skóre zajištění X/6 = míra služby.
+- **v0.52** provázanost: Domů → kokpit případu (deep-link `/klienti?id=`) + skóre zajištění.
+Průběžně TSC 0, build OK, 84/84 testů.
+
 ## v0.39 — opravy z review nového kódu (C2)
 Adversariální review v0.35–v0.38 (4 dimenze) → 4 potvrzeno / 5 zamítnuto. Opraveno:
 - `prilezitosti.ts`: příležitost „nevyužitý cashflow" se spouštěla i bez vyplněných výdajů (smyšlené číslo
