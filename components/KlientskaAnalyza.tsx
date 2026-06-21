@@ -7,6 +7,7 @@ import { INVALIDITA, STATISTIKY_ZDROJ } from '@/lib/edoStatistiky';
 import { portfolioProProfil, barvaTridy } from '@/lib/edoPortfolia';
 import { uvery } from '@/lib/kalkulacky';
 import { Karta } from '@/components/ui';
+import ModelaceRizik from '@/components/ModelaceRizik';
 
 // KLIENTSKÁ GRAFICKÁ ANALÝZA (eDO-styl). Výstup „pro klienta" — grafy + kontext (PROČ) napříč
 // životními oblastmi (cashflow → rezerva → ochrana → bydlení → cíle/děti → růst majetku → penze).
@@ -227,6 +228,9 @@ export default function KlientskaAnalyza({ v, klient }: { v: Vypocty; klient: Kl
           ~{pct(nahradaInval)} vašeho příjmu. Pojištění má dorovnat zbytek, aby rodina udržela životní úroveň.
         </Proc>
       </Karta>
+
+      {/* MODELACE RIZIK — krytí vs. potřeba (eDO obchodní rozhovor) */}
+      <ModelaceRizik v={v} klient={klient} />
 
       {/* BYDLENÍ */}
       <Karta ikona={<Home className="h-4 w-4 text-accent" />} titulek="Bydlení a úvěry" popis={maHypoteku ? 'Vaše hypotéka a možnosti optimalizace.' : 'Vaše úvěrová kapacita a náklady financování.'}>
