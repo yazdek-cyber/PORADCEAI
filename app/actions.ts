@@ -395,9 +395,14 @@ export async function generujFinancniPlanAction(profil: FinPlanProfil) {
     const plan = await generateFinancniPlan(profilText, podkladyText, contextChunks);
 
     // 5) Uložení plánu (best-effort, neblokuje výsledek).
+    // DATOVÁ MINIMALIZACE: jméno klienta (PII) na server NEukládáme — pro generování není potřeba
+    // a hláva tiskového PDF i seznam plánů ho doplní klientsky z evidence přes neosobní klientId.
+    // klientId (náhodné UUID, ne PII) ponecháváme kvůli spolehlivému párování plán↔klient.
     try {
+      const profilBezJmena = { ...profil };
+      delete profilBezJmena.jmeno;
       const { error: insErr } = await supabaseAdmin.from('financni_plany').insert({
-        profil: profil as unknown as Record<string, unknown>,
+        profil: profilBezJmena as unknown as Record<string, unknown>,
         plan_md: plan,
         vypocty: vypocty as unknown as Record<string, unknown>,
       });

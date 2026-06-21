@@ -95,10 +95,21 @@ function nacti(): Ulozeno {
     const s = window.localStorage.getItem(KLIC);
     if (s) {
       // Validace tvaru za běhu (cast nestačí): poškozená/cizí data → fallback na PRAZDNO,
-      // jinak by `stav.klienti.find(...)` mohlo spadnout (např. klienti = null).
+      // jinak by `stav.klienti.find(...)` mohlo spadnout (a protože usePripad volá i sidebar,
+      // shodil by se celý layout, ne jen jedna stránka). Validujeme i JEDNOTLIVÉ záznamy —
+      // klienti: [null] nebo prvky bez id by jinak prošly a spadly až při renderu.
       const parsed = JSON.parse(s);
       if (parsed && typeof parsed === 'object' && Array.isArray(parsed.klienti)) {
-        return { klienti: parsed.klienti, aktivniId: parsed.aktivniId ?? null };
+        const klienti: KlientZaznam[] = parsed.klienti.filter(
+          (k: unknown): k is KlientZaznam =>
+            !!k && typeof k === 'object'
+            && typeof (k as KlientZaznam).id === 'string'
+            && !!(k as KlientZaznam).profil && typeof (k as KlientZaznam).profil === 'object',
+        );
+        // aktivniId přijmi jen pokud ukazuje na existující záznam, jinak na první (či null).
+        const aktivniId = klienti.some((k) => k.id === parsed.aktivniId)
+          ? parsed.aktivniId : (klienti[0]?.id ?? null);
+        return { klienti, aktivniId };
       }
       return PRAZDNO;
     }

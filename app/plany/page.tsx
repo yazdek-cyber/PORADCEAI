@@ -170,7 +170,7 @@ export default function PlanyPage() {
         })()}
         {syncHlaska && <p className="print:hidden text-xs font-semibold text-green-700">{syncHlaska}</p>}
 
-        <TiskHlavicka titulek="Finanční plán" podtitulek="4 pilíře: penze · investice · úvěry · pojištění" klient={detail.profil?.jmeno} datum={datum(detail.datum)} />
+        <TiskHlavicka titulek="Finanční plán" podtitulek="4 pilíře: penze · investice · úvěry · pojištění" klient={jmenoProKlientId(detail.klientId) || detail.profil?.jmeno} datum={datum(detail.datum)} />
 
         {detail.vypocty && (
           <div>

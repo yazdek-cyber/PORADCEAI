@@ -12,7 +12,7 @@ import PlanDokument from '@/components/PlanDokument';
 import PlanPrehled from '@/components/PlanPrehled';
 import KlientskaAnalyza from '@/components/KlientskaAnalyza';
 import { TiskHlavicka, TiskPaticka } from '@/components/Tisk';
-import { usePripad, jePripadPrazdny, popisPripadu } from '@/lib/pripadStore';
+import { usePripad, jePripadPrazdny, popisPripadu, type Pripad } from '@/lib/pripadStore';
 
 interface SourceChunk {
   id: string;
@@ -140,6 +140,37 @@ export default function PlanPage() {
     if (p.cile) setCile(p.cile);
   };
 
+  /** Plně SYNCHRONIZUJE formulář s daným klientem — i prázdná pole vyresetuje na výchozí.
+   *  Používá se při PŘEPNUTÍ klienta (na rozdíl od „Načíst do formuláře", které jen nedestruktivně
+   *  doplní), aby ve formuláři nezůstala čísla předchozího klienta a nezapsala se omylem novému. */
+  const nastavFormular = (p: Pripad) => {
+    const s = (v: number | undefined) => (v === undefined || v === null ? '' : String(v));
+    setJmeno(p.jmeno ?? '');
+    setVek(s(p.vek));
+    setVekOdchodu(s(p.vekOdchodu));
+    setCistyPrijem(s(p.cistyPrijem));
+    setVydaje(s(p.vydaje));
+    setRizikovyProfil(p.rizikovyProfil ?? 'vyvazeny');
+    setRezervaNasporeno(s(p.rezervaNasporeno));
+    setExistujiciInvestice(s(p.existujiciInvestice));
+    setMesicniVkladInvestice(s(p.mesicniVkladInvestice));
+    setHypotekaZustatek(s(p.hypotekaZustatek));
+    setHypotekaSazba(s(p.hypotekaSazba));
+    setHypotekaZbyvaMesicu(s(p.hypotekaZbyvaMesicu));
+    setJineDluhy(s(p.jineDluhy));
+    setMesicniSplatkyDluhu(s(p.mesicniSplatkyDluhu));
+    setPartner(p.partner ?? false);
+    setPocetDeti(s(p.pocetDeti));
+    setPenzeNasporeno(s(p.penzeNasporeno));
+    setPenzeMesicniVklad(s(p.penzeMesicniVklad));
+    setCilovaRentaDuchod(s(p.cilovaRentaDuchod));
+    setOcekavanaStatniPenze(s(p.ocekavanaStatniPenze));
+    setPovolani(p.povolani ?? '');
+    setZdravotniStav(p.zdravotniStav ?? '');
+    setCile(p.cile ?? '');
+    setCileList([]); // cíle (cileSeznam) se neukládají do případu → při přepnutí klienta vyčistit, ať se nemíchají
+  };
+
   /** Uloží aktuální formulář do sdíleného případu (zachová jméno klienta).
    *  Vrací id klienta, na který se zapsalo — pro orazítkování plánu (párování plán↔klient). */
   const ulozDoPripadu = (): string => {
@@ -170,12 +201,14 @@ export default function PlanPage() {
     });
   };
 
-  // Načti formulář z aktivního klienta — při příchodu i při PŘEPNUTÍ klienta v sidebaru.
+  // Synchronizuj formulář s aktivním klientem — při příchodu i při PŘEPNUTÍ klienta v sidebaru.
+  // I prázdného/nového klienta promítni (vyresetuje formulář), aby se data jednoho klienta
+  // nezapsala omylem druhému (kontaminace mezi případy).
   useEffect(() => {
     if (!nacteno) return;
     if (aktivniId === poslIdRef.current) return; // stejný klient → nepřepisuj rozdělanou práci
     poslIdRef.current = aktivniId;
-    if (!jePripadPrazdny(pripad)) nactiZPripadu();
+    nastavFormular(pripad);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nacteno, aktivniId]);
 

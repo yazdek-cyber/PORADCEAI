@@ -19,7 +19,10 @@ Legenda: ⬜ čeká · 🔄 probíhá · ✅ hotovo
 - ✅ B4. Sjednotit markdown (/pripad má vlastní renderer → sdílený `Markdown`). — v0.32
 
 ## C. Kvalita — multi-agent audit (Workflow)
-- ⬜ C1. Code-review Workflow nad novým kódem (v0.18–v0.33): bugy/React/orchestrace/bezpečnost → opravit potvrzené.
+- ✅ C1. Code-review Workflow nad novým kódem (v0.18–v0.34): 5 dimenzí × adversariální ověření → 10 potvrzeno / 7 zamítnuto.
+  Opraveno (v0.35): schema.sql DROP+CREATE hledej_chunky · kontaminace formuláře mezi klienty (/plan reset) ·
+  PII jméno se neukládá na server (jen klientId) · validace záznamů v pripadStore.nacti · zavádějící copy /klienti.
+  DEFER (low): tichá ztráta při kvótě localStorage v pripadStore.zapis (riziko minimální — klíč drží jen text, ne logo).
 
 ## D. Kalkulačky
 - ✅ D1. OSVČ bonita kalkulačka (z nahrané metodiky — paušální režim daně). — v0.31

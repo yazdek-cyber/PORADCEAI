@@ -68,7 +68,14 @@ CREATE POLICY permisivni_vse ON chunky FOR ALL USING (true) WITH CHECK (true);
 --   CREATE INDEX chunky_embedding_idx ON chunky USING hnsw (embedding vector_cosine_ops);
 --   a po větších změnách REINDEX.
 
--- Funkce pro vyhledávání podobných chunků; volitelné filtry na pojišťovnu, workspace a doménu.
+-- Funkce pro vyhledávání podobných chunků; volitelné filtry na pojišťovnu, workspace, doménu a kategorii.
+-- POZOR: signatura (počet/typy parametrů) i RETURNS TABLE se v historii měnily. CREATE OR REPLACE
+-- nedokáže změnit návratový typ ani nahradit funkci s jiným počtem parametrů (vytvořil by přetížení),
+-- proto staré signatury napřed zahodíme — migrace je tak idempotentní a re-run na starší DB nespadne.
+DROP FUNCTION IF EXISTS hledej_chunky(VECTOR(768), INTEGER, TEXT);
+DROP FUNCTION IF EXISTS hledej_chunky(VECTOR(768), INTEGER, TEXT, UUID);
+DROP FUNCTION IF EXISTS hledej_chunky(VECTOR(768), INTEGER, TEXT, UUID, TEXT);
+DROP FUNCTION IF EXISTS hledej_chunky(VECTOR(768), INTEGER, TEXT, UUID, TEXT, TEXT);
 CREATE OR REPLACE FUNCTION hledej_chunky(
   dotaz_embedding VECTOR(768),
   pocet INTEGER DEFAULT 8,

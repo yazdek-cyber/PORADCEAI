@@ -150,7 +150,7 @@ export default function KlientiPage() {
               <p className="text-sm text-slate-500">
                 Zatím žádné uložené plány pro tohoto klienta.{' '}
                 <Link href="/plan" className="font-bold text-primary hover:underline">Vytvořit plán →</Link>
-                <span className="block text-[11px] text-slate-400 mt-1">Plány se ke klientovi párují podle jména — vyplňte jméno klienta ve formuláři plánu.</span>
+                <span className="block text-[11px] text-slate-400 mt-1">Plány se ke klientovi párují automaticky při vygenerování (přes interní id); u starších plánů pomůže shoda jména.</span>
               </p>
             ) : (
               <div className="divide-y divide-slate-100">
