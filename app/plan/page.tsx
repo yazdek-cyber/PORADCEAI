@@ -11,7 +11,7 @@ import type { FinPlanProfil, RizikovyProfil, FinCil, Vypocty } from '@/lib/finan
 import PlanDokument from '@/components/PlanDokument';
 import PlanPrehled from '@/components/PlanPrehled';
 import KlientskaAnalyza, { type KlientCisla } from '@/components/KlientskaAnalyza';
-import PotencialMezery from '@/components/PotencialMezery';
+import KomplexniAnalyza from '@/components/KomplexniAnalyza';
 import { usePoradce } from '@/lib/poradceStore';
 import { stupenDleNazvu } from '@/lib/provize';
 import { TiskHlavicka, TiskPaticka } from '@/components/Tisk';
@@ -604,12 +604,9 @@ export default function PlanPage() {
                 </div>
               )}
 
-              {/* Mezery & potenciál — pohled pro PORADCE (skrytý v klientském PDF) */}
+              {/* Komplexní analýza po pilířích — pohled pro PORADCE (skrytý v klientském PDF) */}
               {vypocty && (
-                <div>
-                  <h3 className="text-sm font-bold text-primary mb-2 print:hidden flex items-center gap-1.5"><TrendingUp className="h-4 w-4 text-accent" />Mezery &amp; potenciál (pro poradce)</h3>
-                  <PotencialMezery v={vypocty} klient={klientCisla} stupen={stupen} />
-                </div>
+                <KomplexniAnalyza v={vypocty} klient={klientCisla} stupen={stupen} naAktivni={() => ulozDoPripadu()} />
               )}
 
               {/* Detailní čísla pro poradce */}

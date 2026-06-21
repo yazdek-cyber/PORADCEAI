@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useContext, createContext } from 'react';
+import { useState, useEffect, useMemo, useContext, createContext } from 'react';
 import { Calculator, Home, TrendingUp, PiggyBank, ShieldCheck, Target, Landmark, Wallet, Printer, UserRound, UserCheck, ClipboardList, Check, Save } from 'lucide-react';
 import { uvery, investice, penze, pojisteni } from '@/lib/kalkulacky';
 import { vyhodnotDotaznik, INVESTICNI_DOTAZNIK, type VyhodnoceniDotazniku } from '@/lib/kalkulacky/dotaznik';
@@ -609,6 +609,14 @@ const ZALOZKY = [
 export default function KalkulackyPage() {
   const [zalozka, setZalozka] = useState('uvery');
   const aktivni = ZALOZKY.find((z) => z.id === zalozka) ?? ZALOZKY[0];
+
+  // Deep-link z komplexní analýzy: /kalkulacky?tab=<id> otevře konkrétní záložku.
+  useEffect(() => {
+    try {
+      const tab = new URLSearchParams(window.location.search).get('tab');
+      if (tab && ZALOZKY.some((z) => z.id === tab)) setZalozka(tab);
+    } catch { /* ignore */ }
+  }, []);
 
   // Předvyplnění z aktivního případu klienta. `verze` = remount klíč kalkulaček.
   const { pripad, nacteno } = usePripad();

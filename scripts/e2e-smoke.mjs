@@ -46,7 +46,7 @@ try {
   await page.getByRole('button', { name: /Spočítat analýzu/i }).click();
   await page.waitForSelector('text=Klientská analýza', { timeout: 20000 });
   ok(true, 'analýza spočítána (Klientská analýza zobrazena)');
-  ok((await page.locator('text=Mezery').count()) > 0, '„Mezery & potenciál" zobrazeno');
+  ok((await page.locator('text=Komplexní analýza').count()) > 0, '„Komplexní analýza" po pilířích zobrazena');
 
   ok(post500.length === 0, 'žádná serverová akce nevrátila 500' + (post500.length ? ` (${post500.join(', ')})` : ''));
 } catch (e) {
