@@ -487,6 +487,14 @@ export default function PlanPage() {
                 </div>
               </div>
 
+              {/* Provázání procesu — kam pokračovat po plánu */}
+              <div className="print:hidden flex flex-wrap items-center gap-2 rounded-xl border border-primary-100 bg-primary-50/50 px-4 py-2.5">
+                <span className="text-xs font-semibold text-slate-600">Další krok v případu:</span>
+                <a href="/zaznam" className="inline-flex items-center gap-1 rounded-lg bg-primary text-white px-3 py-1.5 text-xs font-bold hover:bg-primary-600">Záznam z jednání →</a>
+                <a href="/pripad" className="inline-flex items-center gap-1 rounded-lg bg-white border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-primary hover:border-primary-200">Pojištění z podmínek</a>
+                <a href="/klienti" className="ml-auto text-xs font-semibold text-primary hover:underline">← Kokpit případu</a>
+              </div>
+
               {/* Brandovaná hlavička (jen tisk) — začátek klientského PDF */}
               <TiskHlavicka titulek="Finanční plán" podtitulek="4 pilíře: penze · investice · úvěry · pojištění" klient={jmeno.trim() || pripad.jmeno} datum={datumDnes} />
 

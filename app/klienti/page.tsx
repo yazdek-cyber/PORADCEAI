@@ -11,6 +11,7 @@ import { PageHeader, Card, Badge, Button, Radek } from '@/components/ui';
 import { usePripad, popisPripadu, jmenoKlienta, jePripadPrazdny, type Pripad } from '@/lib/pripadStore';
 import { najdiPrilezitosti, type PrioritaPrilezitosti } from '@/lib/prilezitosti';
 import ModalNovyKlient from '@/components/ModalNovyKlient';
+import ProcesPripadu from '@/components/ProcesPripadu';
 
 const PRIORITA_STYL: Record<PrioritaPrilezitosti, { tone: 'red' | 'amber' | 'slate'; label: string }> = {
   vysoka: { tone: 'red', label: 'Vysoká' },
@@ -110,6 +111,11 @@ export default function KlientiPage() {
             </>
           }
         />
+
+        {/* Kokpit případu — provázaná procesní linka od založení po uzavření */}
+        <div className="mb-5">
+          <ProcesPripadu profil={p} pocetPlanu={planyK.length} naAktivni={() => prepniKlienta(vybrany.id)} />
+        </div>
 
         <div className="grid lg:grid-cols-2 gap-5">
           {/* Profil */}
