@@ -1,4 +1,3 @@
-import { PDFParse } from 'pdf-parse';
 import { getEmbedding, ocrPdfStranky } from './gemini';
 import { supabaseAdmin } from './supabase';
 
@@ -55,6 +54,10 @@ export async function processPdf(
 
     // pdf-parse v2: text se extrahuje přes třídu PDFParse, getText() vrací text po stránkách.
     // pageJoiner: '' vypne vkládání oddělovačů stran ("-- 1 of N --") do textu, aby se nedostaly do chunků.
+    // LÍNÝ import: pdf-parse (přes pdfjs) potřebuje DOMMatrix/canvas a při importu padá na serverless runtime.
+    // Načítáme ho AŽ při reálném zpracování PDF (uploadDocumentAction), ne při importu modulu — jinak by
+    // shodil VŠECHNY serverové akce, které tenhle modul jen tranzitivně importují (zakládání klienta, plány…).
+    const { PDFParse } = await import('pdf-parse');
     const parser = new PDFParse({ data: fileBuffer });
     let pocetStran = 0;
     try {

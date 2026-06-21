@@ -35,8 +35,10 @@ export interface Pripad {
   ocekavanaStatniPenze?: number;
   // Co klient UŽ MÁ (pro analýzu pokrytí „co má vs. nemá"; co nelze odvodit z čísel, zadá poradce).
   maZivotni?: boolean;   // životní pojištění (ochrana příjmů)
+  maAuto?: boolean;      // pojištění vozidla (POV / havarijní)
   maMajetek?: boolean;   // pojištění majetku/domácnosti
   maOdpovednost?: boolean; // pojištění odpovědnosti
+  maStavebni?: boolean;  // stavební spoření
   // Současné KRYTÍ z existujících smluv (Kč) — pro přesnou mezeru „co smlouva kryje vs. potřeba".
   soucasneKrytiSmrt?: number;
   soucasneKrytiInvalidita?: number;
