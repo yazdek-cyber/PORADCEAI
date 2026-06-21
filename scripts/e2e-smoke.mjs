@@ -37,8 +37,9 @@ try {
   ok((await page.locator('text=Postup případu').count()) > 0, 'kokpit „Postup případu" zobrazen');
   ok((await page.locator('text=Zajištění klienta').count()) > 0, '„Zajištění klienta" zobrazeno');
 
-  // 3) Analýza na /plan (deterministická, bez AI) — nejdřív vyplnit základní profil
+  // 3) Analýza na /plan (deterministická, bez AI) — průvodce: přepni na „Zobrazit vše", vyplň, spočítej
   await page.goto(BASE + '/plan', { waitUntil: 'networkidle' });
+  await page.getByRole('button', { name: /Zobrazit vše/i }).click();
   await page.getByLabel('Věk', { exact: true }).fill('40');
   await page.getByLabel('Věk odchodu', { exact: true }).fill('65');
   await page.getByLabel('Čistý příjem', { exact: true }).fill('50000');

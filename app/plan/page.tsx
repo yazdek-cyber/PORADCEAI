@@ -92,6 +92,13 @@ export default function PlanPage() {
   const [copied, setCopied] = useState(false);
   const [zobrazPodklady, setZobrazPodklady] = useState(false);
 
+  // Vedený rozhovor (sběr dat krok po kroku, jak sedíš s klientem). Sekce = kroky.
+  const KROKY = ['Klient & příjmy', 'Rezerva & investice', 'Úvěry a bydlení', 'Rodina & pojištění', 'Penze', 'Cíle klienta', 'Doplnění'];
+  const [krok, setKrok] = useState(0);
+  const [vseNajednou, setVseNajednou] = useState(false);
+  const krokTrida = (n: number) => (vseNajednou || krok === n ? '' : 'hidden');
+  const jeLast = krok === KROKY.length - 1;
+
   const datumDnes = new Date().toLocaleDateString('cs-CZ');
 
   // Čísla klienta pro analýzu i poradenský panel mezer (jeden zdroj, ať se nerozcházejí).
@@ -389,8 +396,26 @@ export default function PlanPage() {
         <div className="lg:col-span-5 print:hidden">
           <form onSubmit={handleSubmit} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
            <fieldset disabled={loading} className="space-y-5 disabled:opacity-60">
+            {/* Vedený rozhovor — progres + přepínač zobrazení */}
+            <div className="print:hidden">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-bold text-primary">{vseNajednou ? 'Sběr dat z rozhovoru s klientem' : `Krok ${krok + 1}/${KROKY.length}: ${KROKY[krok]}`}</span>
+                <button type="button" onClick={() => setVseNajednou((v) => !v)} className="text-[11px] font-bold text-slate-500 hover:text-primary">
+                  {vseNajednou ? 'Vést po krocích' : 'Zobrazit vše'}
+                </button>
+              </div>
+              {!vseNajednou && (
+                <div className="flex gap-1">
+                  {KROKY.map((_, i) => (
+                    <button key={i} type="button" onClick={() => setKrok(i)} aria-label={`Krok ${i + 1}`}
+                      className={`h-1.5 flex-1 rounded-full transition-colors ${i <= krok ? 'bg-primary' : 'bg-slate-200'}`} />
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Základ */}
-            <div>
+            <div className={krokTrida(0)}>
               <h3 className="text-sm font-bold text-primary mb-2 flex items-center gap-1.5"><Calculator className="h-4 w-4 text-accent" />Základ</h3>
               <div className="mb-2">
                 <Pole label="Jméno klienta" value={jmeno} set={setJmeno} placeholder="např. Jan Novák" inputMode="text" />
@@ -417,7 +442,7 @@ export default function PlanPage() {
             </div>
 
             {/* Rezerva & investice */}
-            <div>
+            <div className={krokTrida(1)}>
               <h3 className="text-sm font-bold text-primary mb-2 flex items-center gap-1.5"><TrendingUp className="h-4 w-4 text-accent" />Rezerva &amp; investice</h3>
               <div className="grid grid-cols-2 gap-2">
                 <Pole label="Rezerva naspořeno" value={rezervaNasporeno} set={setRezervaNasporeno} suffix="Kč" />
@@ -427,7 +452,7 @@ export default function PlanPage() {
             </div>
 
             {/* Úvěry */}
-            <div>
+            <div className={krokTrida(2)}>
               <h3 className="text-sm font-bold text-primary mb-2 flex items-center gap-1.5"><Home className="h-4 w-4 text-accent" />Úvěry</h3>
               <div className="grid grid-cols-2 gap-2">
                 <Pole label="Hypotéka zůstatek" value={hypotekaZustatek} set={setHypotekaZustatek} suffix="Kč" />
@@ -439,7 +464,7 @@ export default function PlanPage() {
             </div>
 
             {/* Rodina */}
-            <div>
+            <div className={krokTrida(3)}>
               <h3 className="text-sm font-bold text-primary mb-2 flex items-center gap-1.5"><ShieldCheck className="h-4 w-4 text-accent" />Rodina &amp; pojištění</h3>
               <div className="grid grid-cols-2 gap-2 items-end">
                 <Pole label="Počet dětí" value={pocetDeti} set={setPocetDeti} />
@@ -460,7 +485,7 @@ export default function PlanPage() {
             </div>
 
             {/* Penze */}
-            <div>
+            <div className={krokTrida(4)}>
               <h3 className="text-sm font-bold text-primary mb-2 flex items-center gap-1.5"><PiggyBank className="h-4 w-4 text-accent" />Penze</h3>
               <div className="grid grid-cols-2 gap-2">
                 <Pole label="Penze naspořeno" value={penzeNasporeno} set={setPenzeNasporeno} suffix="Kč" />
@@ -471,7 +496,7 @@ export default function PlanPage() {
             </div>
 
             {/* Cíle (CO / KDY / KOLIK) — KFP finanční mapa */}
-            <div>
+            <div className={krokTrida(5)}>
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm font-bold text-primary flex items-center gap-1.5"><Target className="h-4 w-4 text-accent" />Cíle klienta</h3>
                 <button type="button" onClick={pridejCil} disabled={loading} className="flex items-center gap-1 text-[11px] font-bold text-primary hover:text-primary-600">
@@ -497,7 +522,7 @@ export default function PlanPage() {
             </div>
 
             {/* Ostatní */}
-            <div className="space-y-2">
+            <div className={`space-y-2 ${krokTrida(6)}`}>
               <Pole label="Povolání / riziková skupina" value={povolani} set={setPovolani} placeholder="Např. IT, automechanik" inputMode="text" />
               <Pole label="Zdravotní stav" value={zdravotniStav} set={setZdravotniStav} placeholder="Např. bez komplikací" inputMode="text" />
               <div>
@@ -509,6 +534,19 @@ export default function PlanPage() {
               </div>
             </div>
 
+            {/* Navigace průvodce — po krocích, s průběžným uložením do složky klienta */}
+            {!vseNajednou && (
+              <div className="flex items-center justify-between gap-2 print:hidden">
+                <button type="button" onClick={() => setKrok((k) => Math.max(k - 1, 0))} disabled={krok === 0}
+                  className="rounded-lg px-3 py-2 text-sm font-semibold text-slate-500 hover:text-primary disabled:opacity-30">← Zpět</button>
+                {!jeLast && (
+                  <button type="button" onClick={() => { ulozDoPripadu(); setKrok((k) => Math.min(k + 1, KROKY.length - 1)); }}
+                    className="rounded-lg bg-primary text-white px-4 py-2 text-sm font-bold hover:bg-primary-600 shadow-soft">Další →</button>
+                )}
+              </div>
+            )}
+
+            {(vseNajednou || jeLast) && (
             <div className="space-y-2">
               <button
                 type="button"
@@ -531,6 +569,7 @@ export default function PlanPage() {
               </button>
               <p className="text-[11px] text-slate-400 text-center">Analýza (rozbor a mezery) je východisko; plán je doporučení pro klienta.</p>
             </div>
+            )}
            </fieldset>
           </form>
         </div>
