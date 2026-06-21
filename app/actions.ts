@@ -363,6 +363,25 @@ export async function askChatAction(
  * 3) AI z podkladů složí plán se zdroji a disclaimerem,
  * 4) uloží plán do financni_plany (dohledatelnost).
  */
+/**
+ * FINANČNÍ ANALÝZA (krok PŘED plánem) — POUZE deterministické výpočty (kalkulačky), BEZ AI/RAG.
+ * Rychlá, ověřitelná: rozbor situace, potřeb a mezer. Plán je až navazující východisko (generujFinancniPlanAction).
+ */
+export async function analyzujAction(profil: FinPlanProfil) {
+  await verifySession();
+  try {
+    const vekOdchodu = profil.vekOdchodu ?? 65;
+    if (!(profil.vek > 0) || vekOdchodu <= profil.vek) {
+      throw new Error('Věk odchodu do důchodu musí být vyšší než aktuální věk klienta.');
+    }
+    const vypocty = await pripravPodklady(profil);
+    return { success: true, vypocty };
+  } catch (error) {
+    console.error('Chyba analyzujAction:', error);
+    return { success: false, error: error instanceof Error ? error.message : String(error), vypocty: null };
+  }
+}
+
 export async function generujFinancniPlanAction(profil: FinPlanProfil) {
   // Ověř session JAKO PRVNÍ, PŘED drahou prací (RAG + Gemini) — fail-closed; redirect se nesmí
   // ztratit v „nekritickém" catch u ukládání. (Server Actions běží mimo proxy.)

@@ -6,7 +6,7 @@ import {
   FileText, ChevronRight, Eye, Calculator, ShieldCheck, Home, TrendingUp, PiggyBank, Target, Plus, Trash2,
   Save, Download, UserRound,
 } from 'lucide-react';
-import { generujFinancniPlanAction } from '@/app/actions';
+import { generujFinancniPlanAction, analyzujAction } from '@/app/actions';
 import type { FinPlanProfil, RizikovyProfil, FinCil, Vypocty } from '@/lib/financniPlan';
 import PlanDokument from '@/components/PlanDokument';
 import PlanPrehled from '@/components/PlanPrehled';
@@ -236,6 +236,61 @@ export default function PlanPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nacteno, aktivniId]);
 
+  // Sestaví profil z formuláře (sdílí analýza i plán). hypotekaSazba do desetinného tvaru.
+  const sestavProfil = (klientId: string): FinPlanProfil => ({
+    jmeno: jmeno.trim() || pripad.jmeno || undefined,
+    klientId,
+    vek: num(vek),
+    cistyPrijem: num(cistyPrijem),
+    vydaje: num(vydaje),
+    rizikovyProfil,
+    vekOdchodu: num(vekOdchodu) || 65,
+    rezervaNasporeno: num(rezervaNasporeno),
+    existujiciInvestice: num(existujiciInvestice),
+    mesicniVkladInvestice: num(mesicniVkladInvestice),
+    hypotekaZustatek: num(hypotekaZustatek),
+    hypotekaSazba: num(hypotekaSazba) > 0 ? num(hypotekaSazba) / 100 : undefined,
+    hypotekaZbyvaMesicu: num(hypotekaZbyvaMesicu) || undefined,
+    jineDluhy: num(jineDluhy),
+    mesicniSplatkyDluhu: num(mesicniSplatkyDluhu),
+    partner,
+    pocetDeti: num(pocetDeti),
+    penzeNasporeno: num(penzeNasporeno),
+    penzeMesicniVklad: num(penzeMesicniVklad),
+    cilovaRentaDuchod: num(cilovaRentaDuchod) || undefined,
+    ocekavanaStatniPenze: num(ocekavanaStatniPenze) || undefined,
+    soucasneKrytiSmrt: num(krytiSmrt) || undefined,
+    soucasneKrytiInvalidita: num(krytiInvalidita) || undefined,
+    soucasneKrytiZO: num(krytiZO) || undefined,
+    soucasneKrytiTN: num(krytiTN) || undefined,
+    povolani: povolani.trim() || undefined,
+    zdravotniStav: zdravotniStav.trim() || undefined,
+    cile: cile.trim() || undefined,
+    cileSeznam: cileList
+      .filter((c) => c.nazev.trim() && num(c.castka) > 0 && num(c.roky) > 0)
+      .map((c): FinCil => ({ nazev: c.nazev.trim(), castka: num(c.castka), roky: num(c.roky) })),
+  });
+
+  // KROK 1 — ANALÝZA (před plánem): jen deterministické výpočty, žádná AI. Rychlé, ukáže mezery.
+  const handleAnalyza = async () => {
+    if (loading) return;
+    setLoading(true);
+    setError(null);
+    setPlan('');
+    setChunks([]);
+    const klientId = ulozDoPripadu();
+    try {
+      const res = await analyzujAction(sestavProfil(klientId));
+      if (res.success) setVypocty((res.vypocty as Vypocty) || null);
+      else setError(res.error || 'Analýzu se nepodařilo spočítat.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Nastala neočekávaná chyba.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // KROK 2 — PLÁN (navazuje na analýzu): AI propojí podklady do plánu se zdroji.
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading) return;
@@ -248,43 +303,9 @@ export default function PlanPage() {
     setActiveChunk(null);
 
     // Ulož profil do aktivního případu JEŠTĚ PŘED generováním — tím vznikne (nebo se potvrdí)
-    // klient a získáme jeho id, kterým plán orazítkujeme (spolehlivé párování plán↔klient,
-    // nezávislé na shodě věku/příjmu). Profil se uloží i kdyby generování selhalo, což nevadí.
+    // klient a získáme jeho id, kterým plán orazítkujeme (spolehlivé párování plán↔klient).
     const klientId = ulozDoPripadu();
-
-    const profil: FinPlanProfil = {
-      jmeno: jmeno.trim() || pripad.jmeno || undefined,
-      klientId,
-      vek: num(vek),
-      cistyPrijem: num(cistyPrijem),
-      vydaje: num(vydaje),
-      rizikovyProfil,
-      vekOdchodu: num(vekOdchodu) || 65,
-      rezervaNasporeno: num(rezervaNasporeno),
-      existujiciInvestice: num(existujiciInvestice),
-      mesicniVkladInvestice: num(mesicniVkladInvestice),
-      hypotekaZustatek: num(hypotekaZustatek),
-      hypotekaSazba: num(hypotekaSazba) > 0 ? num(hypotekaSazba) / 100 : undefined,
-      hypotekaZbyvaMesicu: num(hypotekaZbyvaMesicu) || undefined,
-      jineDluhy: num(jineDluhy),
-      mesicniSplatkyDluhu: num(mesicniSplatkyDluhu),
-      partner,
-      pocetDeti: num(pocetDeti),
-      penzeNasporeno: num(penzeNasporeno),
-      penzeMesicniVklad: num(penzeMesicniVklad),
-      cilovaRentaDuchod: num(cilovaRentaDuchod) || undefined,
-      ocekavanaStatniPenze: num(ocekavanaStatniPenze) || undefined,
-      soucasneKrytiSmrt: num(krytiSmrt) || undefined,
-      soucasneKrytiInvalidita: num(krytiInvalidita) || undefined,
-      soucasneKrytiZO: num(krytiZO) || undefined,
-      soucasneKrytiTN: num(krytiTN) || undefined,
-      povolani: povolani.trim() || undefined,
-      zdravotniStav: zdravotniStav.trim() || undefined,
-      cile: cile.trim() || undefined,
-      cileSeznam: cileList
-        .filter((c) => c.nazev.trim() && num(c.castka) > 0 && num(c.roky) > 0)
-        .map((c): FinCil => ({ nazev: c.nazev.trim(), castka: num(c.castka), roky: num(c.roky) })),
-    };
+    const profil = sestavProfil(klientId);
 
     try {
       const res = await generujFinancniPlanAction(profil);
@@ -488,15 +509,28 @@ export default function PlanPage() {
               </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className={`w-full flex items-center justify-center gap-2 rounded-lg py-3 text-sm font-bold text-white transition-all ${
-                loading ? 'bg-slate-300 cursor-not-allowed' : 'bg-primary hover:bg-primary-600 shadow-sm cursor-pointer'
-              }`}
-            >
-              {loading ? (<><Loader2 className="h-4 w-4 animate-spin text-accent" />Sestavuji plán…</>) : (<><Wallet className="h-4 w-4 text-accent" />Vytvořit finanční plán</>)}
-            </button>
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={handleAnalyza}
+                disabled={loading}
+                className={`w-full flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-bold transition-all border ${
+                  loading ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed' : 'bg-white text-primary border-primary-200 hover:bg-primary-50 cursor-pointer'
+                }`}
+              >
+                <TrendingUp className="h-4 w-4 text-accent" />1. Spočítat analýzu
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className={`w-full flex items-center justify-center gap-2 rounded-lg py-3 text-sm font-bold text-white transition-all ${
+                  loading ? 'bg-slate-300 cursor-not-allowed' : 'bg-primary hover:bg-primary-600 shadow-sm cursor-pointer'
+                }`}
+              >
+                {loading ? (<><Loader2 className="h-4 w-4 animate-spin text-accent" />Pracuji…</>) : (<><Wallet className="h-4 w-4 text-accent" />2. Vytvořit finanční plán</>)}
+              </button>
+              <p className="text-[11px] text-slate-400 text-center">Analýza (rozbor a mezery) je východisko; plán je doporučení pro klienta.</p>
+            </div>
            </fieldset>
           </form>
         </div>
@@ -521,35 +555,40 @@ export default function PlanPage() {
             </div>
           )}
 
-          {!loading && !error && !plan && (
+          {!loading && !error && !vypocty && (
             <div className="rounded-xl border border-dashed border-slate-200 bg-white p-8 text-center py-20 flex flex-col items-center justify-center min-h-[450px]">
-              <Wallet className="h-12 w-12 text-slate-300 mb-4" />
-              <h3 className="text-lg font-bold text-slate-700">Plán zatím není vygenerován</h3>
-              <p className="text-sm text-slate-400 mt-1 max-w-sm">Vyplňte profil klienta vlevo a klikněte na „Vytvořit finanční plán".</p>
+              <TrendingUp className="h-12 w-12 text-slate-300 mb-4" />
+              <h3 className="text-lg font-bold text-slate-700">Začněte analýzou</h3>
+              <p className="text-sm text-slate-400 mt-1 max-w-sm">Vyplňte profil vlevo a klikněte na „1. Spočítat analýzu". Analýza ukáže situaci a mezery — pak na ně navážete plánem.</p>
             </div>
           )}
 
-          {!loading && plan && (
+          {!loading && vypocty && (
             <div className="space-y-6">
               <div className="flex items-center justify-between bg-white border border-slate-200 rounded-xl p-3 px-4 shadow-sm print:hidden">
-                <span className="text-xs font-bold text-slate-500 flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-green-600" />Plán vypracován</span>
+                <span className="text-xs font-bold text-slate-500 flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-green-600" />{plan ? 'Plán vypracován' : 'Analýza spočítána'}</span>
                 <div className="flex items-center gap-2">
-                  <button onClick={() => setZobrazPodklady((v) => !v)} className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-primary bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-3 py-1.5 cursor-pointer">
-                    <Calculator className="h-3.5 w-3.5" />{zobrazPodklady ? 'Skrýt výpočty' : 'Spočítané podklady'}
-                  </button>
-                  <button onClick={handleCopy} className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-primary bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-3 py-1.5 cursor-pointer">
-                    <Copy className="h-3.5 w-3.5" />{copied ? 'Kopírováno!' : 'Kopírovat'}
-                  </button>
+                  {plan && (
+                    <button onClick={() => setZobrazPodklady((v) => !v)} className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-primary bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-3 py-1.5 cursor-pointer">
+                      <Calculator className="h-3.5 w-3.5" />{zobrazPodklady ? 'Skrýt výpočty' : 'Spočítané podklady'}
+                    </button>
+                  )}
+                  {plan && (
+                    <button onClick={handleCopy} className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-primary bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-3 py-1.5 cursor-pointer">
+                      <Copy className="h-3.5 w-3.5" />{copied ? 'Kopírováno!' : 'Kopírovat'}
+                    </button>
+                  )}
                   <button onClick={() => window.print()} className="flex items-center gap-1.5 text-xs font-bold text-white bg-primary hover:bg-primary-600 rounded-lg px-3 py-1.5 cursor-pointer shadow-sm">
                     <Printer className="h-3.5 w-3.5 text-accent" />Export PDF
                   </button>
                 </div>
               </div>
 
-              {/* Provázání procesu — kam pokračovat po plánu */}
+              {/* Provázání procesu — co dál: po analýze plán, po plánu záznam */}
               <div className="print:hidden flex flex-wrap items-center gap-2 rounded-xl border border-primary-100 bg-primary-50/50 px-4 py-2.5">
                 <span className="text-xs font-semibold text-slate-600">Další krok v případu:</span>
-                <a href="/zaznam" className="inline-flex items-center gap-1 rounded-lg bg-primary text-white px-3 py-1.5 text-xs font-bold hover:bg-primary-600">Záznam z jednání →</a>
+                {!plan && <span className="inline-flex items-center gap-1 rounded-lg bg-primary text-white px-3 py-1.5 text-xs font-bold">↑ Vytvořit finanční plán (tlačítko vlevo)</span>}
+                {plan && <a href="/zaznam" className="inline-flex items-center gap-1 rounded-lg bg-primary text-white px-3 py-1.5 text-xs font-bold hover:bg-primary-600">Záznam z jednání →</a>}
                 <a href="/pripad" className="inline-flex items-center gap-1 rounded-lg bg-white border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-primary hover:border-primary-200">Pojištění z podmínek</a>
                 <a href="/klienti" className="ml-auto text-xs font-semibold text-primary hover:underline">← Kokpit případu</a>
               </div>
@@ -590,6 +629,7 @@ export default function PlanPage() {
                 </div>
               )}
 
+              {plan && (
               <div className="rounded-xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm print:border-none print:shadow-none print:p-0 text-slate-900">
                 <h3 className="hidden print:block text-lg font-bold text-primary mb-3 pb-1 border-b border-slate-200">Finanční plán — odborný rozbor</h3>
                 <PlanDokument text={plan} />
@@ -607,6 +647,7 @@ export default function PlanPage() {
 
                 <TiskPaticka datum={datumDnes} />
               </div>
+              )}
 
               {chunks.length > 0 && (
                 <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm print:hidden">
