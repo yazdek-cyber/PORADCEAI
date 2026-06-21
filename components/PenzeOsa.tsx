@@ -29,7 +29,7 @@ export default function PenzeOsa({ v, klient, vek, vekOdchodu }: { v: Vypocty; k
       ikona={<PiggyBank className="h-4 w-4 text-accent" />}
       titulek="Penze — v kolika s kolika"
       popis="Co stihnete naspořit do důchodu a jakou rentu z toho budete čerpat."
-      className="lg:col-span-2"
+      className="lg:col-span-2 print:col-span-2"
     >
       {/* OSA věk → odchod → čerpání */}
       <div className="flex items-center gap-2 text-center">

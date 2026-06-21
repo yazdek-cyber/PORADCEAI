@@ -15,7 +15,7 @@ import KomplexniAnalyza from '@/components/KomplexniAnalyza';
 import FinancniDomecek from '@/components/FinancniDomecek';
 import { usePoradce } from '@/lib/poradceStore';
 import { stupenDleNazvu } from '@/lib/provize';
-import { TiskHlavicka, TiskPaticka } from '@/components/Tisk';
+import { TiskTitulka, TiskHlavicka, TiskPaticka } from '@/components/Tisk';
 import { usePripad, jePripadPrazdny, popisPripadu, type Pripad } from '@/lib/pripadStore';
 import { Field as Pole } from '@/components/ui';
 
@@ -620,8 +620,8 @@ export default function PlanPage() {
                       <Copy className="h-3.5 w-3.5" />{copied ? 'Kopírováno!' : 'Kopírovat'}
                     </button>
                   )}
-                  <button onClick={() => window.print()} className="flex items-center gap-1.5 text-xs font-bold text-white bg-primary hover:bg-primary-600 rounded-lg px-3 py-1.5 cursor-pointer shadow-sm">
-                    <Printer className="h-3.5 w-3.5 text-accent" />Export PDF
+                  <button onClick={() => window.print()} title="Vytiskne klientskou prezentaci — titulní strana + grafická analýza (poradenské panely se netisknou)" className="flex items-center gap-1.5 text-xs font-bold text-white bg-primary hover:bg-primary-600 rounded-lg px-3 py-1.5 cursor-pointer shadow-sm">
+                    <Printer className="h-3.5 w-3.5 text-accent" />Klientská prezentace (PDF)
                   </button>
                 </div>
               </div>
@@ -635,7 +635,10 @@ export default function PlanPage() {
                 <a href="/klienti" className="ml-auto text-xs font-semibold text-primary hover:underline">← Kokpit případu</a>
               </div>
 
-              {/* Brandovaná hlavička (jen tisk) — začátek klientského PDF */}
+              {/* Titulní strana klientské prezentace (jen tisk) */}
+              <TiskTitulka titulek="Finanční plán" podtitulek="4 pilíře: penze · investice · úvěry · pojištění" klient={jmeno.trim() || pripad.jmeno} datum={datumDnes} />
+
+              {/* Brandovaná hlavička (jen tisk) — záhlaví analytické části */}
               <TiskHlavicka titulek="Finanční plán" podtitulek="4 pilíře: penze · investice · úvěry · pojištění" klient={jmeno.trim() || pripad.jmeno} datum={datumDnes} />
 
               {/* Finanční domeček (eDO grafická pomůcka) — priority financí jako dům, klikací na kalkulačky */}
@@ -648,6 +651,9 @@ export default function PlanPage() {
                   <KlientskaAnalyza v={vypocty} klient={klientCisla} />
                 </div>
               )}
+
+              {/* Bez AI plánu = klientská prezentace končí analýzou → doplň brandovou patičku (jen tisk) */}
+              {vypocty && !plan && <TiskPaticka datum={datumDnes} />}
 
               {/* Komplexní analýza po pilířích — pohled pro PORADCE (skrytý v klientském PDF) */}
               {vypocty && (

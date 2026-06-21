@@ -67,6 +67,19 @@ body {
 @media print {
   header { display: none !important; }
   body { background: #fff; }
-  @page { margin: 16mm; }
+  @page { margin: 14mm; }
+
+  /* KLÍČOVÉ: vytiskni barvy pozadí (pruhy krytí, donuty, domeček) — jinak vyjdou bíle. */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Karty/grafy se nesmí trhat přes stránky. */
+  .break-inside-avoid { break-inside: avoid; }
+  /* Nová stránka před blokem s touto třídou (titulka, sekce prezentace). */
+  .tisk-stranka { break-before: page; }
+  /* Titulní strana zabere celou výšku. */
+  .tisk-titulka { min-height: calc(100vh - 28mm); }
 }
 

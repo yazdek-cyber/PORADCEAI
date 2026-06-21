@@ -60,7 +60,7 @@ export default function HorizontyRezerv({ v, klient }: { v: Vypocty; klient: Kli
       ikona={<Clock className="h-4 w-4 text-accent" />}
       titulek="Peníze podle horizontu"
       popis="Každý cíl má svůj čas — a tomu odpovídá strategie. Krátké peníze jistě, dlouhé dynamicky."
-      className="lg:col-span-2"
+      className="lg:col-span-2 print:col-span-2"
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
         {kose.map((k) => {

@@ -71,7 +71,7 @@ export default function ModelaceRizik({ v, klient }: { v: Vypocty; klient: Klien
       ikona={<ShieldAlert className="h-4 w-4 text-accent" />}
       titulek="Modelace rizik — krytí vs. potřeba"
       popis="Co dnešní smlouvy kryjí proti tomu, co eDO doporučuje. Mezera = kolik dorovnat."
-      className="lg:col-span-2"
+      className="lg:col-span-2 print:col-span-2"
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {rizika.map((r) => <PruhRizika key={r.id} r={r} />)}

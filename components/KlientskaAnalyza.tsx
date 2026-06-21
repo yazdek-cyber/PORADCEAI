@@ -110,7 +110,7 @@ export default function KlientskaAnalyza({ v, klient }: { v: Vypocty; klient: Kl
   const maCile = v.cile && v.cile.length > 0;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 lg:grid-cols-2 print:grid-cols-2 gap-4">
       {/* PŘÍJMY A VÝDAJE */}
       <Karta ikona={<Scale className="h-4 w-4 text-accent" />} titulek="Příjmy a výdaje" popis="Kolik měsíčně zbývá na tvorbu majetku a zajištění.">
         <Sloupce data={[
@@ -268,7 +268,7 @@ export default function KlientskaAnalyza({ v, klient }: { v: Vypocty; klient: Kl
 
       {/* CÍLE A DĚTI */}
       {(maCile || maDeti) && (
-        <Karta ikona={<Target className="h-4 w-4 text-accent" />} titulek="Cíle a děti" popis="Co chcete dosáhnout a kolik na to měsíčně odkládat." className="lg:col-span-2">
+        <Karta ikona={<Target className="h-4 w-4 text-accent" />} titulek="Cíle a děti" popis="Co chcete dosáhnout a kolik na to měsíčně odkládat." className="lg:col-span-2 print:col-span-2">
           {maDeti && (
             <div className="mb-3">
               <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 mb-1"><Baby className="h-3.5 w-3.5 text-accent" />Životní fáze dětí ({klient.pocetDeti})</div>
@@ -372,7 +372,7 @@ export default function KlientskaAnalyza({ v, klient }: { v: Vypocty; klient: Kl
       {/* PENZE — v kolika s kolika (eDO osa + daňová úspora) */}
       <PenzeOsa v={v} klient={klient} vek={klient.vek} vekOdchodu={klient.vekOdchodu} />
 
-      <div className="lg:col-span-2 text-[10px] text-slate-400 px-1">
+      <div className="lg:col-span-2 print:col-span-2 text-[10px] text-slate-400 px-1">
         Statistické grafy (rozložení invalidity): {STATISTIKY_ZDROJ}. Částky klienta z deterministických
         kalkulaček v dnešní hodnotě peněz. Orientační podklad, nikoliv individualizované finanční doporučení.
       </div>
