@@ -13,7 +13,7 @@ import { usePripad, popisPripadu, jmenoKlienta, jePripadPrazdny, type Pripad } f
 interface PlanMeta {
   id: string;
   vytvoreno_kdy: string;
-  profil: { jmeno?: string; vek?: number; cistyPrijem?: number; cileSeznam?: { nazev: string }[]; cile?: string } | null;
+  profil: { jmeno?: string; klientId?: string; vek?: number; cistyPrijem?: number; cileSeznam?: { nazev: string }[]; cile?: string } | null;
 }
 
 const f = (x?: number) => (x === undefined || x === null ? '—' : Math.round(x).toLocaleString('cs-CZ'));
@@ -52,10 +52,14 @@ export default function KlientiPage() {
     setPoznamky(k?.profil.poznamky ?? '');
   };
 
-  const planyKlienta = (p: Pripad): PlanMeta[] => {
+  // Plány klienta: primárně dle klientId (spolehlivé, přežije přejmenování), pro starší plány
+  // bez klientId fallback na shodu jména. Plán s klientId patřící jinému klientovi nikdy nepropadne.
+  const planyKlienta = (id: string, p: Pripad): PlanMeta[] => {
     const jm = p.jmeno?.trim().toLowerCase();
-    if (!jm) return [];
-    return plany.filter((pl) => pl.profil?.jmeno?.trim().toLowerCase() === jm);
+    return plany.filter((pl) =>
+      pl.profil?.klientId
+        ? pl.profil.klientId === id
+        : !!jm && pl.profil?.jmeno?.trim().toLowerCase() === jm);
   };
 
   const ulozPoznamky = () => {
@@ -83,7 +87,7 @@ export default function KlientiPage() {
   // ── DETAIL ────────────────────────────────────────────────────────────────
   if (vybrany) {
     const p = vybrany.profil;
-    const planyK = planyKlienta(p);
+    const planyK = planyKlienta(vybrany.id, p);
     return (
       <div className="animate-fade-in">
         <button onClick={() => setVybranyId(null)} className="flex items-center gap-1.5 text-sm font-bold text-primary hover:text-primary-600 mb-4">
@@ -193,7 +197,7 @@ export default function KlientiPage() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {klienti.map((k) => {
             const aktivni = k.id === aktivniId;
-            const pocetPlanu = planyKlienta(k.profil).length;
+            const pocetPlanu = planyKlienta(k.id, k.profil).length;
             return (
               <Card key={k.id} className={`group ${aktivni ? 'border-primary-200' : ''}`}>
                 <button onClick={() => otevri(k.id)} className="w-full text-left">
