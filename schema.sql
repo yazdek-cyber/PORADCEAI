@@ -136,31 +136,62 @@ CREATE TABLE IF NOT EXISTS produkty (
 CREATE INDEX IF NOT EXISTS produkty_domena_idx ON produkty (domena);
 
 -- Klienti (profil pro finanční plán) — profil jako JSONB kvůli pružnosti.
+-- VLASTNICTVÍ per poradce: poradce_id = auth.users; default auth.uid() (insert přes session client).
 CREATE TABLE IF NOT EXISTS klienti (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   workspace_id UUID DEFAULT '00000000-0000-0000-0000-000000000001' REFERENCES workspaces(id),
+  poradce_id UUID DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
   jmeno TEXT,
   profil JSONB NOT NULL DEFAULT '{}'::jsonb,
-  vytvoreno_kdy TIMESTAMPTZ DEFAULT NOW()
+  vytvoreno_kdy TIMESTAMPTZ DEFAULT NOW(),
+  aktualizovano_kdy TIMESTAMPTZ DEFAULT NOW()
 );
+-- Migrace existující DB (CREATE TABLE IF NOT EXISTS nové sloupce nepřidá):
+ALTER TABLE klienti ADD COLUMN IF NOT EXISTS poradce_id UUID DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE;
+ALTER TABLE klienti ADD COLUMN IF NOT EXISTS aktualizovano_kdy TIMESTAMPTZ DEFAULT NOW();
+CREATE INDEX IF NOT EXISTS klienti_poradce_idx ON klienti (poradce_id);
 
 -- Vygenerované finanční plány (výstup orchestrace) + uložené výpočty pro dohledatelnost.
 CREATE TABLE IF NOT EXISTS financni_plany (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   workspace_id UUID DEFAULT '00000000-0000-0000-0000-000000000001' REFERENCES workspaces(id),
+  poradce_id UUID DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
   klient_id UUID REFERENCES klienti(id) ON DELETE SET NULL,
   profil JSONB NOT NULL DEFAULT '{}'::jsonb,
   plan_md TEXT,
   vypocty JSONB DEFAULT '{}'::jsonb,
   vytvoreno_kdy TIMESTAMPTZ DEFAULT NOW()
 );
+ALTER TABLE financni_plany ADD COLUMN IF NOT EXISTS poradce_id UUID DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE;
+CREATE INDEX IF NOT EXISTS financni_plany_poradce_idx ON financni_plany (poradce_id);
 
 ALTER TABLE produkty       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE klienti        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE financni_plany ENABLE ROW LEVEL SECURITY;
+
+-- produkty: sdílená konfigurace (zatím permisivní; přístup jen přes server service-role).
 DROP POLICY IF EXISTS permisivni_vse ON produkty;
 CREATE POLICY permisivni_vse ON produkty FOR ALL USING (true) WITH CHECK (true);
+
+-- klienti + financni_plany: REÁLNÁ izolace per poradce (poradce_id = auth.uid()).
+-- POZOR: nikdy zde neobnovovat permisivni_vse (USING true) — permisivní politiky se kombinují přes OR
+-- a jediná USING(true) by anulovala izolaci. Proto ji explicitně dropujeme a NEvytváříme.
 DROP POLICY IF EXISTS permisivni_vse ON klienti;
-CREATE POLICY permisivni_vse ON klienti FOR ALL USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS klienti_select ON klienti;
+DROP POLICY IF EXISTS klienti_insert ON klienti;
+DROP POLICY IF EXISTS klienti_update ON klienti;
+DROP POLICY IF EXISTS klienti_delete ON klienti;
+CREATE POLICY klienti_select ON klienti FOR SELECT USING (poradce_id = auth.uid());
+CREATE POLICY klienti_insert ON klienti FOR INSERT WITH CHECK (poradce_id = auth.uid());
+CREATE POLICY klienti_update ON klienti FOR UPDATE USING (poradce_id = auth.uid()) WITH CHECK (poradce_id = auth.uid());
+CREATE POLICY klienti_delete ON klienti FOR DELETE USING (poradce_id = auth.uid());
+
 DROP POLICY IF EXISTS permisivni_vse ON financni_plany;
-CREATE POLICY permisivni_vse ON financni_plany FOR ALL USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS fp_select ON financni_plany;
+DROP POLICY IF EXISTS fp_insert ON financni_plany;
+DROP POLICY IF EXISTS fp_update ON financni_plany;
+DROP POLICY IF EXISTS fp_delete ON financni_plany;
+CREATE POLICY fp_select ON financni_plany FOR SELECT USING (poradce_id = auth.uid());
+CREATE POLICY fp_insert ON financni_plany FOR INSERT WITH CHECK (poradce_id = auth.uid());
+CREATE POLICY fp_update ON financni_plany FOR UPDATE USING (poradce_id = auth.uid()) WITH CHECK (poradce_id = auth.uid());
+CREATE POLICY fp_delete ON financni_plany FOR DELETE USING (poradce_id = auth.uid());

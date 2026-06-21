@@ -5,6 +5,21 @@ import { getEmbedding, generateChatResponse, generateClientSolution, extrahujSro
 import { supabaseAdmin, checkEnvConfigured } from '@/lib/supabase';
 import { createClient as createServerSupabase } from '@/lib/supabase/server';
 import { verifySession } from '@/lib/supabase/dal';
+import { headers } from 'next/headers';
+
+/**
+ * Autorizace akce, kterou volá i serverová routa (cron/import) s CRON_SECRET: povol buď přihlášeného
+ * poradce, NEBO serverové volání s platnou hlavičkou Authorization: Bearer <CRON_SECRET>.
+ * (Server Actions běží mimo proxy → musí si ověřit přístup samy; viz lib/supabase/dal.ts.)
+ */
+async function overPristupNeboCron(): Promise<void> {
+  const secret = process.env.CRON_SECRET;
+  if (secret) {
+    const h = await headers();
+    if (h.get('authorization') === `Bearer ${secret}`) return;
+  }
+  await verifySession();
+}
 import { POJISTOVNY } from '@/lib/pojistovny';
 import { objevPodminky } from '@/lib/podminkyScraper';
 import { pripravPodklady, formatujPodklady, type FinPlanProfil } from '@/lib/financniPlan';
@@ -63,6 +78,7 @@ async function checkConfig() {
  * Získá seznam všech nahraných dokumentů.
  */
 export async function getDocumentsAction() {
+  await verifySession();
   await checkConfig();
   try {
     const { data, error } = await supabaseAdmin
@@ -90,6 +106,7 @@ export async function getDocumentsAction() {
  * konkrétní hodnoty se zdrojem (strana). Vrací matici hodnot.
  */
 export async function srovnejParametryAction(pojistovny: string[], parametry: string[]) {
+  await verifySession();
   await checkConfig();
   try {
     if (!pojistovny?.length || !parametry?.length) {
@@ -132,6 +149,7 @@ export async function srovnejParametryAction(pojistovny: string[], parametry: st
  * Vrátí seznam unikátních pojišťoven (pro filtr ve vyhledávání).
  */
 export async function getPojistovnyAction() {
+  await verifySession();
   await checkConfig();
   try {
     const { data, error } = await supabaseAdmin.from('dokumenty').select('pojistovna');
@@ -154,6 +172,7 @@ export async function getPojistovnyAction() {
  * Nahraje a zpracuje PDF dokument.
  */
 export async function uploadDocumentAction(formData: FormData) {
+  await verifySession();
   await checkConfig();
   try {
     const file = formData.get('file') as File;
@@ -215,6 +234,7 @@ export async function uploadDocumentAction(formData: FormData) {
  * Smaže dokument a jeho chunky (díky ON DELETE CASCADE v databázi).
  */
 export async function deleteDocumentAction(documentId: string) {
+  await verifySession();
   await checkConfig();
   try {
     const { error } = await supabaseAdmin.from('dokumenty').delete().eq('id', documentId);
@@ -242,6 +262,7 @@ export async function updateDokumentMetaAction(
   documentId: string,
   zmeny: { kategorie?: string; domena?: string; pojistovna?: string }
 ) {
+  await verifySession();
   await checkConfig();
   try {
     const platneDomeny = ['pojisteni', 'uvery', 'investice', 'penze', 'metodika'];
@@ -273,6 +294,7 @@ export async function askChatAction(
   history: ChatMessage[],
   pojistovna?: string | null
 ) {
+  await verifySession();
   await checkConfig();
   try {
     if (!query || query.trim() === '') {
@@ -342,6 +364,9 @@ export async function askChatAction(
  * 4) uloží plán do financni_plany (dohledatelnost).
  */
 export async function generujFinancniPlanAction(profil: FinPlanProfil) {
+  // Ověř session JAKO PRVNÍ, PŘED drahou prací (RAG + Gemini) — fail-closed; redirect se nesmí
+  // ztratit v „nekritickém" catch u ukládání. (Server Actions běží mimo proxy.)
+  const user = await verifySession();
   await checkConfig();
   try {
     // Validace: věk odchodu musí být po aktuálním věku (jinak nemá horizont smysl).
@@ -401,7 +426,6 @@ export async function generujFinancniPlanAction(profil: FinPlanProfil) {
     // a hláva tiskového PDF i seznam plánů ho doplní klientsky z evidence přes neosobní klientId.
     // klientId (náhodné UUID, ne PII) ponecháváme kvůli spolehlivému párování plán↔klient.
     try {
-      const user = await verifySession();
       const supabase = await createServerSupabase();
       const profilBezJmena = { ...profil };
       delete profilBezJmena.jmeno;
@@ -449,9 +473,9 @@ export async function generujFinancniPlanAction(profil: FinPlanProfil) {
 
 /** Seznam uložených finančních plánů (metadata, bez těžkého plan_md). */
 export async function getUlozenePlanyAction() {
+  await verifySession();
   await checkConfig();
   try {
-    await verifySession();
     const supabase = await createServerSupabase();
     const { data, error } = await supabase
       .from('financni_plany')
@@ -468,9 +492,9 @@ export async function getUlozenePlanyAction() {
 
 /** Detail jednoho uloženého plánu (Markdown + spočítané podklady). */
 export async function getUlozenyPlanAction(id: string) {
+  await verifySession();
   await checkConfig();
   try {
-    await verifySession();
     const supabase = await createServerSupabase();
     const { data, error } = await supabase
       .from('financni_plany')
@@ -487,9 +511,9 @@ export async function getUlozenyPlanAction(id: string) {
 
 /** Smaže uložený plán. */
 export async function smazUlozenyPlanAction(id: string) {
+  await verifySession();
   await checkConfig();
   try {
-    await verifySession();
     const supabase = await createServerSupabase();
     const { error } = await supabase.from('financni_plany').delete().eq('id', id);
     if (error) throw new Error(`Smazání selhalo: ${error.message}`);
@@ -503,6 +527,7 @@ export async function smazUlozenyPlanAction(id: string) {
  * Vygeneruje strukturovaný analytický návrh pro klienta.
  */
 export async function generateSolutionAction(profile: ClientProfile) {
+  await verifySession();
   await checkConfig();
   try {
     // Sestavíme vyhledávací text pro retrieval na základě klíčových cílů a zdravotního stavu klienta
@@ -575,6 +600,7 @@ export async function generateSolutionAction(profile: ClientProfile) {
  *   Proto admin UI i cron volají akci po jedné pojišťovně (každé volání je krátké).
  */
 export async function zkontrolujPodminkyAction(filtrPojistovna?: string) {
+  await overPristupNeboCron(); // volá i cron route (CRON_SECRET)
   await checkConfig();
   const souhrn: {
     pojistovna: string;
@@ -645,6 +671,7 @@ export async function zkontrolujPodminkyAction(filtrPojistovna?: string) {
  * Vrátí seznam objevených dostupných podmínek (pro zobrazení v adminu).
  */
 export async function getDostupnePodminkyAction() {
+  await verifySession();
   await checkConfig();
   try {
     const { data, error } = await supabaseAdmin
@@ -664,6 +691,7 @@ export async function getDostupnePodminkyAction() {
  * Stáhne a importuje konkrétní objevený dokument (přes standardní pipeline).
  */
 export async function importujPodminkuAction(id: string) {
+  await overPristupNeboCron(); // volá i /api/import-podminky route (CRON_SECRET)
   await checkConfig();
   try {
     const { data: zaznam, error } = await supabaseAdmin
@@ -712,6 +740,7 @@ export interface ProduktVstup {
 
 /** Vrátí produkty (volitelně jen jedné domény), nejnovější nahoře. */
 export async function getProduktyAction(domena?: string) {
+  await verifySession();
   await checkConfig();
   try {
     let q = supabaseAdmin
@@ -730,6 +759,7 @@ export async function getProduktyAction(domena?: string) {
 
 /** Vytvoří nebo upraví produkt (ruční zdroj). */
 export async function ulozProduktAction(p: ProduktVstup) {
+  await verifySession();
   await checkConfig();
   try {
     if (!DOMENY_PLATNE.includes(p.domena)) throw new Error('Neplatná doména produktu.');
@@ -763,6 +793,7 @@ export async function ulozProduktAction(p: ProduktVstup) {
 
 /** Smaže produkt. */
 export async function smazProduktAction(id: string) {
+  await verifySession();
   await checkConfig();
   try {
     const { error } = await supabaseAdmin.from('produkty').delete().eq('id', id);

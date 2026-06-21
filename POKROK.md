@@ -525,6 +525,23 @@ Zásadní architektonický krok: klienti i plány nově NA SERVERU (Supabase) s 
   přes server service-role; zúžení (authenticated-read/service-write) je follow-up. `poradceStore` (branding)
   zatím localStorage — follow-up na `poradci_profil`.
 
+## v0.45 — deployment prep (Vercel)
+`DEPLOY.md` (env, GitHub/CLI, cron, Supabase Auth URL); `.env.example` + `CRON_SECRET` (sledován v gitu);
+**oprava proxy matcheru** (vyloučit `/api` — jinak gating rozbije cron i `/api/check-config`).
+
+## v0.46 — opravy z bezpečnostního review auth (12 potvrzených, 1 zamítnutý)
+- **Server Actions bez `verifySession`** (high): doplněno do VŠECH chráněných akcí v `app/actions.ts`
+  (upload/delete/updateMeta/produkty/chat/solution/plan/get…). `generujFinancniPlanAction` ověřuje session
+  PRVNÍ (před RAG+Gemini, fail-closed). Plánové get/smaz mají `verifySession` PŘED `try` (redirect se neztratí).
+  `zkontroluj/importujPodminkuAction` (volá cron) → guard `overPristupNeboCron` (session NEBO CRON_SECRET).
+- **`schema.sql` nesynchronní s DB** (high): doplněn `poradce_id`/`aktualizovano_kdy` + per-poradce RLS;
+  permisivní `permisivni_vse` na `klienti`/`financni_plany` se už NEobnovuje (re-run by jinak anuloval izolaci).
+- **Únik dat mezi poradci na sdíleném zařízení** (high): `pripadStore` modul-stav přežíval logout (soft-nav)
+  → `resetPripadStore()` + odhlášení dělá `signOut` + tvrdý `window.location` na `/login`.
+- **`novyId()` mohlo vrátit ne-UUID** (medium): vždy validní UUID v4 (jinak by upsert do UUID PK tiše selhal).
+- **Migrace localStorage→server** (low): localStorage se smaže jen když VŠECHNY uploady prošly.
+Zamítnut 1 nález (proxy/cron — už opraveno ve v0.45). TSC 0, build OK, 80/80 testů. Izolace ověřena.
+
 ## v0.39 — opravy z review nového kódu (C2)
 Adversariální review v0.35–v0.38 (4 dimenze) → 4 potvrzeno / 5 zamítnuto. Opraveno:
 - `prilezitosti.ts`: příležitost „nevyužitý cashflow" se spouštěla i bez vyplněných výdajů (smyšlené číslo

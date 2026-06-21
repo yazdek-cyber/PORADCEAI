@@ -60,10 +60,19 @@ const STARY_SINGLE = 'poradceai:pripad';        // single-case (v0.18)
 const PRAZDNO: Ulozeno = { klienti: [], aktivniId: null };
 
 function novyId(): string {
+  // MUSÍ být validní UUID — `klienti.id` je v DB typu UUID, jinak by serverový upsert tiše selhal.
   try {
     if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+      const b = crypto.getRandomValues(new Uint8Array(16));
+      b[6] = (b[6] & 0x0f) | 0x40; // verze 4
+      b[8] = (b[8] & 0x3f) | 0x80; // varianta
+      const h = Array.from(b, (x) => x.toString(16).padStart(2, '0'));
+      return `${h[0]}${h[1]}${h[2]}${h[3]}-${h[4]}${h[5]}-${h[6]}${h[7]}-${h[8]}${h[9]}-${h[10]}${h[11]}${h[12]}${h[13]}${h[14]}${h[15]}`;
+    }
   } catch { /* fallback níže */ }
-  return 'k' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  // Krajní záchrana (bez Web Crypto) — stále validní UUID tvar.
+  return '00000000-0000-4000-8000-' + Date.now().toString(16).padStart(12, '0').slice(-12);
 }
 
 /** Je profil „prázdný"? (technická pole se nepočítají) */
@@ -108,6 +117,19 @@ function ulozAktivni(id: string | null): void {
 /** Aplikuje nový stav: paměť + perzistence aktivního id + notifikace. */
 function commit(next: Ulozeno): void { stav = next; ulozAktivni(next.aktivniId); emit(); }
 
+/**
+ * Tvrdý reset modul-level stavu — volat při ODHLÁŠENÍ. Jinak by data poradce A zůstala v paměti
+ * tabu (server-action redirect je jen soft navigace) a poradce B by je po přihlášení uviděl.
+ * Logout dělá i `window.location` hard reload, tohle je druhá pojistka.
+ */
+export function resetPripadStore(): void {
+  stav = PRAZDNO;
+  nactenoFlag = false;
+  nacitaSe = false;
+  try { window.localStorage.removeItem(AKTIVNI_KLIC); } catch { /* ignore */ }
+  emit();
+}
+
 /** Jednorázové načtení STARÝCH localStorage klientů (pro migraci na server). */
 function nactiStareLokalni(): KlientZaznam[] {
   try {
@@ -148,9 +170,15 @@ async function nactiZeServeru(): Promise<void> {
     if (klienti.length === 0) {
       const stari = nactiStareLokalni();
       if (stari.length) {
-        await Promise.allSettled(stari.map((k) => ulozKlientaAction(k.id, k.profil)));
+        const vysledky = await Promise.allSettled(stari.map((k) => ulozKlientaAction(k.id, k.profil)));
         klienti = stari;
-        try { window.localStorage.removeItem(STARY_KLIC); window.localStorage.removeItem(STARY_SINGLE); } catch { /* ignore */ }
+        // localStorage zálohu smaž JEN když VŠECHNY uploady prošly — jinak data ponech k dalšímu pokusu.
+        const vseOk = vysledky.every((r) => r.status === 'fulfilled' && r.value?.ok);
+        if (vseOk) {
+          try { window.localStorage.removeItem(STARY_KLIC); window.localStorage.removeItem(STARY_SINGLE); } catch { /* ignore */ }
+        } else {
+          console.error('Migrace klientů na server částečně selhala — localStorage záloha ponechána.');
+        }
       }
     }
 

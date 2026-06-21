@@ -8,9 +8,16 @@ import {
   Columns3, FolderOpen, Shield, ShieldCheck, AlertTriangle, Menu, X,
   UserRound, ChevronDown, Plus, Trash2, Pencil, Check, ClipboardCheck, Settings, Users, LogOut,
 } from 'lucide-react';
-import { usePripad, jmenoKlienta, popisPripadu } from '@/lib/pripadStore';
-import { odhlasAction } from '@/app/login/actions';
+import { usePripad, jmenoKlienta, popisPripadu, resetPripadStore } from '@/lib/pripadStore';
 import { createClient } from '@/lib/supabase/client';
+
+// Odhlášení: vyčistí session i modul-level stav klientů a tvrdě přejde na /login (hard reload),
+// aby na sdíleném zařízení nezůstala data předchozího poradce v paměti tabu.
+async function odhlas() {
+  try { await createClient().auth.signOut(); } catch { /* i tak pokračuj na /login */ }
+  resetPripadStore();
+  window.location.assign('/login');
+}
 
 // Navigace seskupená podle logiky práce poradce: rozcestník → poradna (znalosti) →
 // PŘÍPAD klienta (profil/plán/kalkulačky/uložené) → srovnání → dokumenty.
@@ -168,11 +175,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const Paticka = (
     <div className="mt-auto pt-6 px-1">
       {email && <div className="px-2 mb-2 text-[11px] text-slate-500 truncate" title={email}>{email}</div>}
-      <form action={odhlasAction}>
-        <button type="submit" className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-primary transition-colors">
-          <LogOut className="h-4.5 w-4.5 shrink-0 text-slate-400" /> Odhlásit se
-        </button>
-      </form>
+      <button type="button" onClick={odhlas} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-primary transition-colors">
+        <LogOut className="h-4.5 w-4.5 shrink-0 text-slate-400" /> Odhlásit se
+      </button>
       <div className="px-3 pt-3 text-[10px] text-slate-400">v0.44 · alfa</div>
     </div>
   );
