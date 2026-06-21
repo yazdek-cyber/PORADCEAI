@@ -12,6 +12,7 @@ import { usePripad, popisPripadu, jmenoKlienta, jePripadPrazdny, type Pripad } f
 import { najdiPrilezitosti, type PrioritaPrilezitosti } from '@/lib/prilezitosti';
 import ModalNovyKlient from '@/components/ModalNovyKlient';
 import ProcesPripadu from '@/components/ProcesPripadu';
+import PokrytiKlienta from '@/components/PokrytiKlienta';
 
 const PRIORITA_STYL: Record<PrioritaPrilezitosti, { tone: 'red' | 'amber' | 'slate'; label: string }> = {
   vysoka: { tone: 'red', label: 'Vysoká' },
@@ -34,7 +35,7 @@ const f = (x?: number) => (x === undefined || x === null ? '—' : Math.round(x)
 
 
 export default function KlientiPage() {
-  const { pripad, klienti, aktivniId, nacteno, prepniKlienta, prejmenujKlienta, smazKlienta, ulozPripad } = usePripad();
+  const { pripad, klienti, aktivniId, nacteno, prepniKlienta, prejmenujKlienta, smazKlienta, ulozPripad, aktualizujKlienta } = usePripad();
   const [modalNovy, setModalNovy] = useState(false);
   const [vybranyId, setVybranyId] = useState<string | null>(null);
   const [plany, setPlany] = useState<PlanMeta[]>([]);
@@ -112,9 +113,10 @@ export default function KlientiPage() {
           }
         />
 
-        {/* Kokpit případu — provázaná procesní linka od založení po uzavření */}
-        <div className="mb-5">
+        {/* Kokpit případu + zajištění klienta — provázaná procesní linka a „co má vs. nemá" */}
+        <div className="grid lg:grid-cols-2 gap-5 mb-5">
           <ProcesPripadu profil={p} pocetPlanu={planyK.length} naAktivni={() => prepniKlienta(vybrany.id)} />
+          <PokrytiKlienta profil={p} onToggle={(pole, hodnota) => aktualizujKlienta(vybrany.id, { [pole]: hodnota })} />
         </div>
 
         <div className="grid lg:grid-cols-2 gap-5">

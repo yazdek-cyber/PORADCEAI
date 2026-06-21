@@ -33,6 +33,10 @@ export interface Pripad {
   penzeMesicniVklad?: number;
   cilovaRentaDuchod?: number;
   ocekavanaStatniPenze?: number;
+  // Co klient UŽ MÁ (pro analýzu pokrytí „co má vs. nemá"; co nelze odvodit z čísel, zadá poradce).
+  maZivotni?: boolean;   // životní pojištění (ochrana příjmů)
+  maMajetek?: boolean;   // pojištění majetku/domácnosti
+  maOdpovednost?: boolean; // pojištění odpovědnosti
   // Ostatní
   rizikovyProfil?: 'konzervativni' | 'vyvazeny' | 'dynamicky';
   povolani?: string;

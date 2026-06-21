@@ -7,6 +7,7 @@ import * as penze from './penze';
 import * as pojisteni from './pojisteni';
 import { vyhodnotDotaznik, INVESTICNI_DOTAZNIK, DOTAZNIK_MAX_SKORE } from './dotaznik';
 import { najdiPrilezitosti } from '../prilezitosti';
+import { pokrytiKlienta, skorePokryti } from '../pokryti';
 
 let prosly = 0;
 let selhaly = 0;
@@ -329,6 +330,28 @@ console.log('— PŘÍLEŽITOSTI (cross-sell radar) —');
     rezervaNasporeno: 200_000,
   } }]);
   ok(!penzeVklad.some((x) => x.typ === 'investice'), 'vklad na penzi se odečte z volného cashflow');
+}
+
+console.log('— POKRYTÍ KLIENTA (co má vs. nemá) —');
+{
+  // Prázdný klient → pokryto jen „úvěry ošetřeny" (žádné dluhy), zbytek ne.
+  const prazdny = skorePokryti({});
+  ok(prazdny.kryto === 1 && prazdny.celkem === 6, 'prázdný klient: 1/6 (jen bez dluhů)');
+
+  // Klient s rezervou (3×), investicí, penzí, bez drahých dluhů + zaškrtnuté ŽP a majetek → vše.
+  const plny = {
+    vydaje: 30_000, rezervaNasporeno: 100_000, mesicniVkladInvestice: 3000,
+    penzeMesicniVklad: 1000, maZivotni: true, maMajetek: true,
+  };
+  const sp = skorePokryti(plny);
+  ok(sp.kryto === 6, 'plně zajištěný klient: 6/6');
+
+  // Odvozená oblast rezerva: pod 3× výdaje → nepokryto.
+  const malaRez = pokrytiKlienta({ vydaje: 30_000, rezervaNasporeno: 50_000 });
+  ok(malaRez.find((o) => o.id === 'rezerva')!.kryto === false, 'rezerva pod 3× → nepokryto');
+
+  // ŽP je zaškrtávací (neodvozené); bez maZivotni nepokryto.
+  ok(pokrytiKlienta({}).find((o) => o.id === 'zivot')!.odvozeno === false, 'ŽP je zaškrtávací (zadá poradce)');
 }
 
 console.log('');
