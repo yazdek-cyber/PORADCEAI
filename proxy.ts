@@ -52,6 +52,7 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Spouštět všude kromě statiky a obrázků (jinak by proxy běžela i na _next/static apod.).
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)'],
+  // Spouštět všude kromě API, statiky a obrázků. API routy (cron, check-config, import) si řeší
+  // autorizaci samy (CRON_SECRET) — gating na /login by je rozbil (cron nemá session).
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)'],
 };
