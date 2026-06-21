@@ -10,7 +10,8 @@ import { generujFinancniPlanAction } from '@/app/actions';
 import type { FinPlanProfil, RizikovyProfil, FinCil, Vypocty } from '@/lib/financniPlan';
 import PlanDokument from '@/components/PlanDokument';
 import PlanPrehled from '@/components/PlanPrehled';
-import KlientskaAnalyza from '@/components/KlientskaAnalyza';
+import KlientskaAnalyza, { type KlientCisla } from '@/components/KlientskaAnalyza';
+import PotencialMezery from '@/components/PotencialMezery';
 import { TiskHlavicka, TiskPaticka } from '@/components/Tisk';
 import { usePripad, jePripadPrazdny, popisPripadu, type Pripad } from '@/lib/pripadStore';
 import { Field as Pole } from '@/components/ui';
@@ -84,6 +85,25 @@ export default function PlanPage() {
   const [zobrazPodklady, setZobrazPodklady] = useState(false);
 
   const datumDnes = new Date().toLocaleDateString('cs-CZ');
+
+  // Čísla klienta pro analýzu i poradenský panel mezer (jeden zdroj, ať se nerozcházejí).
+  const klientCisla: KlientCisla = {
+    rizikovyProfil,
+    cistyPrijem: num(cistyPrijem),
+    vydaje: num(vydaje) || undefined,
+    cilovaRentaDuchod: num(cilovaRentaDuchod) || undefined,
+    ocekavanaStatniPenze: num(ocekavanaStatniPenze) || undefined,
+    hypotekaZustatek: num(hypotekaZustatek) || undefined,
+    hypotekaSazba: num(hypotekaSazba) > 0 ? num(hypotekaSazba) / 100 : undefined,
+    hypotekaZbyvaMesicu: num(hypotekaZbyvaMesicu) || undefined,
+    jineDluhy: num(jineDluhy) || undefined,
+    pocetDeti: num(pocetDeti) || undefined,
+    mesicniVkladInvestice: num(mesicniVkladInvestice) || undefined,
+    penzeMesicniVklad: num(penzeMesicniVklad) || undefined,
+    rezervaNasporeno: num(rezervaNasporeno) || undefined,
+    existujiciInvestice: num(existujiciInvestice) || undefined,
+    penzeNasporeno: num(penzeNasporeno) || undefined,
+  };
 
   // — Sdílený případ klienta (propojení s kalkulačkami / Domů / Rychlým návrhem) —
   const { pripad, nacteno, aktivniId, ulozPripad } = usePripad();
@@ -502,23 +522,15 @@ export default function PlanPage() {
               {vypocty && (
                 <div>
                   <h3 className="text-sm font-bold text-primary mb-2 print:mt-4 flex items-center gap-1.5"><ShieldCheck className="h-4 w-4 text-accent" />Klientská analýza</h3>
-                  <KlientskaAnalyza v={vypocty} klient={{
-                    rizikovyProfil,
-                    cistyPrijem: num(cistyPrijem),
-                    vydaje: num(vydaje) || undefined,
-                    cilovaRentaDuchod: num(cilovaRentaDuchod) || undefined,
-                    ocekavanaStatniPenze: num(ocekavanaStatniPenze) || undefined,
-                    hypotekaZustatek: num(hypotekaZustatek) || undefined,
-                    hypotekaSazba: num(hypotekaSazba) > 0 ? num(hypotekaSazba) / 100 : undefined,
-                    hypotekaZbyvaMesicu: num(hypotekaZbyvaMesicu) || undefined,
-                    jineDluhy: num(jineDluhy) || undefined,
-                    pocetDeti: num(pocetDeti) || undefined,
-                    mesicniVkladInvestice: num(mesicniVkladInvestice) || undefined,
-                    penzeMesicniVklad: num(penzeMesicniVklad) || undefined,
-                    rezervaNasporeno: num(rezervaNasporeno) || undefined,
-                    existujiciInvestice: num(existujiciInvestice) || undefined,
-                    penzeNasporeno: num(penzeNasporeno) || undefined,
-                  }} />
+                  <KlientskaAnalyza v={vypocty} klient={klientCisla} />
+                </div>
+              )}
+
+              {/* Mezery & potenciál — pohled pro PORADCE (skrytý v klientském PDF) */}
+              {vypocty && (
+                <div>
+                  <h3 className="text-sm font-bold text-primary mb-2 print:hidden flex items-center gap-1.5"><TrendingUp className="h-4 w-4 text-accent" />Mezery &amp; potenciál (pro poradce)</h3>
+                  <PotencialMezery v={vypocty} klient={klientCisla} />
                 </div>
               )}
 

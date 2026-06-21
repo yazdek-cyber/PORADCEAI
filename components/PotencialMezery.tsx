@@ -1,0 +1,140 @@
+'use client';
+
+// MEZERY & POTENCIÁL — POHLED PRO PORADCE (ne pro klienta; v tisku klientského PDF skrytý).
+// Konsoliduje mezery mezi tím, co klient MÁ, a co POTŘEBUJE — z reálných podkladů (Vypocty).
+// Mezera = potřeba klienta podložená jeho čísly = zároveň příležitost poradce. NE maximalizace provize:
+// každý řádek je obhajitelný daty (drží princip nestrannosti a povinnost jednat v zájmu klienta).
+import type { Vypocty } from '@/lib/financniPlan';
+import type { KlientCisla } from '@/components/KlientskaAnalyza';
+import { TrendingUp, AlertTriangle, Info } from 'lucide-react';
+
+const f = (x: number) => Math.round(x).toLocaleString('cs-CZ');
+
+interface Radek {
+  oblast: string;
+  ma: string;
+  potreba: string;
+  mezera: number;       // pro řazení / souhrn (0 = bez mezery)
+  mezeraText: string;
+  akce: string;
+  jednotka: 'měs' | 'Kč';
+}
+
+export default function PotencialMezery({ v, klient }: { v: Vypocty; klient: KlientCisla }) {
+  if (!v || !v.rezerva || !v.penze) return null;
+
+  const prijem = klient.cistyPrijem ?? 0;
+  const vydaje = klient.vydaje ?? 0;
+  const investVklad = klient.mesicniVkladInvestice ?? 0;
+  const penzeVklad = klient.penzeMesicniVklad ?? 0;
+
+  // Volný cashflow, který zatím nejde do tvorby majetku / ochrany.
+  const volnyCashflow = Math.max(0, prijem - vydaje - investVklad - penzeVklad);
+
+  const rezervaMa = Math.max(0, v.rezerva.doporucenaRezerva - v.rezerva.chybiDoRezervy);
+  const ochranaPotreba = v.efpaKryti?.invalidita ?? v.edoKryti?.invalidita ?? 0;
+  const penzeMezeraMes = Math.max(0, v.penze.mezera?.mesicniMezera ?? 0);
+  const penzeKapitalPotreba = v.penze.potrebnyKapitalRentaKFP ?? 0;
+  const refi = v.uvery?.refinancovani;
+  const refiUspora = refi && refi.vyplati ? refi.mesicniUspora : 0;
+
+  const radky: Radek[] = [
+    {
+      oblast: 'Likvidní rezerva',
+      ma: `${f(rezervaMa)} Kč`,
+      potreba: `${f(v.rezerva.doporucenaRezerva)} Kč`,
+      mezera: v.rezerva.chybiDoRezervy,
+      mezeraText: v.rezerva.chybiDoRezervy > 0 ? `${f(v.rezerva.chybiDoRezervy)} Kč` : '—',
+      akce: 'Doplnit rezervu (spořicí účet / fond peněžního trhu)',
+      jednotka: 'Kč',
+    },
+    {
+      oblast: 'Ochrana příjmů (invalidita)',
+      ma: 'zadat současné krytí',
+      potreba: `${f(ochranaPotreba)} Kč`,
+      mezera: ochranaPotreba,
+      mezeraText: ochranaPotreba > 0 ? `až ${f(ochranaPotreba)} Kč` : '—',
+      akce: 'Sjednat/navýšit životní pojištění (invalidita, smrt, PN/TN)',
+      jednotka: 'Kč',
+    },
+    {
+      oblast: 'Penze a renta',
+      ma: `${f(klient.penzeMesicniVklad ?? 0)} Kč/měs`,
+      potreba: `kapitál ${f(penzeKapitalPotreba)} Kč`,
+      mezera: penzeMezeraMes,
+      mezeraText: penzeMezeraMes > 0 ? `${f(penzeMezeraMes)} Kč/měs renty` : '—',
+      akce: 'Navýšit DPS / pravidelnou investici na rentu',
+      jednotka: 'měs',
+    },
+    {
+      oblast: 'Růst majetku',
+      ma: `${f(investVklad)} Kč/měs`,
+      potreba: `volné ${f(volnyCashflow)} Kč/měs`,
+      mezera: volnyCashflow,
+      mezeraText: volnyCashflow > 0 ? `${f(volnyCashflow)} Kč/měs nevyužito` : '—',
+      akce: 'Investovat volný cashflow dle rizikového profilu',
+      jednotka: 'měs',
+    },
+  ];
+  if (refiUspora > 0) {
+    radky.push({
+      oblast: 'Úvěry',
+      ma: 'stávající sazba',
+      potreba: 'refinancování',
+      mezera: refiUspora,
+      mezeraText: `úspora ${f(refiUspora)} Kč/měs`,
+      akce: 'Refinancovat hypotéku za nižší sazbu',
+      jednotka: 'měs',
+    });
+  }
+
+  const otevrene = radky.filter((r) => r.mezera > 0).length;
+
+  return (
+    <div className="rounded-2xl border border-accent-100 bg-accent-50/30 p-5 shadow-soft print:hidden">
+      <div className="flex items-start justify-between gap-3 mb-1">
+        <h3 className="text-base font-bold text-primary flex items-center gap-2">
+          <TrendingUp className="h-5 w-5 text-accent" /> Mezery &amp; potenciál <span className="text-[11px] font-semibold text-slate-400">(pro poradce)</span>
+        </h3>
+        <div className="text-right shrink-0">
+          <div className="text-xl font-extrabold text-accent-700">{f(volnyCashflow)} Kč/měs</div>
+          <div className="text-[10px] text-slate-500 uppercase tracking-wide">volný měsíční potenciál</div>
+        </div>
+      </div>
+      <p className="text-xs text-slate-500 mb-3">{otevrene} otevřených mezer mezi tím, co klient má, a co potřebuje — z jeho reálných čísel.</p>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="text-left text-[10px] uppercase tracking-wide text-slate-400">
+              <th className="py-1.5 pr-2 font-bold">Oblast</th>
+              <th className="py-1.5 px-2 font-bold">Klient má</th>
+              <th className="py-1.5 px-2 font-bold">Potřeba</th>
+              <th className="py-1.5 px-2 font-bold">Mezera</th>
+              <th className="py-1.5 pl-2 font-bold">Co s tím</th>
+            </tr>
+          </thead>
+          <tbody>
+            {radky.map((r) => (
+              <tr key={r.oblast} className="border-t border-slate-100 align-top">
+                <td className="py-2 pr-2 font-semibold text-slate-800">{r.oblast}</td>
+                <td className="py-2 px-2 text-slate-600">{r.ma}</td>
+                <td className="py-2 px-2 text-slate-600">{r.potreba}</td>
+                <td className={`py-2 px-2 font-bold ${r.mezera > 0 ? 'text-accent-700' : 'text-slate-400'}`}>{r.mezeraText}</td>
+                <td className="py-2 pl-2 text-slate-600">{r.akce}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="mt-3 flex gap-2 rounded-xl bg-white/70 border border-accent-100 p-2.5">
+        <Info className="h-4 w-4 text-accent shrink-0 mt-0.5" />
+        <p className="text-[11px] leading-relaxed text-slate-600">
+          Mezery jsou <strong>potřeby klienta podložené jeho čísly</strong> — řešte je v jeho zájmu (a jsou zároveň vaší
+          příležitostí). Pro přesné „co smlouva kryje a co ne" doplňte <strong>současné krytí klienta</strong> (zatím nezadáno).
+        </p>
+      </div>
+    </div>
+  );
+}
