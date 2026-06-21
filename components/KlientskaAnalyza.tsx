@@ -1,9 +1,10 @@
 'use client';
 
-import type { Vypocty } from '@/lib/financniPlan';
+import type { Vypocty, RizikovyProfil } from '@/lib/financniPlan';
 import { ShieldCheck, Wallet, TrendingUp, PiggyBank, Info, Home, Target, Scale, Baby } from 'lucide-react';
 import { DonutObecny, Sloupce, AlokaceVizual, MiniGraf } from '@/components/Vizualy';
 import { INVALIDITA, STATISTIKY_ZDROJ } from '@/lib/edoStatistiky';
+import { portfolioProProfil, barvaTridy } from '@/lib/edoPortfolia';
 import { uvery } from '@/lib/kalkulacky';
 
 // KLIENTSKÁ GRAFICKÁ ANALÝZA (eDO-styl). Výstup „pro klienta" — grafy + kontext (PROČ) napříč
@@ -16,6 +17,7 @@ const pct = (x: number) => (x * 100).toFixed(0) + ' %';
 // hypotekaSazba je DECIMAL (0.059) — shodně s FinPlanProfil.
 export interface KlientCisla {
   jmeno?: string;
+  rizikovyProfil?: RizikovyProfil;
   cistyPrijem?: number;
   vydaje?: number;
   cilovaRentaDuchod?: number;
@@ -253,9 +255,32 @@ export default function KlientskaAnalyza({ v, klient }: { v: Vypocty; klient: Kl
             { label: 'Pesimistický (p10)', hodnota: v.investice.monteCarlo.p10, barva: '#cbd5e1' },
           ]} format={(n) => `${f(n)} Kč`} />
         </div>
+        {(() => {
+          const p = portfolioProProfil(klient.rizikovyProfil);
+          return (
+            <div className="mt-3 rounded-xl border border-slate-100 bg-slate-50/60 p-3">
+              <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">
+                Doporučené eDO portfolio — {p.nazev} (cíl {(p.cilovyVynos * 100).toFixed(1).replace('.0', '')} % p.a.)
+              </div>
+              <div className="space-y-1.5">
+                {p.fondy.map((fo) => (
+                  <div key={fo.isin} className="text-[11px]">
+                    <div className="flex justify-between gap-2">
+                      <span className="text-slate-700 truncate">{fo.nazev} <span className="text-slate-400">· {fo.trida}</span></span>
+                      <span className="font-bold text-slate-800 shrink-0">{Math.round(fo.vaha * 100)} %</span>
+                    </div>
+                    <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
+                      <div style={{ width: `${fo.vaha * 100}%`, background: barvaTridy(fo.trida) }} className="h-1.5 rounded-full" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
         <Proc>
           Při zvolené alokaci je očekávaná hodnota investice {f(v.investice.monteCarlo.median)} Kč; i pesimistický
-          scénář ({f(v.investice.monteCarlo.p10)} Kč) počítá s výkyvy trhu. Dlouhý horizont = více akcií.
+          scénář ({f(v.investice.monteCarlo.p10)} Kč) počítá s výkyvy trhu. Konkrétní eDO portfolio výše odpovídá rizikovému profilu.
         </Proc>
       </Karta>
 

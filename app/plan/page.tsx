@@ -478,6 +478,7 @@ export default function PlanPage() {
                 <div>
                   <h3 className="text-sm font-bold text-primary mb-2 print:mt-4 flex items-center gap-1.5"><ShieldCheck className="h-4 w-4 text-accent" />Klientská analýza</h3>
                   <KlientskaAnalyza v={vypocty} klient={{
+                    rizikovyProfil,
                     cistyPrijem: num(cistyPrijem),
                     vydaje: num(vydaje) || undefined,
                     cilovaRentaDuchod: num(cilovaRentaDuchod) || undefined,
