@@ -3,6 +3,7 @@
 import { useActionState } from 'react';
 import { Wallet, Loader2, LogIn } from 'lucide-react';
 import { prihlasAction, type LoginStav } from './actions';
+import { VERZE } from '@/lib/verze';
 
 const VYCHOZI: LoginStav = {};
 
@@ -54,6 +55,7 @@ export default function LoginPage() {
         <p className="text-[11px] text-slate-400 text-center mt-4">
           Účet zakládá administrátor. Data klientů jsou chráněna a izolována per poradce.
         </p>
+        <p className="text-[10px] text-slate-300 text-center mt-2">PoradceAI v{VERZE}</p>
       </div>
     </div>
   );
