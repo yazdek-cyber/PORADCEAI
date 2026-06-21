@@ -26,6 +26,9 @@ Legenda: ⬜ čeká · 🔄 probíhá · ✅ hotovo
   Opraveno (v0.35): schema.sql DROP+CREATE hledej_chunky · kontaminace formuláře mezi klienty (/plan reset) ·
   PII jméno se neukládá na server (jen klientId) · validace záznamů v pripadStore.nacti · zavádějící copy /klienti.
   DEFER (low): tichá ztráta při kvótě localStorage v pripadStore.zapis (riziko minimální — klíč drží jen text, ne logo).
+- ✅ C2. Review nového kódu (v0.35–v0.38): 4 dimenze × ověření → 4 potvrzeno / 5 zamítnuto. Opraveno (v0.39):
+  cashflow příležitost bez guardu na výdaje (smyšlené číslo) + ignoroval vklad na penzi · DotaznikKalk se
+  remountoval při „Předvyplnit" (ztráta dotazníku) · uložení profilu bez klienta zakládalo prázdného klienta.
 
 ## D. Kalkulačky
 - ✅ D1. OSVČ bonita kalkulačka (z nahrané metodiky — paušální režim daně). — v0.31

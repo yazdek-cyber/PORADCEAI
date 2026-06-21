@@ -506,3 +506,14 @@ TSC 0, build OK, 78/78 testů (+7).
 donut) − závazky (hypotéka + jiné dluhy) = **čisté jmění** jako výchozí bod plánu, vč. vysvětlení.
 `KlientCisla` rozšířeno (rezervaNasporeno, existujiciInvestice, penzeNasporeno, jineDluhy); napojeno z `/plan`
 i `/plany` (z uloženého profilu). TSC 0, build OK, 78/78 testů.
+
+## v0.39 — opravy z review nového kódu (C2)
+Adversariální review v0.35–v0.38 (4 dimenze) → 4 potvrzeno / 5 zamítnuto. Opraveno:
+- `prilezitosti.ts`: příležitost „nevyužitý cashflow" se spouštěla i bez vyplněných výdajů (smyšlené číslo
+  poradci) → guard `vydaje > 0`; `volnyCashflow` nově odečítá i vklad na penzi/investice (konzistence
+  s `KlientskaAnalyza`, ať nedáváme dvě různá čísla). + testy.
+- `/kalkulacky`: `DotaznikKalk` se remountoval při „Předvyplnit z případu" (bumpne `verze`) a mazal
+  rozdělaný dotazník → vyrenderován mimo `verze`-klíčovanou mřížku.
+- `DotaznikKalk`: „Uložit profil do případu" bez aktivního klienta zakládalo prázdného „fantomového"
+  klienta → tlačítko se ukáže jen s vybraným klientem, jinak hláška.
+TSC 0, build OK, 80/80 testů (+2).

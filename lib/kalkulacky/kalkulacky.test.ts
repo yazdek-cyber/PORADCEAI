@@ -315,6 +315,20 @@ console.log('— PŘÍLEŽITOSTI (cross-sell radar) —');
   ok(!pr.some((x) => x.klientId === 'b' && x.priorita === 'vysoka'), 'zdravý klient nemá vysoké priority');
   // Řazení: první má vysokou prioritu.
   ok(pr[0].priorita === 'vysoka', 'řazeno dle priority (vysoká první)');
+
+  // OPRAVA review: bez vyplněných výdajů se NESMÍ spustit falešná „nevyužitý cashflow" příležitost.
+  const bezVydaju = najdiPrilezitosti([{ id: 'c', vytvoreno: now, aktualizovano: now, profil: {
+    jmeno: 'BezVydaju', cistyPrijem: 50_000, mesicniVkladInvestice: 0,
+  } }]);
+  ok(!bezVydaju.some((x) => x.typ === 'investice'), 'bez výdajů → žádná falešná cashflow příležitost');
+
+  // OPRAVA review: volný cashflow odečítá i vklad na penzi (konzistence s KlientskaAnalyza).
+  // Příjem 40k − výdaje 30k − penze 8k = 2k (≤ 3000) → příležitost se nespustí.
+  const penzeVklad = najdiPrilezitosti([{ id: 'd', vytvoreno: now, aktualizovano: now, profil: {
+    jmeno: 'Penze', cistyPrijem: 40_000, vydaje: 30_000, penzeMesicniVklad: 8000, mesicniVkladInvestice: 0,
+    rezervaNasporeno: 200_000,
+  } }]);
+  ok(!penzeVklad.some((x) => x.typ === 'investice'), 'vklad na penzi se odečte z volného cashflow');
 }
 
 console.log('');

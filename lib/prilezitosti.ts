@@ -25,7 +25,10 @@ function prilezitostiKlienta(id: string, p: Pripad): Omit<Prilezitost, 'klientId
   const out: Omit<Prilezitost, 'klientId' | 'klientJmeno'>[] = [];
   const vydaje = p.vydaje ?? 0;
   const prijem = p.cistyPrijem ?? 0;
-  const volnyCashflow = prijem - vydaje - (p.mesicniSplatkyDluhu ?? 0);
+  // Skutečně volný cashflow = příjem − výdaje − splátky dluhů − již směřované do penze/investic.
+  // (Shodná sémantika jako „zbytekVolne" v KlientskaAnalyza — ať nedáváme dvě různá čísla.)
+  const volnyCashflow = prijem - vydaje - (p.mesicniSplatkyDluhu ?? 0)
+    - (p.penzeMesicniVklad ?? 0) - (p.mesicniVkladInvestice ?? 0);
 
   // 1) Nízká likvidní rezerva (< 3× měsíční výdaje) — základ finanční pyramidy.
   if (vydaje > 0 && (p.rezervaNasporeno ?? 0) < vydaje * 3) {
@@ -61,7 +64,8 @@ function prilezitostiKlienta(id: string, p: Pripad): Omit<Prilezitost, 'klientId
   }
 
   // 4) Nevyužitý cashflow — neinvestuje, ač má volné peníze (> 3 000 Kč/měs).
-  if ((p.mesicniVkladInvestice ?? 0) === 0 && volnyCashflow > 3000) {
+  // Guard `vydaje > 0`: bez vyplněných výdajů je „volný cashflow" jen nedopočet, ne pravda — neukazuj smyšlené číslo.
+  if ((p.mesicniVkladInvestice ?? 0) === 0 && vydaje > 0 && volnyCashflow > 3000) {
     out.push({
       typ: 'investice',
       nadpis: 'Nevyužitý volný cashflow',

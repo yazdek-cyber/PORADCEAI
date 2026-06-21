@@ -513,6 +513,7 @@ const PROFIL_BARVA: Record<string, string> = {
 };
 function DotaznikKalk() {
   const { pripad, ulozPripad } = usePripad();
+  const maPripad = !jePripadPrazdny(pripad);
   const [odpovedi, setOdpovedi] = useState<number[]>(() => new Array(INVESTICNI_DOTAZNIK.length).fill(-1));
   const [vysledek, setVysledek] = useState<VyhodnoceniDotazniku | null>(null);
   const [ulozeno, setUlozeno] = useState(false);
@@ -615,9 +616,13 @@ function DotaznikKalk() {
             </div>
 
             <div className="flex items-center gap-2 mt-4 print:hidden">
-              <button onClick={ulozProfil} className="flex items-center gap-1.5 rounded-lg bg-white border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-primary hover:border-primary-200">
-                {ulozeno ? <><Check className="h-3.5 w-3.5 text-green-600" /> Uloženo do případu</> : <><Save className="h-3.5 w-3.5 text-accent" /> Uložit profil do případu</>}
-              </button>
+              {maPripad ? (
+                <button onClick={ulozProfil} className="flex items-center gap-1.5 rounded-lg bg-white border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-primary hover:border-primary-200">
+                  {ulozeno ? <><Check className="h-3.5 w-3.5 text-green-600" /> Uloženo do případu</> : <><Save className="h-3.5 w-3.5 text-accent" /> Uložit profil do případu</>}
+                </button>
+              ) : (
+                <span className="text-[11px] text-slate-400">Pro uložení profilu nejprve vyberte klienta (sekce Klienti).</span>
+              )}
             </div>
             <p className="text-[10px] text-slate-400 mt-2">{EDO_PORTFOLIA_ZDROJ}</p>
           </div>
@@ -630,7 +635,7 @@ function DotaznikKalk() {
 // ── Stránka ──────────────────────────────────────────────────────────────────
 const ZALOZKY = [
   { id: 'uvery', nazev: 'Úvěry', ikona: Home, kalk: [HypotekaKalk, MaxUverKalk, RefinancKalk, OsvcKalk] },
-  { id: 'investice', nazev: 'Investice', ikona: TrendingUp, kalk: [DotaznikKalk, ProjekceKalk, CilKalk, SrovnaniForemKalk] },
+  { id: 'investice', nazev: 'Investice', ikona: TrendingUp, kalk: [ProjekceKalk, CilKalk, SrovnaniForemKalk] },
   { id: 'renta', nazev: 'Renta & penze', ikona: PiggyBank, kalk: [RentaKalk, PenzeKalk, DanovaUsporaKalk] },
   { id: 'pojisteni', nazev: 'Pojištění & rezerva', ikona: ShieldCheck, kalk: [PojistnaKalk, RezervaKalk] },
 ];
@@ -702,6 +707,10 @@ export default function KalkulackyPage() {
           <Printer className="h-4 w-4 text-accent" /> Tisk
         </button>
       </div>
+
+      {/* Investiční dotazník: mimo `verze`-klíčovanou mřížku, ať „Předvyplnit z případu"
+          (které bumpne verze a remountuje kalkulačky) nesmaže rozdělaný dotazník. */}
+      {zalozka === 'investice' && <div className="mb-4"><DotaznikKalk /></div>}
 
       <KalkInitCtx.Provider value={init}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
