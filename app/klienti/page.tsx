@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import {
   Users, UserRound, ArrowLeft, Plus, Pencil, Trash2, Check, Wallet, ShieldCheck,
@@ -63,11 +63,18 @@ export default function KlientiPage() {
   };
 
   // Deep-link z Domů: /klienti?id=<klientId> rovnou otevře kokpit daného klienta.
+  // Param se SPOTŘEBUJE (vyčistí z URL), aby se efekt po „Zpět"/smazání jiného klienta neopakoval
+  // a násilně nevracel uživatele zpět do detailu (a nepřepínal aktivního klienta).
+  const deepLinkRef = useRef(false);
   useEffect(() => {
-    if (!nacteno || vybranyId) return;
+    if (!nacteno || deepLinkRef.current) return;
     try {
       const id = new URLSearchParams(window.location.search).get('id');
-      if (id && klienti.some((k) => k.id === id)) otevri(id);
+      if (id) {
+        deepLinkRef.current = true;
+        window.history.replaceState(null, '', '/klienti');
+        if (!vybranyId && klienti.some((k) => k.id === id)) otevri(id);
+      }
     } catch { /* ignore */ }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nacteno, klienti.length]);

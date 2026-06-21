@@ -20,8 +20,10 @@ export function pokrytiKlienta(p: Pripad): OblastPokryti[] {
   const maHypo = (p.hypotekaZustatek ?? 0) > 0;
   return [
     {
-      id: 'rezerva', nazev: 'Likvidní rezerva', popis: 'min. 3× měsíční výdaje',
-      kryto: vydaje > 0 && (p.rezervaNasporeno ?? 0) >= vydaje * 3, odvozeno: true,
+      // Práh 6× — shodně s doporučenou rezervou v plánu (pojisteni.rezerva ..., 6) a panelem mezer,
+      // ať si kokpit a plán u téhož klienta neprotiřečí.
+      id: 'rezerva', nazev: 'Likvidní rezerva', popis: 'doporučeno 6× měsíční výdaje',
+      kryto: vydaje > 0 && (p.rezervaNasporeno ?? 0) >= vydaje * 6, odvozeno: true,
     },
     {
       id: 'zivot', nazev: 'Životní pojištění', popis: 'ochrana příjmů (invalidita, smrt, PN)',
@@ -40,8 +42,9 @@ export function pokrytiKlienta(p: Pripad): OblastPokryti[] {
       kryto: (p.mesicniVkladInvestice ?? 0) > 0 || (p.existujiciInvestice ?? 0) > 0, odvozeno: true,
     },
     {
+      // Chybějící sazba neznamená „ošetřeno" — vyžaduj zadanou sazbu < 6 %.
       id: 'uvery', nazev: 'Úvěry ošetřeny', popis: 'rozumná sazba, bez drahých dluhů',
-      kryto: (!maHypo || (p.hypotekaSazba ?? 0) < 6) && (p.jineDluhy ?? 0) === 0, odvozeno: true,
+      kryto: (!maHypo || (p.hypotekaSazba != null && p.hypotekaSazba < 6)) && (p.jineDluhy ?? 0) === 0, odvozeno: true,
     },
   ];
 }

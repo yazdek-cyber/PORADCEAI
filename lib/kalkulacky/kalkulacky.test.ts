@@ -338,9 +338,9 @@ console.log('— POKRYTÍ KLIENTA (co má vs. nemá) —');
   const prazdny = skorePokryti({});
   ok(prazdny.kryto === 1 && prazdny.celkem === 6, 'prázdný klient: 1/6 (jen bez dluhů)');
 
-  // Klient s rezervou (3×), investicí, penzí, bez drahých dluhů + zaškrtnuté ŽP a majetek → vše.
+  // Klient s rezervou (6×), investicí, penzí, bez drahých dluhů + zaškrtnuté ŽP a majetek → vše.
   const plny = {
-    vydaje: 30_000, rezervaNasporeno: 100_000, mesicniVkladInvestice: 3000,
+    vydaje: 30_000, rezervaNasporeno: 200_000, mesicniVkladInvestice: 3000,
     penzeMesicniVklad: 1000, maZivotni: true, maMajetek: true,
   };
   const sp = skorePokryti(plny);
