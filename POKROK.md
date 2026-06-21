@@ -440,3 +440,28 @@ Přes konektor (Drive MCP → text → processText) doplněno z folderů 2.Produ
 Vynecháno: duplicity (EFPA pojištění osob/vozidel, mBank — už v DB), akademie/knihy/know-how (objemné
 vzdělávání, nižší priorita pro plán), kontakty/smlouvy (osobní data).
 Knowledge base celkem: metodika 12 · postup firmy 15 · produktové podmínky 2 = **29 dokumentů**.
+
+## v0.33 — hardening + spolehlivé párování plán ↔ klient
+Dvě věci v jednom kroku.
+
+**A) Robustnost (obrana proti pádům z poškozených/starých dat):**
+- `/plany`: otevření plánu v `try/catch/finally` + přísnější guard tvaru `Vypocty` (ověř konkrétní
+  podklíče — staré uložené plány nepadají, sjednoceno s guardem v `KlientskaAnalyza`/`PlanPrehled`).
+- `KlientskaAnalyza`: guard rozšířen o `rezervaUrovne` a `uvery`.
+- `pripadStore.nacti()`: runtime validace tvaru z localStorage (cizí/poškozená data → `PRAZDNO`,
+  jinak by `klienti.find(...)` spadlo).
+- `poradceStore.ulozPoradce` vrací `boolean`; `/nastaveni` ukáže chybu, když kvóta (velké logo)
+  zápis odmítne — místo falešného „uloženo".
+- `Markdown`: oprava regexů (Poučka; case-insensitive klíč v `LABEL_TONE`).
+- Oprava překlepu typu `ModeloveBortfolio` → `ModelovePortfolio` (`lib/edoPortfolia.ts`).
+
+**B) Párování plán ↔ klient (`klientId`):**
+- `FinPlanProfil.klientId` — plán se orazítkuje id klienta z evidence. `ulozPripad`/`ulozDoPripadu`
+  vrací id (i nově založeného), `/plan` razítkuje JEŠTĚ PŘED generováním → párování je spolehlivé,
+  nezávislé na shodě věku/příjmu. Jede v JSONB `financni_plany.profil` (bez změny schématu).
+- `pripadStore.aktualizujKlienta(id, zmeny)` — sloučí změny do KONKRÉTNÍHO klienta dle id.
+- `/plany`: u plánu se zobrazí AKTUÁLNÍ jméno klienta z evidence (dle `klientId` — přežije přejmenování),
+  odznak „aktivní klient"; v detailu lišta případu s akcemi **Přepnout na tohoto klienta** (`prepniKlienta`)
+  a **Aktualizovat profil podle plánu** (`aktualizujKlienta`, s potvrzením; sazba hypotéky desetinně→%).
+  Smazaný klient → upozornění, PDF zůstává.
+TSC 0, build OK, 66/66 testů.

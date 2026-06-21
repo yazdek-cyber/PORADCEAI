@@ -39,9 +39,16 @@ export function usePoradce() {
     return () => window.removeEventListener('storage', onStorage);
   }, []);
 
-  const ulozPoradce = useCallback((data: Poradce) => {
-    setPoradce(data);
-    try { window.localStorage.setItem(KLIC, JSON.stringify(data)); } catch { /* kvóta (velké logo) */ }
+  // Vrací true při úspěšném uložení. Zapisuje NEJDŘÍV do localStorage a teprve při úspěchu
+  // aktualizuje stav — aby náhled neukazoval „uloženo", když kvóta (velké logo) zápis odmítla.
+  const ulozPoradce = useCallback((data: Poradce): boolean => {
+    try {
+      window.localStorage.setItem(KLIC, JSON.stringify(data));
+      setPoradce(data);
+      return true;
+    } catch {
+      return false;
+    }
   }, []);
 
   return { poradce, nacteno, ulozPoradce };

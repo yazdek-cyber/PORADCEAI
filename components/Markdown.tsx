@@ -24,7 +24,7 @@ function parseInlineStyles(text: string): React.ReactNode {
 
 // Poučka (vysvětlení pro klienta z odborné metodiky) — vizuální callout.
 // Zvládne „Poučka:", „**Poučka:**", „**Poučka**:" i odrážku před tím; ořeže zbytkové **.
-const POUCKA_RE = /^(?:[-*]\s*)?\*{0,2}\s*Pou[čc]ka\s*\*{0,2}\s*[:–-]\s*\*{0,2}\s*(.*?)\s*\*{0,2}$/i;
+const POUCKA_RE = /^(?:[-*]\s*)?\*{0,2}\s*Pou[čc]ka\s*\*{0,2}\s*[:–-]\s*\*{0,2}\s*(.+?)\s*$/i;
 // Štítkované odrážky v akčních krocích.
 const LABEL_RE = /^[-*]\s*\*\*(Akční krok|Odůvodnění|Doporučení|Pozor|Tip)\*\*\s*:?\s*(.*)$/i;
 const LABEL_TONE: Record<string, string> = {
@@ -65,7 +65,9 @@ export default function Markdown({ text }: { text: string }) {
         // Štítkovaná odrážka (Akční krok / Odůvodnění …).
         const label = trimmed.match(LABEL_RE);
         if (label) {
-          const tone = LABEL_TONE[label[1]] ?? 'bg-slate-100 text-slate-600';
+          // LABEL_RE má /i → label[1] může mít jinou velikost písmen; klíč najdi case-insensitive.
+          const klic = Object.keys(LABEL_TONE).find((k) => k.toLowerCase() === label[1].toLowerCase());
+          const tone = (klic && LABEL_TONE[klic]) || 'bg-slate-100 text-slate-600';
           return (
             <div key={idx} className="flex items-start gap-2 my-1.5 text-sm leading-relaxed text-slate-800">
               <span className={`shrink-0 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${tone}`}>{label[1]}</span>

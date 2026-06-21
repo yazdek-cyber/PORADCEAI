@@ -52,7 +52,7 @@ function Proc({ children }: { children: React.ReactNode }) {
 const DETI_FAZE = ['Narození', 'Předškolní', 'ZŠ', 'SŠ', 'VŠ', 'Start do života'];
 
 export default function KlientskaAnalyza({ v, klient }: { v: Vypocty; klient: KlientCisla }) {
-  if (!v || !v.rezerva || !v.investice || !v.penze) return null;
+  if (!v || !v.rezerva || !v.rezervaUrovne || !v.investice || !v.penze || !v.uvery) return null;
   const prijem = klient.cistyPrijem ?? 0;
   const vydaje = klient.vydaje ?? 0;
 

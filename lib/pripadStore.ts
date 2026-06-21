@@ -93,7 +93,15 @@ function nacti(): Ulozeno {
   if (typeof window === 'undefined') return PRAZDNO;
   try {
     const s = window.localStorage.getItem(KLIC);
-    if (s) return JSON.parse(s) as Ulozeno;
+    if (s) {
+      // Validace tvaru za běhu (cast nestačí): poškozená/cizí data → fallback na PRAZDNO,
+      // jinak by `stav.klienti.find(...)` mohlo spadnout (např. klienti = null).
+      const parsed = JSON.parse(s);
+      if (parsed && typeof parsed === 'object' && Array.isArray(parsed.klienti)) {
+        return { klienti: parsed.klienti, aktivniId: parsed.aktivniId ?? null };
+      }
+      return PRAZDNO;
+    }
     // Migrace ze single-case verze (v0.18): jeden uložený případ → jeden klient.
     const stary = window.localStorage.getItem(STARY_KLIC);
     if (stary) {
@@ -156,8 +164,9 @@ export function usePripad() {
   const aktivni = stavLoc.klienti.find((k) => k.id === stavLoc.aktivniId) ?? null;
   const pripad: Pripad = aktivni?.profil ?? {};
 
-  /** Uloží profil do AKTIVNÍHO klienta (když žádný není, založí ho). */
-  const ulozPripad = useCallback((data: Pripad) => {
+  /** Uloží profil do AKTIVNÍHO klienta (když žádný není, založí ho). Vrací id klienta,
+   *  na který se zapsalo (existující i nově založený) — pro spolehlivé párování plán↔klient. */
+  const ulozPripad = useCallback((data: Pripad): string => {
     zajistiInit();
     const now = new Date().toISOString();
     const profil: Pripad = { ...data, aktualizovano: now };
@@ -171,6 +180,7 @@ export function usePripad() {
       aktivniId = id;
     }
     commit({ klienti, aktivniId });
+    return aktivniId;
   }, []);
 
   const novyKlient = useCallback((jmeno?: string) => {
@@ -203,8 +213,19 @@ export function usePripad() {
     commit({ klienti, aktivniId });
   }, []);
 
+  /** Sloučí změny do profilu KONKRÉTNÍHO klienta (dle id), nezávisle na aktivním. */
+  const aktualizujKlienta = useCallback((id: string, zmeny: Partial<Pripad>) => {
+    zajistiInit();
+    const now = new Date().toISOString();
+    commit({
+      ...stav,
+      klienti: stav.klienti.map((k) =>
+        k.id === id ? { ...k, profil: { ...k.profil, ...zmeny, aktualizovano: now }, aktualizovano: now } : k),
+    });
+  }, []);
+
   return {
     pripad, aktivni, klienti: stavLoc.klienti, aktivniId: stavLoc.aktivniId, nacteno,
-    ulozPripad, novyKlient, prepniKlienta, prejmenujKlienta, smazKlienta,
+    ulozPripad, novyKlient, prepniKlienta, prejmenujKlienta, smazKlienta, aktualizujKlienta,
   };
 }

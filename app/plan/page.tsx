@@ -140,9 +140,10 @@ export default function PlanPage() {
     if (p.cile) setCile(p.cile);
   };
 
-  /** Uloží aktuální formulář do sdíleného případu (zachová jméno klienta). */
-  const ulozDoPripadu = () => {
-    ulozPripad({
+  /** Uloží aktuální formulář do sdíleného případu (zachová jméno klienta).
+   *  Vrací id klienta, na který se zapsalo — pro orazítkování plánu (párování plán↔klient). */
+  const ulozDoPripadu = (): string => {
+    return ulozPripad({
       jmeno: jmeno.trim() || pripad.jmeno,
       vek: num(vek) || undefined,
       cistyPrijem: num(cistyPrijem) || undefined,
@@ -189,8 +190,14 @@ export default function PlanPage() {
     setChunks([]);
     setActiveChunk(null);
 
+    // Ulož profil do aktivního případu JEŠTĚ PŘED generováním — tím vznikne (nebo se potvrdí)
+    // klient a získáme jeho id, kterým plán orazítkujeme (spolehlivé párování plán↔klient,
+    // nezávislé na shodě věku/příjmu). Profil se uloží i kdyby generování selhalo, což nevadí.
+    const klientId = ulozDoPripadu();
+
     const profil: FinPlanProfil = {
       jmeno: jmeno.trim() || pripad.jmeno || undefined,
+      klientId,
       vek: num(vek),
       cistyPrijem: num(cistyPrijem),
       vydaje: num(vydaje),
@@ -225,7 +232,6 @@ export default function PlanPage() {
         setPodklady(res.podklady);
         setVypocty((res.vypocty as Vypocty) || null);
         setChunks((res.chunks as SourceChunk[]) || []);
-        ulozDoPripadu(); // udrž aktivní případ v souladu s vygenerovaným plánem
       } else {
         setError(res.error || 'Nepodařilo se vygenerovat finanční plán.');
       }

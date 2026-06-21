@@ -28,9 +28,14 @@ export default function NastaveniPage() {
   };
 
   const uloz = () => {
-    ulozPoradce(stav);
-    setUlozeno(true);
-    setTimeout(() => setUlozeno(false), 2500);
+    const ok = ulozPoradce(stav);
+    if (ok) {
+      setChyba(null);
+      setUlozeno(true);
+      setTimeout(() => setUlozeno(false), 2500);
+    } else {
+      setChyba('Uložení se nezdařilo — logo je nejspíš příliš velké (zkuste menší obrázek).');
+    }
   };
 
   return (

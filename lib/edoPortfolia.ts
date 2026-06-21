@@ -13,7 +13,7 @@ export interface Fond {
   ocekavanyVynos: number; // p.a. desetinně
 }
 
-export interface ModeloveBortfolio {
+export interface ModelovePortfolio {
   profil: RizikovyProfil;
   nazev: string;
   cilovyVynos: number; // p.a. desetinně
@@ -22,7 +22,7 @@ export interface ModeloveBortfolio {
   fondy: Fond[];
 }
 
-export const EDO_PORTFOLIA: Record<RizikovyProfil, ModeloveBortfolio> = {
+export const EDO_PORTFOLIA: Record<RizikovyProfil, ModelovePortfolio> = {
   konzervativni: {
     profil: 'konzervativni',
     nazev: 'Konzervativní',
@@ -63,7 +63,7 @@ export const EDO_PORTFOLIA: Record<RizikovyProfil, ModeloveBortfolio> = {
 
 export const EDO_PORTFOLIA_ZDROJ = 'Modelová portfolia eDO finance (říjen 2023) — orientační, ne individualizované doporučení';
 
-export function portfolioProProfil(profil?: RizikovyProfil): ModeloveBortfolio {
+export function portfolioProProfil(profil?: RizikovyProfil): ModelovePortfolio {
   return EDO_PORTFOLIA[profil ?? 'vyvazeny'];
 }
 
