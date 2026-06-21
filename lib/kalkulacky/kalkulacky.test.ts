@@ -5,6 +5,7 @@ import * as uvery from './uvery';
 import * as investice from './investice';
 import * as penze from './penze';
 import * as pojisteni from './pojisteni';
+import { vyhodnotDotaznik, INVESTICNI_DOTAZNIK, DOTAZNIK_MAX_SKORE } from './dotaznik';
 
 let prosly = 0;
 let selhaly = 0;
@@ -259,6 +260,33 @@ console.log('— POJIŠTĚNÍ —');
   // nahrada = 50000*12*15 = 9 000 000; hrubá = 200k+9M+2,5M+1M = 12,7M; − 300k = 12,4M
   ok(dime.nahradaPrijmu === 9_000_000, 'DIME náhrada příjmu = 9M');
   ok(dime.doporucenaPojistnaCastka === 12_400_000, 'DIME doporučená částka = 12,4M');
+}
+
+console.log('— INVESTIČNÍ DOTAZNÍK → rizikový profil —');
+{
+  const n = INVESTICNI_DOTAZNIK.length;
+  // Samé minimum (vše index 0) → konzervativní, skóre 0.
+  const min = vyhodnotDotaznik(new Array(n).fill(0));
+  ok(min.skore === 0 && min.profil === 'konzervativni', 'samé minimum → konzervativní (0 bodů)');
+
+  // Samé maximum → dynamický, skóre = max.
+  const max = vyhodnotDotaznik(INVESTICNI_DOTAZNIK.map((o) => o.volby.length - 1));
+  ok(max.skore === DOTAZNIK_MAX_SKORE && max.profil === 'dynamicky', 'samé maximum → dynamický (max skóre)');
+
+  // Horizontový STROP: rizikové odpovědi, ale krátký horizont (index 0) → profil snížen na konzervativní.
+  const odpRizikove = INVESTICNI_DOTAZNIK.map((o) => o.volby.length - 1);
+  odpRizikove[0] = 0; // horizont < 3 roky
+  const strop = vyhodnotDotaznik(odpRizikove);
+  ok(strop.profilZeSkore === 'dynamicky' && strop.profil === 'konzervativni' && strop.omezenoHorizontem,
+    'krátký horizont srazí dynamický profil na konzervativní (strop)');
+
+  // Střední horizont (index 1) stropuje na vyvážený i při jinak dynamických odpovědích.
+  const odpStred = INVESTICNI_DOTAZNIK.map((o) => o.volby.length - 1);
+  odpStred[0] = 1;
+  ok(vyhodnotDotaznik(odpStred).profil === 'vyvazeny', 'střední horizont stropuje na vyvážený');
+
+  // Profil je vždy jeden ze tří platných.
+  ok(['konzervativni', 'vyvazeny', 'dynamicky'].includes(min.profil), 'profil je platná hodnota');
 }
 
 console.log('');

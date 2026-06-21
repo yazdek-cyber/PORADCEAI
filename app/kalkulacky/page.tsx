@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useMemo, useContext, createContext } from 'react';
-import { Calculator, Home, TrendingUp, PiggyBank, ShieldCheck, Target, Landmark, Wallet, Printer, UserRound, UserCheck } from 'lucide-react';
+import { Calculator, Home, TrendingUp, PiggyBank, ShieldCheck, Target, Landmark, Wallet, Printer, UserRound, UserCheck, ClipboardList, Check, Save } from 'lucide-react';
 import { uvery, investice, penze, pojisteni } from '@/lib/kalkulacky';
+import { vyhodnotDotaznik, INVESTICNI_DOTAZNIK, type VyhodnoceniDotazniku } from '@/lib/kalkulacky/dotaznik';
+import { portfolioProProfil, barvaTridy, EDO_PORTFOLIA_ZDROJ } from '@/lib/edoPortfolia';
 import { AlokaceVizual, MiniGraf } from '@/components/Vizualy';
 import { usePripad, jePripadPrazdny, popisPripadu, type Pripad } from '@/lib/pripadStore';
 
@@ -503,10 +505,132 @@ function OsvcKalk() {
   );
 }
 
+// ── INVESTIČNÍ DOTAZNÍK → rizikový profil (MiFID/EFPA + eDO) ─────────────────
+const PROFIL_BARVA: Record<string, string> = {
+  konzervativni: 'text-slate-600',
+  vyvazeny: 'text-accent',
+  dynamicky: 'text-primary',
+};
+function DotaznikKalk() {
+  const { pripad, ulozPripad } = usePripad();
+  const [odpovedi, setOdpovedi] = useState<number[]>(() => new Array(INVESTICNI_DOTAZNIK.length).fill(-1));
+  const [vysledek, setVysledek] = useState<VyhodnoceniDotazniku | null>(null);
+  const [ulozeno, setUlozeno] = useState(false);
+  const vseZodpovezeno = odpovedi.every((o) => o >= 0);
+
+  const vyber = (qi: number, oi: number) => {
+    setOdpovedi((s) => s.map((v, i) => (i === qi ? oi : v)));
+    setVysledek(null);
+    setUlozeno(false);
+  };
+  const vyhodnot = () => { if (vseZodpovezeno) setVysledek(vyhodnotDotaznik(odpovedi)); };
+  const reset = () => { setOdpovedi(new Array(INVESTICNI_DOTAZNIK.length).fill(-1)); setVysledek(null); setUlozeno(false); };
+  const ulozProfil = () => {
+    if (!vysledek) return;
+    ulozPripad({ ...pripad, rizikovyProfil: vysledek.profil });
+    setUlozeno(true);
+    setTimeout(() => setUlozeno(false), 2500);
+  };
+
+  const port = vysledek ? portfolioProProfil(vysledek.profil) : null;
+
+  return (
+    <div className="lg:col-span-2">
+      <Karta
+        ikona={<ClipboardList className="h-5 w-5 text-accent" />}
+        titulek="Investiční dotazník → rizikový profil"
+        popis="Krátký dotazník (MiFID/EFPA) určí rizikový profil a doporučí modelové portfolio eDO. Profil lze uložit do případu klienta a propíše se do Finančního plánu."
+      >
+        <div className="grid md:grid-cols-2 gap-x-6 gap-y-4">
+          {INVESTICNI_DOTAZNIK.map((o, qi) => (
+            <fieldset key={o.id} className="min-w-0">
+              <legend className="text-sm font-semibold text-slate-800 mb-1.5">{qi + 1}. {o.otazka}</legend>
+              <div className="space-y-1">
+                {o.volby.map((v, oi) => (
+                  <label
+                    key={oi}
+                    className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm cursor-pointer transition-colors ${
+                      odpovedi[qi] === oi ? 'border-primary bg-primary-50/60 text-primary font-semibold' : 'border-slate-200 text-slate-700 hover:border-primary-200'
+                    }`}
+                  >
+                    <input type="radio" name={`q-${o.id}`} checked={odpovedi[qi] === oi} onChange={() => vyber(qi, oi)} className="h-3.5 w-3.5 accent-[var(--color-primary)]" />
+                    {v.text}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2 mt-4 print:hidden">
+          <button
+            onClick={vyhodnot}
+            disabled={!vseZodpovezeno}
+            className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-bold transition-colors ${
+              vseZodpovezeno ? 'bg-primary text-white hover:bg-primary-600 cursor-pointer' : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+            }`}
+          >
+            <ClipboardList className="h-4 w-4 text-accent" /> Vyhodnotit
+          </button>
+          {(vysledek || odpovedi.some((o) => o >= 0)) && (
+            <button onClick={reset} className="text-sm font-semibold text-slate-500 hover:text-slate-700 px-2 py-2">Vymazat</button>
+          )}
+          {!vseZodpovezeno && <span className="text-xs text-slate-400">Zodpovězte všechny otázky.</span>}
+        </div>
+
+        {vysledek && port && (
+          <div className="mt-4 rounded-xl border border-primary-100 bg-primary-50/40 p-4">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Rizikový profil</div>
+                <div className={`text-2xl font-extrabold ${PROFIL_BARVA[vysledek.profil]}`}>{port.nazev}</div>
+              </div>
+              <div className="text-right">
+                <div className="text-sm font-bold text-slate-700">Skóre {vysledek.skore}/{vysledek.maxSkore}</div>
+                <div className="text-[11px] text-slate-500">cílový výnos {pct(port.cilovyVynos)} p.a. · horizont {port.horizont}</div>
+              </div>
+            </div>
+            <p className="text-xs text-slate-600 mt-2">{vysledek.duvod}</p>
+            {vysledek.omezenoHorizontem && (
+              <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 mt-2">
+                ⚠ Profil snížen kvůli krátkému horizontu — rizikovější portfolio by neuneslo krátkodobé propady.
+              </p>
+            )}
+
+            <div className="mt-3">
+              <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">
+                <span>Modelové portfolio eDO</span>
+                <span className="normal-case font-semibold text-slate-400">max. pokles ≈ {pct(port.maxDrawdown)}</span>
+              </div>
+              <div className="space-y-1.5">
+                {port.fondy.map((fond) => (
+                  <div key={fond.isin} className="flex items-center gap-2 text-sm">
+                    <span className="w-10 text-right font-bold text-slate-700 shrink-0">{pct(fond.vaha)}</span>
+                    <div className="h-2 rounded-full shrink-0" style={{ width: `${Math.max(fond.vaha * 100, 4)}%`, maxWidth: '40%', backgroundColor: barvaTridy(fond.trida) }} />
+                    <span className="min-w-0 truncate text-slate-700">{fond.nazev}</span>
+                    <span className="ml-auto text-[11px] text-slate-400 shrink-0">{fond.trida}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 mt-4 print:hidden">
+              <button onClick={ulozProfil} className="flex items-center gap-1.5 rounded-lg bg-white border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-primary hover:border-primary-200">
+                {ulozeno ? <><Check className="h-3.5 w-3.5 text-green-600" /> Uloženo do případu</> : <><Save className="h-3.5 w-3.5 text-accent" /> Uložit profil do případu</>}
+              </button>
+            </div>
+            <p className="text-[10px] text-slate-400 mt-2">{EDO_PORTFOLIA_ZDROJ}</p>
+          </div>
+        )}
+      </Karta>
+    </div>
+  );
+}
+
 // ── Stránka ──────────────────────────────────────────────────────────────────
 const ZALOZKY = [
   { id: 'uvery', nazev: 'Úvěry', ikona: Home, kalk: [HypotekaKalk, MaxUverKalk, RefinancKalk, OsvcKalk] },
-  { id: 'investice', nazev: 'Investice', ikona: TrendingUp, kalk: [ProjekceKalk, CilKalk, SrovnaniForemKalk] },
+  { id: 'investice', nazev: 'Investice', ikona: TrendingUp, kalk: [DotaznikKalk, ProjekceKalk, CilKalk, SrovnaniForemKalk] },
   { id: 'renta', nazev: 'Renta & penze', ikona: PiggyBank, kalk: [RentaKalk, PenzeKalk, DanovaUsporaKalk] },
   { id: 'pojisteni', nazev: 'Pojištění & rezerva', ikona: ShieldCheck, kalk: [PojistnaKalk, RezervaKalk] },
 ];

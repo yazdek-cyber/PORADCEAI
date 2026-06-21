@@ -26,7 +26,7 @@ Legenda: ⬜ čeká · 🔄 probíhá · ✅ hotovo
 
 ## D. Kalkulačky
 - ✅ D1. OSVČ bonita kalkulačka (z nahrané metodiky — paušální režim daně). — v0.31
-- ⬜ D2. Investiční dotazník → rizikový profil (mapuje na eDO portfolio).
+- ✅ D2. Investiční dotazník → rizikový profil (mapuje na eDO portfolio). — v0.36
 
 ## E. Klientská analýza kompletní
 - ⬜ E1. Cashflow rozpad (příjmy/výdaje detail) + Aktuální portfolio klienta.

@@ -465,3 +465,29 @@ Dvě věci v jednom kroku.
   a **Aktualizovat profil podle plánu** (`aktualizujKlienta`, s potvrzením; sazba hypotéky desetinně→%).
   Smazaný klient → upozornění, PDF zůstává.
 TSC 0, build OK, 66/66 testů.
+
+## v0.34 — /klienti páruje plány přes klientId (dotažení A2)
+`planyKlienta()` matchuje primárně dle `profil.klientId` (přežije přejmenování), jméno jen fallback
+pro staré plány. NOCNI-BACKLOG srovnán s realitou (A1/A2/A3/B4/D1 hotovo).
+
+## v0.35 — opravy z multi-agent code-review (C1)
+Workflow review noční dávky (v0.18–v0.34, 5 dimenzí × adversariální ověření) → 10 potvrzeno / 7 zamítnuto.
+Opraveno 5 nálezů:
+- `schema.sql`: `DROP FUNCTION` před `CREATE` u `hledej_chunky` → idempotentní migrace (re-run na starší DB nespadne).
+- `/plan`: přepnutí klienta plně synchronizuje formulář i pro prázdného klienta (`nastavFormular`) →
+  konec kontaminace dat mezi klienty.
+- **PII**: jméno klienta se NEukládá do `financni_plany` (datová minimalizace); ponechán jen neosobní
+  `klientId`; hlavička PDF na `/plany` řeší jméno klientsky přes `klientId`.
+- `pripadStore.nacti()`: validace i jednotlivých záznamů `klienti[]` + sanitizace `aktivniId`.
+- `/klienti`: oprava zavádějícího textu o párování.
+Zamítnuto 7 (DRY/kosmetika). Defer: tichá kvóta localStorage (low). TSC 0, build OK, 66/66 testů.
+
+## v0.36 — investiční dotazník → rizikový profil (D2)
+MiFID/EFPA dotazník, který deterministicky určí rizikový profil a doporučí modelové portfolio eDO:
+- `lib/kalkulacky/dotaznik.ts` — 6 vážených otázek (horizont, cíl, zkušenost, reakce na pokles,
+  tolerance, stabilita) → skóre → profil. **Horizont je TVRDÝ strop** (krátký horizont srazí i jinak
+  dynamického klienta na konzervativní — akcie neunesou krátkodobý drawdown). Čisté + testovatelné.
+- `/kalkulacky` (záložka Investice): komponenta `DotaznikKalk` — radio dotazník, výsledek s profilem,
+  skóre, vysvětlením a modelovým portfoliem (fondy s vahami/třídami, cílový výnos, max. pokles).
+  Tlačítko **Uložit profil do případu** → propíše `rizikovyProfil` do aktivního klienta (a dál do plánu).
+TSC 0, build OK, 71/71 testů (+5).
