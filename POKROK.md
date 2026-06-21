@@ -542,6 +542,12 @@ Zásadní architektonický krok: klienti i plány nově NA SERVERU (Supabase) s 
 - **Migrace localStorage→server** (low): localStorage se smaže jen když VŠECHNY uploady prošly.
 Zamítnut 1 nález (proxy/cron — už opraveno ve v0.45). TSC 0, build OK, 80/80 testů. Izolace ověřena.
 
+## 🚀 NASAZENO NA VERCEL (v0.46)
+Produkce: **https://poradcea-ai.vercel.app** (projekt `yazdek-cybers-projects/poradcea-ai`).
+Deploy přes Vercel CLI (`vercel --prod`); 5 env proměnných v Production (vč. `CRON_SECRET`).
+Smoke test prod OK: `/`→`/login` (gating), `/login` 200, `/api/check-config` 200 (mimo gating).
+Login: `dominik.klimek@edofinance.cz`. Follow-up: doména do Supabase Auth URL, příp. GitHub auto-deploy.
+
 ## v0.39 — opravy z review nového kódu (C2)
 Adversariální review v0.35–v0.38 (4 dimenze) → 4 potvrzeno / 5 zamítnuto. Opraveno:
 - `prilezitosti.ts`: příležitost „nevyužitý cashflow" se spouštěla i bez vyplněných výdajů (smyšlené číslo
