@@ -105,6 +105,8 @@ export default function PlanPage() {
   // Čísla klienta pro analýzu i poradenský panel mezer (jeden zdroj, ať se nerozcházejí).
   const klientCisla: KlientCisla = {
     rizikovyProfil,
+    vek: num(vek) || undefined,
+    vekOdchodu: num(vekOdchodu) || undefined,
     cistyPrijem: num(cistyPrijem),
     vydaje: num(vydaje) || undefined,
     cilovaRentaDuchod: num(cilovaRentaDuchod) || undefined,

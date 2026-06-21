@@ -8,6 +8,8 @@ import { portfolioProProfil, barvaTridy } from '@/lib/edoPortfolia';
 import { uvery } from '@/lib/kalkulacky';
 import { Karta } from '@/components/ui';
 import ModelaceRizik from '@/components/ModelaceRizik';
+import HorizontyRezerv from '@/components/HorizontyRezerv';
+import PenzeOsa from '@/components/PenzeOsa';
 
 // KLIENTSKÁ GRAFICKÁ ANALÝZA (eDO-styl). Výstup „pro klienta" — grafy + kontext (PROČ) napříč
 // životními oblastmi (cashflow → rezerva → ochrana → bydlení → cíle/děti → růst majetku → penze).
@@ -20,6 +22,8 @@ const pct = (x: number) => (x * 100).toFixed(0) + ' %';
 export interface KlientCisla {
   jmeno?: string;
   rizikovyProfil?: RizikovyProfil;
+  vek?: number;
+  vekOdchodu?: number;
   cistyPrijem?: number;
   vydaje?: number;
   cilovaRentaDuchod?: number;
@@ -304,6 +308,9 @@ export default function KlientskaAnalyza({ v, klient }: { v: Vypocty; klient: Kl
         </Karta>
       )}
 
+      {/* HORIZONTY — peníze podle času (eDO rozdělení dle horizontu) */}
+      <HorizontyRezerv v={v} klient={klient} />
+
       {/* RŮST MAJETKU */}
       <Karta ikona={<TrendingUp className="h-4 w-4 text-accent" />} titulek="Růst majetku" popis={`Investiční horizont ${v.investice.horizontLet} let · oček. reálný výnos ${(v.investice.ocekavanyVynosKFP * 100).toFixed(1)} % p.a.`}>
         <AlokaceVizual {...v.investice.doporucenaAlokace} />
@@ -361,6 +368,9 @@ export default function KlientskaAnalyza({ v, klient }: { v: Vypocty; klient: Kl
             : 'Důchodový cíl je dle projekce pokryt — držte nastavené spoření.'}
         </Proc>
       </Karta>
+
+      {/* PENZE — v kolika s kolika (eDO osa + daňová úspora) */}
+      <PenzeOsa v={v} klient={klient} vek={klient.vek} vekOdchodu={klient.vekOdchodu} />
 
       <div className="lg:col-span-2 text-[10px] text-slate-400 px-1">
         Statistické grafy (rozložení invalidity): {STATISTIKY_ZDROJ}. Částky klienta z deterministických

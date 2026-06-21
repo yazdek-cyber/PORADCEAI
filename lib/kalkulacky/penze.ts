@@ -105,6 +105,38 @@ export function rentaZMajetku(majetek: number, koeficient = KOEFICIENT_RENTY): n
   return koeficient > 0 ? Math.max(0, majetek / koeficient) : 0;
 }
 
+// — DAŇOVÁ ÚSPORA z příspěvků na stáří (DPS / penzijní připojištění / daňově podporované produkty) —
+// Od 2024: odečíst lze roční příspěvky NAD hranici, do které stát dává příspěvek (1 700 Kč/měs),
+// souhrnně max. 48 000 Kč/rok. Úspora = odpočet × sazba daně (15 % u většiny poplatníků).
+export const DANOVY_LIMIT_ROK = 48_000; // strop odpočitatelné částky/rok (souhrnný limit 2024)
+export const DPS_HRANICE_PRO_ODPOCET = 1_700; // měsíční příspěvek, do kterého náleží státní podpora
+export const SAZBA_DANE = 0.15;
+
+export interface DanovaUsporaVystup {
+  rocniPrispevek: number; // vlastní příspěvek za rok
+  odpocet: number; // daňově uznatelná částka (po hranici, do stropu)
+  rocniUspora: number; // úspora na dani za rok
+}
+
+/**
+ * Daňová úspora z měsíčního příspěvku na DPS: odečte se část NAD 1 700 Kč/měs,
+ * souhrnně max. 48 000 Kč/rok, úspora = odpočet × sazba daně.
+ */
+export function danovaUsporaDPS(
+  mesicniPrispevek: number,
+  sazbaDane = SAZBA_DANE,
+  limitRok = DANOVY_LIMIT_ROK,
+  hranice = DPS_HRANICE_PRO_ODPOCET
+): DanovaUsporaVystup {
+  const rocni = Math.max(0, mesicniPrispevek) * 12;
+  const odpocet = Math.min(limitRok, Math.max(0, mesicniPrispevek - hranice) * 12);
+  return {
+    rocniPrispevek: rocni,
+    odpocet,
+    rocniUspora: Math.round(odpocet * sazbaDane),
+  };
+}
+
 export interface MezeraVDuchoduVstup {
   cilovaMesicniRenta: number; // kolik chce klient měsíčně mít navíc v důchodu
   ocekavanaStatniPenze?: number; // odhad státního důchodu (měsíčně)

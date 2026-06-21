@@ -203,6 +203,12 @@ console.log('— PENZE —');
   ok(penze.statniPrispevekDPS(1000) === 200, 'DPS 1000 → 200 (20 %)');
   ok(penze.statniPrispevekDPS(3000) === 340, 'DPS strop 340');
 
+  // Daňová úspora DPS: do 1700/měs žádný odpočet; nad hranicí odpočet × 15 %; strop 48k/rok.
+  ok(penze.danovaUsporaDPS(1700).odpocet === 0, 'DPS 1700 → žádný odpočet (jen státní podpora)');
+  ok(penze.danovaUsporaDPS(2700).odpocet === 12_000, 'DPS 2700 → odpočet (2700−1700)×12 = 12k');
+  ok(penze.danovaUsporaDPS(2700).rocniUspora === 1_800, 'DPS 2700 → úspora 12k × 15 % = 1 800');
+  ok(penze.danovaUsporaDPS(10_000).odpocet === 48_000, 'DPS vysoký příspěvek → odpočet zastropován 48k');
+
   // Projekce: započte státní příspěvek, kapitál > vložené (díky výnosu).
   const pp = penze.projekcePenze({
     vlastniPrispevek: 1700,
