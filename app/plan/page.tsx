@@ -12,6 +12,7 @@ import PlanDokument from '@/components/PlanDokument';
 import PlanPrehled from '@/components/PlanPrehled';
 import KlientskaAnalyza, { type KlientCisla } from '@/components/KlientskaAnalyza';
 import KomplexniAnalyza from '@/components/KomplexniAnalyza';
+import FinancniDomecek from '@/components/FinancniDomecek';
 import { usePoradce } from '@/lib/poradceStore';
 import { stupenDleNazvu } from '@/lib/provize';
 import { TiskHlavicka, TiskPaticka } from '@/components/Tisk';
@@ -634,6 +635,9 @@ export default function PlanPage() {
 
               {/* Brandovaná hlavička (jen tisk) — začátek klientského PDF */}
               <TiskHlavicka titulek="Finanční plán" podtitulek="4 pilíře: penze · investice · úvěry · pojištění" klient={jmeno.trim() || pripad.jmeno} datum={datumDnes} />
+
+              {/* Finanční domeček (eDO grafická pomůcka) — priority financí jako dům, klikací na kalkulačky */}
+              {vypocty && <FinancniDomecek profil={pripad} naAktivni={() => ulozDoPripadu()} />}
 
               {/* Klientská grafická analýza (eDO-styl) — hlavní pohled pro klienta */}
               {vypocty && (

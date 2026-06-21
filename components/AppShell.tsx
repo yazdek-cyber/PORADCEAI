@@ -21,8 +21,7 @@ async function odhlas() {
   window.location.assign('/login');
 }
 
-// Navigace seskupená podle logiky práce poradce: rozcestník → poradna (znalosti) →
-// PŘÍPAD klienta (profil/plán/kalkulačky/uložené) → srovnání → dokumenty.
+// Navigace = jasné sekce produktu: Domů · AI Poradna · CRM · Analýza & finanční plán · Znalosti & data.
 type NavItem = { name: string; href: string; icon: typeof Home };
 type NavGroup = { label?: string; items: NavItem[] };
 
@@ -30,26 +29,30 @@ const NAV: NavGroup[] = [
   {
     items: [
       { name: 'Domů', href: '/', icon: Home },
-      { name: 'Poradna', href: '/poradna', icon: MessageSquare },
+      { name: 'AI Poradna', href: '/poradna', icon: MessageSquare },
     ],
   },
   {
-    label: 'Případ klienta',
+    label: 'CRM',
     items: [
       { name: 'Klienti', href: '/klienti', icon: Users },
-      { name: 'Finanční plán', href: '/plan', icon: Wallet },
-      { name: 'Pojištění — analýza', href: '/pripad', icon: ShieldCheck },
+    ],
+  },
+  {
+    label: 'Analýza & finanční plán',
+    items: [
+      { name: 'Analýza & plán', href: '/plan', icon: Wallet },
       { name: 'Kalkulačky', href: '/kalkulacky', icon: Calculator },
-      { name: 'Záznam z jednání', href: '/zaznam', icon: ClipboardCheck },
+      { name: 'Pojištění z podmínek', href: '/pripad', icon: ShieldCheck },
       { name: 'Uložené plány', href: '/plany', icon: FolderClock },
+      { name: 'Záznam z jednání', href: '/zaznam', icon: ClipboardCheck },
     ],
   },
   {
     label: 'Znalosti & data',
     items: [
-      { name: 'Srovnání', href: '/srovnani', icon: Columns3 },
       { name: 'Dokumenty', href: '/admin', icon: FolderOpen },
-      { name: 'Nastavení', href: '/nastaveni', icon: Settings },
+      { name: 'Srovnání', href: '/srovnani', icon: Columns3 },
     ],
   },
 ];

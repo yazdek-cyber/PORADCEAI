@@ -13,6 +13,7 @@ import { najdiPrilezitosti, type PrioritaPrilezitosti } from '@/lib/prilezitosti
 import ModalNovyKlient from '@/components/ModalNovyKlient';
 import ProcesPripadu from '@/components/ProcesPripadu';
 import PokrytiKlienta from '@/components/PokrytiKlienta';
+import FinancniDomecek from '@/components/FinancniDomecek';
 
 const PRIORITA_STYL: Record<PrioritaPrilezitosti, { tone: 'red' | 'amber' | 'slate'; label: string }> = {
   vysoka: { tone: 'red', label: 'Vysoká' },
@@ -129,6 +130,11 @@ export default function KlientiPage() {
             </>
           }
         />
+
+        {/* Finanční domeček — vizuální přehled priorit a pokrytí (klikací na kalkulačky) */}
+        <div className="mb-5">
+          <FinancniDomecek profil={p} naAktivni={() => prepniKlienta(vybrany.id)} />
+        </div>
 
         {/* Kokpit případu + zajištění klienta — provázaná procesní linka a „co má vs. nemá" */}
         <div className="grid lg:grid-cols-2 gap-5 mb-5">

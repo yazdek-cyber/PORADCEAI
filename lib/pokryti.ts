@@ -27,7 +27,9 @@ export function pokrytiKlienta(p: Pripad): OblastPokryti[] {
     { id: 'rezerva', nazev: 'Likvidní rezerva', popis: 'doporučeno 6× měsíční výdaje',
       kryto: vydaje > 0 && (p.rezervaNasporeno ?? 0) >= vydaje * 6, odvozeno: true, href: '/kalkulacky' },
     { id: 'zivot', nazev: 'Životní pojištění', popis: 'ochrana příjmů (invalidita, smrt, PN, ZO)',
-      kryto: !!p.maZivotni, odvozeno: false, pole: 'maZivotni', href: '/plan' },
+      // pokryto: poradce zaškrtl ŽP, NEBO je zadané nějaké současné krytí ze smluv (koherence s /plan).
+      kryto: !!p.maZivotni || (p.soucasneKrytiSmrt ?? 0) > 0 || (p.soucasneKrytiInvalidita ?? 0) > 0,
+      odvozeno: false, pole: 'maZivotni', href: '/plan' },
     { id: 'auto', nazev: 'Pojištění vozidla', popis: 'povinné ručení / havarijní',
       kryto: !!p.maAuto, odvozeno: false, pole: 'maAuto', href: '/pripad' },
     { id: 'majetek', nazev: 'Pojištění majetku', popis: 'domácnost / nemovitost',
